@@ -1,0 +1,30 @@
+{
+  "name": "@packages/backend",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "convex dev",
+    "setup": "convex dev --until-success",
+    "typecheck": "tsc --noEmit -p convex"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@convex-dev/better-auth": "^0.12.2",
+    "@convex-dev/resend": "^0.2.3",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "better-auth": "^1.6.9",
+    "convex": "^1.35.1",
+    "install": "^0.13.0",
+    "openai": "^6.34.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.2",
+    "typescript": "6.0.3"
+  }
+}
