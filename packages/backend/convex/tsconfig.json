@@ -11,7 +11,6 @@
     "jsx": "react-jsx",
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node"],
 
     /* These compiler options are required by Convex */
     "target": "ESNext",
@@ -21,6 +20,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*", "../../../apps/web/components/email.tsx"],
+  "include": ["./**/*"],
   "exclude": ["./_generated"]
 }
