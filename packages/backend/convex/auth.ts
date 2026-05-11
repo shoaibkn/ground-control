@@ -5,6 +5,7 @@ import { convex } from "@convex-dev/better-auth/plugins"
 import { components } from "./_generated/api"
 import { DataModel } from "./_generated/dataModel"
 import { betterAuth, BetterAuthOptions } from "better-auth/minimal"
+import { organization } from "better-auth/plugins"
 import authConfig from "./auth.config"
 import authSchema from "./betterAuth/schema"
 import { Resend } from "@convex-dev/resend"
@@ -56,6 +57,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
+      organization(),
       // The Convex plugin is required for Convex compatibility
       convex({ authConfig }),
     ],
