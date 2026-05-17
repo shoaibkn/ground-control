@@ -22,6 +22,7 @@ export const tables = {
     createdAt: v.number(),
     updatedAt: v.number(),
     userId: v.optional(v.union(v.null(), v.string())),
+    status: v.optional(v.union(v.null(), v.string())),
   })
     .index("email_name", ["email","name"])
     .index("name", ["name"])
@@ -84,7 +85,8 @@ export const tables = {
   })
     .index("organizationId", ["organizationId"])
     .index("userId", ["userId"])
-    .index("role", ["role"]),
+    .index("role", ["role"])
+    .index("organizationId_userId", ["organizationId", "userId"]),
   invitation: defineTable({
     organizationId: v.string(),
     email: v.string(),
@@ -93,12 +95,15 @@ export const tables = {
     expiresAt: v.number(),
     createdAt: v.number(),
     inviterId: v.string(),
+    isDeleted: v.optional(v.union(v.null(), v.boolean())),
   })
     .index("organizationId", ["organizationId"])
     .index("email", ["email"])
     .index("role", ["role"])
     .index("status", ["status"])
-    .index("inviterId", ["inviterId"]),
+    .index("inviterId", ["inviterId"])
+    .index("organizationId_status", ["organizationId", "status"])
+    .index("email_organizationId_status", ["email", "organizationId", "status"]),
   jwks: defineTable({
     publicKey: v.string(),
     privateKey: v.string(),

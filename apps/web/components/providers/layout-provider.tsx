@@ -51,7 +51,7 @@ export default function LayoutProvider({
             <ThemeToggle />
           </header>
           <main className="pt-2 pr-2 pl-2 md:pl-0">
-            <ScrollArea className="h-[calc(100dvh-56px)] w-full rounded-lg border p-4 pr-2">
+            <ScrollArea className="h-[calc(100dvh-56px)] w-full rounded-lg border p-2">
               {children}
             </ScrollArea>
           </main>

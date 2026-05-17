@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as emails_InvitationEmail from "../emails/InvitationEmail.js";
 import type * as emails_VerificationEmail from "../emails/VerificationEmail.js";
 import type * as http from "../http.js";
 import type * as users from "../users.js";
@@ -21,6 +22,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "emails/InvitationEmail": typeof emails_InvitationEmail;
   "emails/VerificationEmail": typeof emails_VerificationEmail;
   http: typeof http;
   users: typeof users;

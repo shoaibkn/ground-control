@@ -3,5 +3,16 @@ import { convexClient } from "@convex-dev/better-auth/client/plugins"
 import { organizationClient } from "better-auth/client/plugins"
 
 export const authClient = createAuthClient({
-  plugins: [convexClient(), organizationClient()],
+  plugins: [
+    convexClient(),
+    organizationClient(),
+  ],
+  user: {
+    fields: {
+      status: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
 })

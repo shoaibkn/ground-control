@@ -12,7 +12,7 @@ import {
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { authClient } from "@/lib/auth-client"
 import { Loader2 } from "lucide-react"
 
@@ -20,12 +20,23 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [redirectTo, setRedirectTo] = useState("/");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const dest = params.get("redirectTo");
+      if (dest) {
+        setRedirectTo(dest);
+      }
+    }
+  }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +53,7 @@ export function SignupForm({
       email,
       password,
       name,
-      callbackURL: "/",
+      callbackURL: redirectTo,
     });
 
     if (error) {
@@ -59,7 +70,7 @@ export function SignupForm({
     setError(null);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/",
+      callbackURL: redirectTo,
     });
     if (error) {
       setError(error.message || "Failed to sign up with Google.");

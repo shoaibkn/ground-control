@@ -36,6 +36,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified: boolean;
                   image?: null | string;
                   name: string;
+                  status?: null | string;
                   updatedAt: number;
                   userId?: null | string;
                 };
@@ -106,6 +107,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   email: string;
                   expiresAt: number;
                   inviterId: string;
+                  isDeleted?: null | boolean;
                   organizationId: string;
                   role?: null | string;
                   status: string;
@@ -144,6 +146,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "createdAt"
                     | "updatedAt"
                     | "userId"
+                    | "status"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -353,6 +356,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "expiresAt"
                     | "createdAt"
                     | "inviterId"
+                    | "isDeleted"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -438,6 +442,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "createdAt"
                     | "updatedAt"
                     | "userId"
+                    | "status"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -647,6 +652,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "expiresAt"
                     | "createdAt"
                     | "inviterId"
+                    | "isDeleted"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -817,6 +823,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified?: boolean;
                   image?: null | string;
                   name?: string;
+                  status?: null | string;
                   updatedAt?: number;
                   userId?: null | string;
                 };
@@ -830,6 +837,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "createdAt"
                     | "updatedAt"
                     | "userId"
+                    | "status"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -1078,6 +1086,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   email?: string;
                   expiresAt?: number;
                   inviterId?: string;
+                  isDeleted?: null | boolean;
                   organizationId?: string;
                   role?: null | string;
                   status?: string;
@@ -1092,6 +1101,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "expiresAt"
                     | "createdAt"
                     | "inviterId"
+                    | "isDeleted"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -1179,6 +1189,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified?: boolean;
                   image?: null | string;
                   name?: string;
+                  status?: null | string;
                   updatedAt?: number;
                   userId?: null | string;
                 };
@@ -1192,6 +1203,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "createdAt"
                     | "updatedAt"
                     | "userId"
+                    | "status"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -1440,6 +1452,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   email?: string;
                   expiresAt?: number;
                   inviterId?: string;
+                  isDeleted?: null | boolean;
                   organizationId?: string;
                   role?: null | string;
                   status?: string;
@@ -1454,6 +1467,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "expiresAt"
                     | "createdAt"
                     | "inviterId"
+                    | "isDeleted"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:

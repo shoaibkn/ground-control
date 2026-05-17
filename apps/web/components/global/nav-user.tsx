@@ -45,7 +45,7 @@ export function NavUser({
   const { data: session } = authClient.useSession()
   const router = useRouter()
 
-  const user = session?.user ?? initialUser
+  const user = (session?.user ?? initialUser) as any
 
   const handleLogout = async () => {
     await authClient.signOut({
@@ -69,7 +69,7 @@ export function NavUser({
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.image ?? user.avatar} alt={user.name} />
                 <AvatarFallback className="rounded-lg">
-                  {user.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "U"}
+                  {user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -90,7 +90,7 @@ export function NavUser({
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.image ?? user.avatar} alt={user.name} />
                   <AvatarFallback className="rounded-lg">
-                    {user.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "U"}
+                    {user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
