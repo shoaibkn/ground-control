@@ -3,14 +3,17 @@
 import * as React from "react"
 import {
   AudioWaveform,
+  Bolt,
   BookOpen,
   Bot,
+  CircleCheckBig,
   Command,
   Frame,
   GalleryVerticalEnd,
   Map,
   PieChart,
   Settings2,
+  Signature,
   SquareTerminal,
 } from "lucide-react"
 
@@ -56,12 +59,12 @@ const data = {
     // },
     {
       title: "Tasks",
-      url: "#",
-      icon: Bot,
+      url: "/tasks",
+      icon: CircleCheckBig,
       items: [
         {
           title: "Genesis",
-          url: "#",
+          url: "/tasks",
         },
         {
           title: "Explorer",
@@ -76,7 +79,7 @@ const data = {
     {
       title: "Approvals",
       url: "#",
-      icon: BookOpen,
+      icon: Signature,
       items: [
         {
           title: "Introduction",
@@ -99,11 +102,19 @@ const data = {
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings2,
+      icon: Bolt,
       items: [
         {
-          title: "General",
-          url: "/settings",
+          title: "Organisation",
+          url: "/settings?tab=organization",
+        },
+        {
+          title: "Members",
+          url: "/settings?tab=members",
+        },
+        {
+          title: "Subscription",
+          url: "/settings?tab=subscription",
         },
         // {
         //   title: "Team",

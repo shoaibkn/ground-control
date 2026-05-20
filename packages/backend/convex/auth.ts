@@ -12,6 +12,7 @@ import { Resend } from "@convex-dev/resend"
 import { render } from "@react-email/render"
 import { VerificationEmail } from "./emails/VerificationEmail"
 import { InvitationEmail } from "./emails/InvitationEmail"
+import { ResetPasswordEmail } from "./emails/ResetPasswordEmail"
 import { createAuthMiddleware, APIError } from "better-auth/api"
 
 const siteUrl = process.env.SITE_URL!
@@ -113,6 +114,14 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
+      sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
+        await resend.sendEmail(ctx as any, {
+          from: "Ground Control <onboarding@resend.dev>",
+          to: user.email,
+          subject: "Reset your Ground Control password",
+          html: await render(ResetPasswordEmail({ url })),
+        })
+      },
     },
     emailVerification: {
       sendOnSignUp: true,

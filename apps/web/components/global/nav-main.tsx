@@ -1,6 +1,11 @@
 "use client"
 
-import { ChevronRight, LayoutDashboard, type LucideIcon } from "lucide-react"
+import {
+  ChevronRight,
+  Home,
+  LayoutDashboard,
+  type LucideIcon,
+} from "lucide-react"
 
 import {
   Collapsible,
@@ -34,14 +39,18 @@ export function NavMain({
   }[]
 }) {
   return (
-    <SidebarGroup>
+    <SidebarGroup className="transition-all duration-700">
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
 
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton tooltip={"Dashboard"} asChild>
+          <SidebarMenuButton
+            tooltip={"Dashboard"}
+            asChild
+            className="h-10 rounded-full px-4"
+          >
             <Link href="/dashboard">
-              <LayoutDashboard />
+              <Home />
               <span>Dashboard</span>
             </Link>
           </SidebarMenuButton>
@@ -55,17 +64,23 @@ export function NavMain({
           >
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  className="h-10 rounded-full px-4"
+                >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
+              <CollapsibleContent className="transition-all duration-700">
+                <SidebarMenuSub className="transition-all duration-700">
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
+                      <SidebarMenuSubButton
+                        asChild
+                        className="h-8 rounded-full px-6"
+                      >
                         <Link href={subItem.url}>
                           <span>{subItem.title}</span>
                         </Link>

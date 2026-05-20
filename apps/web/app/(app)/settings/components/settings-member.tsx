@@ -55,8 +55,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Eye,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { MemberProfileDialog } from "./member-profile-dialog"
 
 export default function MemberSettings() {
   const {
@@ -88,6 +90,12 @@ export default function MemberSettings() {
 
   // Member management states
   const [managingMemberId, setManagingMemberId] = useState<string | null>(null)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [profileDialogMemberId, setProfileDialogMemberId] = useState<
+    string | null
+  >(null)
+  const [memberSearch, setMemberSearch] = useState("")
+  const [memberPage, setMemberPage] = useState(1)
 
   const handleToggleBlockMember = async (
     memberId: string,
@@ -285,6 +293,34 @@ export default function MemberSettings() {
     return filteredInvitations.slice(startIndex, startIndex + itemsPerPage)
   }, [filteredInvitations, invitePage])
 
+  // Reset pagination page when search changes for members
+  useEffect(() => {
+    setMemberPage(1)
+  }, [memberSearch])
+
+  // Filtered members based on search input
+  const filteredMembers = useMemo(() => {
+    if (!activeOrg?.members) return []
+    return activeOrg.members.filter((member: any) => {
+      const nameMatch = member.user?.name
+        ?.toLowerCase()
+        .includes(memberSearch.toLowerCase())
+      const emailMatch = member.user?.email
+        ?.toLowerCase()
+        .includes(memberSearch.toLowerCase())
+      return nameMatch || emailMatch
+    })
+  }, [activeOrg?.members, memberSearch])
+
+  // Total pages count for members
+  const totalMemberPages = Math.ceil(filteredMembers.length / itemsPerPage)
+
+  // Paginated members for the current page
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (memberPage - 1) * itemsPerPage
+    return filteredMembers.slice(startIndex, startIndex + itemsPerPage)
+  }, [filteredMembers, memberPage])
+
   // Handler to cancel an invitation
   const handleCancelInvite = async (invitationId: string) => {
     if (!canInvite) {
@@ -415,6 +451,12 @@ export default function MemberSettings() {
 
   return (
     <>
+      <MemberProfileDialog
+        isOpen={profileDialogOpen}
+        setIsOpen={setProfileDialogOpen}
+        memberId={profileDialogMemberId}
+        organizationId={activeOrg?.id || null}
+      />
       {!isMemberPending && !canInvite ? (
         <Card className="border-muted bg-muted/10 p-2">
           <CardHeader className="p-0">
@@ -515,7 +557,19 @@ export default function MemberSettings() {
                 <TabsTrigger value="members">Members</TabsTrigger>
                 <TabsTrigger value="invitations">Invitations</TabsTrigger>
               </TabsList>
-              <TabsContent value="members">
+              <TabsContent value="members" className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="relative max-w-sm flex-1">
+                    <Search className="absolute top-2.5 left-2.5 h-4 w-4 rounded-l-lg text-muted-foreground" />
+                    <Input
+                      placeholder="Search members..."
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -527,7 +581,7 @@ export default function MemberSettings() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeOrg?.members?.map((member: any) => (
+                      {paginatedMembers.map((member: any) => (
                         <TableRow key={member.id}>
                           <TableCell className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
@@ -578,7 +632,17 @@ export default function MemberSettings() {
                           <TableCell className="text-muted-foreground">
                             {new Date(member.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="flex flex-row items-center justify-end gap-1">
+                            <Button
+                              variant={"ghost"}
+                              size="icon-sm"
+                              onClick={() => {
+                                setProfileDialogMemberId(member.userId)
+                                setProfileDialogOpen(true)
+                              }}
+                            >
+                              <Eye />
+                            </Button>
                             {canInvite &&
                             member.userId !== session?.user?.id &&
                             member.role !== "owner" ? (
@@ -601,6 +665,15 @@ export default function MemberSettings() {
                                   className="w-45"
                                 >
                                   <DropdownMenuGroup>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setProfileDialogMemberId(member.userId)
+                                        setProfileDialogOpen(true)
+                                      }}
+                                      disabled={managingMemberId === member.id}
+                                    >
+                                      Manage Profile
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() =>
                                         handleChangeMemberRole(
@@ -650,12 +723,11 @@ export default function MemberSettings() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {(!activeOrg?.members ||
-                        activeOrg.members.length === 0) && (
+                      {paginatedMembers.length === 0 && (
                         <TableRow>
                           <TableCell
                             colSpan={4}
-                            className="text-center text-muted-foreground"
+                            className="h-24 text-center text-muted-foreground"
                           >
                             No members found.
                           </TableCell>
@@ -664,6 +736,42 @@ export default function MemberSettings() {
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalMemberPages > 1 && (
+                  <div className="flex items-center justify-between px-2">
+                    <span className="text-sm text-muted-foreground">
+                      Showing {(memberPage - 1) * itemsPerPage + 1} to{" "}
+                      {Math.min(
+                        memberPage * itemsPerPage,
+                        filteredMembers.length
+                      )}{" "}
+                      of {filteredMembers.length} members
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
+                        disabled={memberPage === 1}
+                      >
+                        <ChevronLeft className="mr-1 h-4 w-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setMemberPage((p) => Math.min(totalMemberPages, p + 1))
+                        }
+                        disabled={memberPage === totalMemberPages}
+                      >
+                        Next
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="invitations" className="space-y-4">

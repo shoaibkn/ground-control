@@ -159,3 +159,38 @@ export const deleteInvitation = mutation({
     return { success: true }
   },
 })
+
+export const getUserProviders = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = (await ctx.runQuery(
+      components.betterAuth.adapter.findOne,
+      {
+        model: "user",
+        where: [{ field: "email", value: args.email }],
+      }
+    )) as any
+
+    if (!user) {
+      return { exists: false, providers: [] }
+    }
+
+    const accountsResult = (await ctx.runQuery(
+      components.betterAuth.adapter.findMany,
+      {
+        model: "account",
+        where: [{ field: "userId", value: user._id }],
+        paginationOpts: { numItems: 10, cursor: null },
+      }
+    )) as any
+
+    const accounts = accountsResult?.page || []
+    const providers = accounts.map((acc: any) => acc.providerId)
+
+    return {
+      exists: true,
+      providers,
+    }
+  },
+})
+

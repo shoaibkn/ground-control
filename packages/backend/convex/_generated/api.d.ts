@@ -9,9 +9,17 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as emails_InvitationEmail from "../emails/InvitationEmail.js";
+import type * as emails_ResetPasswordEmail from "../emails/ResetPasswordEmail.js";
 import type * as emails_VerificationEmail from "../emails/VerificationEmail.js";
 import type * as http from "../http.js";
+import type * as memberProfiles from "../memberProfiles.js";
+import type * as permissions from "../permissions.js";
+import type * as taskAttachments from "../taskAttachments.js";
+import type * as taskComments from "../taskComments.js";
+import type * as taskCron from "../taskCron.js";
+import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
 
 import type {
@@ -22,9 +30,17 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
   "emails/InvitationEmail": typeof emails_InvitationEmail;
+  "emails/ResetPasswordEmail": typeof emails_ResetPasswordEmail;
   "emails/VerificationEmail": typeof emails_VerificationEmail;
   http: typeof http;
+  memberProfiles: typeof memberProfiles;
+  permissions: typeof permissions;
+  taskAttachments: typeof taskAttachments;
+  taskComments: typeof taskComments;
+  taskCron: typeof taskCron;
+  tasks: typeof tasks;
   users: typeof users;
 }>;
 
