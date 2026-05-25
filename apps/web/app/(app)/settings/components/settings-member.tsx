@@ -458,7 +458,7 @@ export default function MemberSettings() {
         organizationId={activeOrg?.id || null}
       />
       {!isMemberPending && !canInvite ? (
-        <Card className="border-muted bg-muted/10 p-2">
+        <Card className="max-w-[calc(100dvw-40px)] border-muted bg-muted/10 p-2">
           <CardHeader className="p-0">
             <CardTitle className="flex items-center gap-2 p-0 text-muted-foreground">
               Invite Member
@@ -470,7 +470,7 @@ export default function MemberSettings() {
           </CardHeader>
         </Card>
       ) : (
-        <Card className="p-2">
+        <Card className="max-w-[calc(100dvw-40px)] p-2">
           <CardHeader className="p-0">
             <CardTitle className="p-0">Invite Member</CardTitle>
             <CardDescription className="p-0">
@@ -539,7 +539,7 @@ export default function MemberSettings() {
         </Card>
       )}
 
-      <Card className="p-2">
+      <Card className="max-w-[calc(100dvw-40px)] p-2">
         <CardHeader className="p-0">
           <CardTitle>Organization Members</CardTitle>
           <CardDescription>
@@ -762,7 +762,9 @@ export default function MemberSettings() {
                         variant="outline"
                         size="sm"
                         onClick={() =>
-                          setMemberPage((p) => Math.min(totalMemberPages, p + 1))
+                          setMemberPage((p) =>
+                            Math.min(totalMemberPages, p + 1)
+                          )
                         }
                         disabled={memberPage === totalMemberPages}
                       >

@@ -37,7 +37,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [priority, setPriority] = useState<"Low" | "Normal" | "High" | "Urgent" | "Critical">("Normal")
+  const [priority, setPriority] = useState<string>("5")
   const [dueDateStr, setDueDateStr] = useState("")
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -77,7 +77,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
       // Reset form fields
       setTitle("")
       setDescription("")
-      setPriority("Normal")
+      setPriority("5")
       setDueDateStr("")
       setSelectedAssignees([])
       setIsOpen(false)
@@ -140,18 +140,18 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
               </Label>
               <Select
                 value={priority}
-                onValueChange={(val) => setPriority(val as any)}
+                onValueChange={setPriority}
                 disabled={isSubmitting}
               >
                 <SelectTrigger id="task-priority" className="w-full h-9 bg-input/20 dark:bg-input/30">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent position="popper">
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Normal">Normal</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Urgent">Urgent</SelectItem>
-                  <SelectItem value="Critical">Critical</SelectItem>
+                  {Array.from({ length: 10 }, (_, i) => String(i + 1)).map((val) => (
+                    <SelectItem key={val} value={val}>
+                      {val} - {val === "1" ? "Lowest" : val === "10" ? "Highest" : `Level ${val}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -1,11 +1,9 @@
-import { AppSidebar } from "../global/app-sidebar"
+"use client"
+
 import { OrgGuard } from "../global/org-guard"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@workspace/ui/components/sidebar"
-import { ScrollArea } from "@workspace/ui/components/scroll-area"
+import { AppSidebar } from "../global/app-sidebar"
 import Header from "../global/header"
+import { SidebarProvider, SidebarInset } from "@workspace/ui/components/sidebar"
 
 export default function LayoutProvider({
   children,
@@ -16,14 +14,14 @@ export default function LayoutProvider({
     <OrgGuard>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset className="sticky top-0">
-          <header className="mt-2 mr-2 ml-2 flex h-8 shrink-0 items-center justify-between gap-2 rounded-lg border pr-1 pl-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-8 md:ml-0">
+        <SidebarInset className="flex h-screen flex-col overflow-hidden bg-background">
+          {/* Top Bar / Header */}
+          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur-sm">
             <Header />
           </header>
-          <main className="pt-2 pr-2 pl-2 md:pl-0">
-            <ScrollArea className="h-[calc(100dvh-56px)] w-full rounded-lg border p-2">
-              {children}
-            </ScrollArea>
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto bg-muted/5 p-4">
+            <div className="mx-auto w-full">{children}</div>
           </main>
         </SidebarInset>
       </SidebarProvider>

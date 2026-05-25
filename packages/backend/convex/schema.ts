@@ -63,4 +63,12 @@ export default defineSchema({
     resource: v.string(),
     actions: v.array(v.string()),
   }).index("by_organization_role", ["organizationId", "role"]),
+
+  subtasks: defineTable({
+    taskId: v.id("tasks"),
+    title: v.string(),
+    isCompleted: v.boolean(),
+    creatorId: v.string(),
+    createdAt: v.number(),
+  }).index("by_task", ["taskId"]),
 })

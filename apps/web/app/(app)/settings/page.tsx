@@ -13,6 +13,8 @@ import PermissionsSettings from "./components/settings-permissions"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { router } from "better-auth/api"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
+import { cn } from "@workspace/ui/lib/utils"
 
 type PageProps = {
   searchParams: Promise<{
@@ -24,6 +26,7 @@ export default function SettingsPage() {
   const searchParams = useSearchParams()
 
   const tab = searchParams.get("tab") || "organization"
+  const isMobile = useIsMobile()
 
   const router = useRouter()
   const handleTabChange = (value: string) => {
@@ -33,9 +36,9 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 space-y-4 p-1 md:p-2">
       <Toaster />
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-      </div>
+      </div> */}
 
       <Tabs
         defaultValue={tab || "organization"}
@@ -43,22 +46,51 @@ export default function SettingsPage() {
         onValueChange={handleTabChange}
         className="space-y-2"
       >
-        <TabsList className="w-full justify-start md:w-fit">
-          <TabsTrigger value="organization" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            <span className="">Organization</span>
+        <TabsList
+          className={cn(
+            "min-h-12 w-full max-w-md [scrollbar-width:none] scrollbar-none flex-nowrap justify-start overflow-x-auto [-ms-overflow-style:none] md:min-h-fit md:w-fit [&::-webkit-scrollbar]:hidden",
+            { "mx-auto": isMobile }
+          )}
+        >
+          <TabsTrigger
+            value="organization"
+            className="flex shrink-0 items-center gap-2 md:h-fit"
+          >
+            <Building
+              className={cn("h-4 w-4", { "size-4": isMobile })}
+              strokeWidth={1}
+            />
+            {!isMobile && <span>Organization</span>}
           </TabsTrigger>
-          <TabsTrigger value="members" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Members
+          <TabsTrigger
+            value="members"
+            className="flex shrink-0 items-center gap-2"
+          >
+            <Users
+              className={cn("h-4 w-4", { "size-4": isMobile })}
+              strokeWidth={1}
+            />
+            {!isMobile && <span>Members</span>}
           </TabsTrigger>
-          <TabsTrigger value="subscription" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Subscription
+          <TabsTrigger
+            value="subscription"
+            className="flex shrink-0 items-center gap-2"
+          >
+            <CreditCard
+              className={cn("h-4 w-4", { "size-4": isMobile })}
+              strokeWidth={1}
+            />
+            {!isMobile && <span className="">Organization</span>}
           </TabsTrigger>
-          <TabsTrigger value="permissions" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Permissions
+          <TabsTrigger
+            value="permissions"
+            className="flex shrink-0 items-center gap-2"
+          >
+            <Users
+              className={cn("h-4 w-4", { "size-4": isMobile })}
+              strokeWidth={1}
+            />
+            {!isMobile && <span className="">Organization</span>}
           </TabsTrigger>
         </TabsList>
 
@@ -73,7 +105,7 @@ export default function SettingsPage() {
         <TabsContent value="subscription" className="space-y-4">
           <SubscriptionSettings />
         </TabsContent>
-        
+
         <TabsContent value="permissions" className="space-y-4">
           <PermissionsSettings />
         </TabsContent>

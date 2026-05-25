@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Fragment } from "react"
+import { usePathname } from "next/navigation"
 import {
   Bell,
   Check,
@@ -21,6 +22,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu"
 import { Button } from "@workspace/ui/components/button"
 import { ThemeToggle } from "./theme-toggle"
+import { AnimatedIcon } from "./animated-icon"
 import { SidebarTrigger } from "@workspace/ui/components/sidebar"
 import { Separator } from "@workspace/ui/components/separator"
 import {
@@ -78,6 +80,20 @@ const initialNotifications: Notification[] = [
 ]
 
 export default function Header() {
+  const pathname = usePathname()
+  const pathSegments = pathname.split("/").filter(Boolean)
+
+  const getSegmentLabel = (segment: string) => {
+    const mapping: Record<string, string> = {
+      dashboard: "Home",
+      chats: "Inbox",
+      tasks: "Tasks",
+      approvals: "Approvals",
+      settings: "Settings",
+    }
+    return mapping[segment.toLowerCase()] || segment.charAt(0).toUpperCase() + segment.slice(1)
+  }
+
   const [notifications, setNotifications] = useState<Notification[]>(
     initialNotifications
   )
@@ -118,13 +134,27 @@ export default function Header() {
         />
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="#">Build Your Application</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage>Settings</BreadcrumbPage>
+              <BreadcrumbLink href="/dashboard">Ground Control</BreadcrumbLink>
             </BreadcrumbItem>
+            {pathSegments.map((segment, index) => {
+              const url = `/${pathSegments.slice(0, index + 1).join("/")}`
+              const isLast = index === pathSegments.length - 1
+              const label = getSegmentLabel(segment)
+
+              return (
+                <Fragment key={segment}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {isLast ? (
+                      <BreadcrumbPage>{label}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink href={url}>{label}</BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </Fragment>
+              )
+            })}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
@@ -134,8 +164,8 @@ export default function Header() {
         {/* Notification Bell Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-8 w-8">
-              <Bell className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="animate-icon-group group/btn relative h-8 w-8">
+              <AnimatedIcon icon={Bell} animation="wiggle" className="h-4 w-4 text-muted-foreground group-hover/btn:text-foreground transition-colors duration-200" />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>

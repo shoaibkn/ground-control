@@ -176,3 +176,188 @@ export const updateTaskStatus = mutation({
     return { success: true, newStatus: args.status }
   },
 })
+
+export const getTask = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) return null
+    await requireMember(ctx, user._id, task.organizationId)
+    return task
+  },
+})
+
+export const updateTaskDetails = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    dueDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    // Check if the user is creator or an assignee of the task
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCreator = task.creatorId === user._id
+    if (!isAssignee && !isCreator) {
+      throw new Error("Only the creator or assignees can edit task details")
+    }
+
+    const patch: Record<string, any> = {}
+    if (args.title !== undefined) patch.title = args.title
+    if (args.description !== undefined) patch.description = args.description
+    if (args.priority !== undefined) patch.priority = args.priority
+    if (args.dueDate !== undefined) patch.dueDate = args.dueDate
+
+    await ctx.db.patch(args.taskId, patch)
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: "TASK_UPDATED",
+      details: patch,
+      timestamp: Date.now(),
+    })
+
+    return { success: true }
+  },
+})
+
+export const inviteAssignees = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    assigneeIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    // Verify user is assignee or creator
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCreator = task.creatorId === user._id
+    if (!isAssignee && !isCreator) {
+      throw new Error("Only the creator or assignees can invite members")
+    }
+
+    // Merge assignees, avoiding duplicates
+    const uniqueAssignees = Array.from(new Set([...task.assigneeIds, ...args.assigneeIds]))
+
+    await ctx.db.patch(args.taskId, {
+      assigneeIds: uniqueAssignees,
+    })
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: "ASSIGNEES_UPDATED",
+      details: { previous: task.assigneeIds, new: uniqueAssignees },
+      timestamp: Date.now(),
+    })
+
+    return { success: true, assigneeIds: uniqueAssignees }
+  },
+})
+
+export const createSubtask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    // Verify user is assignee or creator
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCreator = task.creatorId === user._id
+    if (!isAssignee && !isCreator) {
+      throw new Error("Only the creator or assignees can add subtasks")
+    }
+
+    const subtaskId = await ctx.db.insert("subtasks", {
+      taskId: args.taskId,
+      title: args.title,
+      isCompleted: false,
+      creatorId: user._id,
+      createdAt: Date.now(),
+    })
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: "SUBTASK_CREATED",
+      details: { subtaskId, title: args.title },
+      timestamp: Date.now(),
+    })
+
+    return subtaskId
+  },
+})
+
+export const toggleSubtask = mutation({
+  args: {
+    subtaskId: v.id("subtasks"),
+    isCompleted: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const subtask = await ctx.db.get(args.subtaskId)
+    if (!subtask) throw new Error("Subtask not found")
+
+    const task = await ctx.db.get(subtask.taskId)
+    if (!task) throw new Error("Parent task not found")
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    // Verify user is assignee or creator
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCreator = task.creatorId === user._id
+    if (!isAssignee && !isCreator) {
+      throw new Error("Only the creator or assignees can toggle subtasks")
+    }
+
+    await ctx.db.patch(args.subtaskId, {
+      isCompleted: args.isCompleted,
+    })
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: subtask.taskId,
+      actorId: user._id,
+      action: "SUBTASK_TOGGLED",
+      details: { subtaskId: args.subtaskId, title: subtask.title, isCompleted: args.isCompleted },
+      timestamp: Date.now(),
+    })
+
+    return { success: true }
+  },
+})
+
+export const getSubtasks = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) return []
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    return await ctx.db
+      .query("subtasks")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .order("asc")
+      .collect()
+  },
+})
