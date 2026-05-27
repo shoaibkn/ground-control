@@ -5,6 +5,8 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:native": "turbo dev --filter @workspace/native",
+    "native": "pnpm --filter @workspace/native",
     "lint": "turbo lint",
     "format": "turbo format",
     "typecheck": "turbo typecheck"

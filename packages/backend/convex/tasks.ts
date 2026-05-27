@@ -361,3 +361,60 @@ export const getSubtasks = query({
       .collect()
   },
 })
+
+export const getTaskAuditLogs = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) return []
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    const logs = await ctx.db
+      .query("taskAuditLogs")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .order("desc")
+      .collect()
+
+    // Resolve actor profiles for each log entry
+    const logsWithActors = []
+    for (const log of logs) {
+      const isSystemActor = log.actorId.toUpperCase() === "SYSTEM"
+      let actor = null
+
+      if (!isSystemActor && log.actorId && log.actorId.length >= 15) {
+        try {
+          actor = (await ctx.runQuery(
+            components.betterAuth.adapter.findOne,
+            {
+              model: "user",
+              where: [{ field: "_id", value: log.actorId }],
+            }
+          )) as any
+        } catch (err) {
+          console.error(`Failed to find user profile for actorId: ${log.actorId}`, err)
+        }
+      }
+
+      logsWithActors.push({
+        ...log,
+        actor: isSystemActor ? {
+          name: "System",
+          email: "",
+          image: "",
+        } : actor ? {
+          name: actor.name,
+          email: actor.email,
+          image: actor.image,
+        } : {
+          name: "Unknown Member",
+          email: "",
+          image: ""
+        }
+      })
+    }
+
+    return logsWithActors
+  },
+})

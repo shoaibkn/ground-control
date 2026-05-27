@@ -91,12 +91,14 @@ export default function Header() {
       approvals: "Approvals",
       settings: "Settings",
     }
-    return mapping[segment.toLowerCase()] || segment.charAt(0).toUpperCase() + segment.slice(1)
+    return (
+      mapping[segment.toLowerCase()] ||
+      segment.charAt(0).toUpperCase() + segment.slice(1)
+    )
   }
 
-  const [notifications, setNotifications] = useState<Notification[]>(
-    initialNotifications
-  )
+  const [notifications, setNotifications] =
+    useState<Notification[]>(initialNotifications)
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -164,8 +166,16 @@ export default function Header() {
         {/* Notification Bell Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="animate-icon-group group/btn relative h-8 w-8">
-              <AnimatedIcon icon={Bell} animation="wiggle" className="h-4 w-4 text-muted-foreground group-hover/btn:text-foreground transition-colors duration-200" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="animate-icon-group group/btn relative h-8 w-8"
+            >
+              <AnimatedIcon
+                icon={Bell}
+                animation="wiggle"
+                className="h-4 w-4 text-muted-foreground transition-colors duration-200 group-hover/btn:text-foreground"
+              />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
@@ -179,7 +189,8 @@ export default function Header() {
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold">Notifications</span>
                 <span className="text-xs font-normal text-muted-foreground">
-                  You have {unreadCount} unread message{unreadCount !== 1 && "s"}
+                  You have {unreadCount} unread message
+                  {unreadCount !== 1 && "s"}
                 </span>
               </div>
               {unreadCount > 0 && (
@@ -221,11 +232,11 @@ export default function Header() {
                           <p className="text-xs font-semibold">
                             {notification.title}
                           </p>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          <span className="text-[10px] whitespace-nowrap text-muted-foreground">
                             {notification.time}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
+                        <p className="line-clamp-2 text-xs text-muted-foreground">
                           {notification.description}
                         </p>
                       </div>
