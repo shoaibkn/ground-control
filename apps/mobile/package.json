@@ -1,8 +1,7 @@
 {
-  "name": "@workspace/native",
+  "name": "mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
-  "type": "module",
   "dependencies": {
     "@expo/ui": "~56.0.14",
     "expo": "~56.0.5",
@@ -30,17 +29,14 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "@workspace/eslint-config": "workspace:*",
-    "eslint": "^9.39.2",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "dev": "expo start",
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
+    "reset-project": "node ./scripts/reset-project.js",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "build": "expo export",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
