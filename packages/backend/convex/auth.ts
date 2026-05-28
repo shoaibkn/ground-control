@@ -6,6 +6,7 @@ import { components } from "./_generated/api"
 import { DataModel } from "./_generated/dataModel"
 import { betterAuth, BetterAuthOptions } from "better-auth/minimal"
 import { organization } from "better-auth/plugins"
+import { expo } from "@better-auth/expo"
 import authConfig from "./auth.config"
 import authSchema from "./betterAuth/schema"
 import { Resend } from "@convex-dev/resend"
@@ -36,6 +37,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     baseURL: siteUrl,
     database: authComponent.adapter(ctx),
     secret: process.env.BETTER_AUTH_SECRET,
+    trustedOrigins: ["exp://", "mobile://"],
     user: {
       fields: {
         status: {
@@ -136,6 +138,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
+      expo(),
       convex({ authConfig }),
       organization({
         invitation: {
