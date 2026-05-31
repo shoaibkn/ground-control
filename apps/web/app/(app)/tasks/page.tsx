@@ -9,6 +9,7 @@ import { ButtonGroup } from "@workspace/ui/components/button-group"
 import { Input } from "@workspace/ui/components/input"
 import { Badge } from "@workspace/ui/components/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@workspace/ui/components/tooltip"
 import {
   Table,
   TableBody,
@@ -277,12 +278,20 @@ export default function TasksPage() {
                             task.assigneeIds.map((userId: string) => {
                               const user = getAssigneeDetails(userId)
                               return (
-                                <Avatar key={userId} className="h-5.5 w-5.5 border-2 border-card shadow-xs">
-                                  <AvatarImage src={user?.image || undefined} />
-                                  <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
-                                    {user?.name?.charAt(0) || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <Tooltip key={userId}>
+                                  <TooltipTrigger asChild>
+                                    <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs cursor-pointer">
+                                      <AvatarImage src={user?.image || undefined} />
+                                      <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
+                                        {user?.name?.charAt(0) || "U"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
+                                    <span className="font-semibold text-xs">{user?.name || "Unknown User"}</span>
+                                    {user?.email && <span className="text-[10px] text-muted-foreground">{user?.email}</span>}
+                                  </TooltipContent>
+                                </Tooltip>
                               )
                             })
                           ) : (
@@ -379,18 +388,20 @@ export default function TasksPage() {
                                 task.assigneeIds.map((userId: string) => {
                                   const user = getAssigneeDetails(userId)
                                   return (
-                                    <div key={userId} className="group relative">
-                                      <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs transition-transform hover:translate-y-[-2px] cursor-pointer">
-                                        <AvatarImage src={user?.image || undefined} />
-                                        <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
-                                          {user?.name?.charAt(0) || "U"}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      {/* Tooltip */}
-                                      <span className="absolute bottom-full left-1/2 ml-[-40px] mb-1 px-1.5 py-0.5 bg-popover text-popover-foreground text-[9px] border rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                        {user?.name || "Unknown User"}
-                                      </span>
-                                    </div>
+                                    <Tooltip key={userId}>
+                                      <TooltipTrigger asChild>
+                                        <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs transition-transform hover:translate-y-[-2px] cursor-pointer">
+                                          <AvatarImage src={user?.image || undefined} />
+                                          <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
+                                            {user?.name?.charAt(0) || "U"}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
+                                        <span className="font-semibold text-xs">{user?.name || "Unknown User"}</span>
+                                        {user?.email && <span className="text-[10px] text-muted-foreground">{user?.email}</span>}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   )
                                 })
                               ) : (

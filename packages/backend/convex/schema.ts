@@ -26,6 +26,8 @@ export default defineSchema({
     creatorId: v.string(),
     organizationId: v.string(),
     assigneeIds: v.array(v.string()),
+    collaboratorIds: v.optional(v.array(v.string())),
+    subscriberIds: v.optional(v.array(v.string())),
     isArchived: v.boolean(),
     lastOverdueNotifiedAt: v.optional(v.number()),
   }).index("by_organization", ["organizationId"]),

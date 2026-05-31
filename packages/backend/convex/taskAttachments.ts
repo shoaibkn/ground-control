@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { authComponent } from "./auth"
+import { components } from "./_generated/api"
 
 async function requireAuth(ctx: any) {
   const user = await authComponent.getAuthUser(ctx)
@@ -10,10 +11,44 @@ async function requireAuth(ctx: any) {
   return user
 }
 
+async function requireMember(ctx: any, userId: string, organizationId: string) {
+  const memberResult = (await ctx.runQuery(
+    components.betterAuth.adapter.findMany,
+    {
+      model: "member",
+      where: [
+        { field: "userId", value: userId },
+        { field: "organizationId", value: organizationId },
+      ],
+      paginationOpts: { numItems: 1, cursor: null },
+    }
+  )) as any
+
+  const member = memberResult?.page?.[0]
+  if (!member) {
+    throw new Error("User is not a member of this organization")
+  }
+  return member
+}
+
 export const getAttachments = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx)
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
+    const isSubscriber = task.subscriberIds?.includes(user._id) || false
+
+    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
+      throw new Error("Permission denied to read attachments for this task")
+    }
+
     return await ctx.db
       .query("taskAttachments")
       .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
@@ -35,6 +70,17 @@ export const registerAttachment = mutation({
     
     if (!task) throw new Error("Task not found")
     if (task.isArchived) throw new Error("Cannot add attachment to archived task")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
+    const isSubscriber = task.subscriberIds?.includes(user._id) || false
+
+    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
+      throw new Error("Permission denied to register attachment on this task")
+    }
 
     const attachmentId = await ctx.db.insert("taskAttachments", {
       taskId: args.taskId,
@@ -68,9 +114,17 @@ export const deleteAttachment = mutation({
     if (!attachment) throw new Error("Attachment not found")
 
     const task = await ctx.db.get(attachment.taskId)
-    if (task?.isArchived) throw new Error("Cannot delete attachment from archived task")
+    if (!task) throw new Error("Task not found")
+    if (task.isArchived) throw new Error("Cannot delete attachment from archived task")
 
-    // In a real app, verify they have permission to delete (Admins/Owners)
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+
+    if (attachment.uploaderId !== user._id && !isCreator && !isAdminOrOwner) {
+      throw new Error("Unauthorized to delete this attachment")
+    }
+
     await ctx.db.delete(args.attachmentId)
 
     // Log deletion

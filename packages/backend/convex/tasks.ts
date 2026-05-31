@@ -47,6 +47,8 @@ export const createTask = mutation({
     dueDate: v.optional(v.number()),
     organizationId: v.string(),
     assigneeIds: v.array(v.string()),
+    collaboratorIds: v.optional(v.array(v.string())),
+    subscriberIds: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
@@ -59,11 +61,24 @@ export const createTask = mutation({
 
     const canAssign = await hasPermission(ctx, args.organizationId, member.role, "tasks", "assign")
     let finalAssignees = args.assigneeIds
+    let finalCollaborators = args.collaboratorIds || []
+    let finalSubscribers = args.subscriberIds || []
 
-    // If they cannot assign to others, force assignee to be themselves
+    // If they cannot assign to others, force assignee to be themselves and clear others
     if (!canAssign) {
       finalAssignees = [user._id]
+      finalCollaborators = []
+      finalSubscribers = []
     }
+
+    // Ensure role exclusivity: Assignees > Collaborators > Subscribers
+    const assigneeSet = new Set(finalAssignees)
+    const collaboratorSet = new Set(finalCollaborators.filter((id: string) => !assigneeSet.has(id)))
+    const subscriberSet = new Set(finalSubscribers.filter((id: string) => !assigneeSet.has(id) && !collaboratorSet.has(id)))
+
+    const cleanAssignees = Array.from(assigneeSet)
+    const cleanCollaborators = Array.from(collaboratorSet)
+    const cleanSubscribers = Array.from(subscriberSet)
 
     const taskId = await ctx.db.insert("tasks", {
       title: args.title,
@@ -73,7 +88,9 @@ export const createTask = mutation({
       dueDate: args.dueDate,
       creatorId: user._id,
       organizationId: args.organizationId,
-      assigneeIds: finalAssignees,
+      assigneeIds: cleanAssignees,
+      collaboratorIds: cleanCollaborators,
+      subscriberIds: cleanSubscribers,
       isArchived: false,
     })
 
@@ -82,7 +99,12 @@ export const createTask = mutation({
       taskId,
       actorId: user._id,
       action: "TASK_CREATED",
-      details: { title: args.title, assignees: finalAssignees },
+      details: { 
+        title: args.title, 
+        assignees: cleanAssignees,
+        collaborators: cleanCollaborators,
+        subscribers: cleanSubscribers
+      },
       timestamp: Date.now(),
     })
 
@@ -116,8 +138,14 @@ export const getTasks = query({
       return tasks
     }
 
-    // Only read own
-    return tasks.filter((task) => task.creatorId === user._id || task.assigneeIds.includes(user._id))
+    // Only read own (creator, assignee, collaborator, or subscriber)
+    return tasks.filter(
+      (task) =>
+        task.creatorId === user._id ||
+        task.assigneeIds.includes(user._id) ||
+        task.collaboratorIds?.includes(user._id) ||
+        task.subscriberIds?.includes(user._id)
+    )
   },
 })
 
@@ -136,6 +164,7 @@ export const updateTaskStatus = mutation({
     const member = await requireMember(ctx, user._id, task.organizationId)
 
     const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
     const canComplete = await hasPermission(ctx, task.organizationId, member.role, "tasks", "complete")
     const canCancel = await hasPermission(ctx, task.organizationId, member.role, "tasks", "cancel")
@@ -148,7 +177,7 @@ export const updateTaskStatus = mutation({
     if (args.status === "Completed" && !canComplete) {
       // If a member marks it as completed, it should actually go to "Under Review"
       // But let's allow them to request "Completed" and we intercept it
-      if (isAssignee || isCreator) {
+      if (isAssignee || isCollaborator || isCreator) {
         args.status = "Under Review"
       } else {
         throw new Error("Unauthorized to complete task")
@@ -157,7 +186,7 @@ export const updateTaskStatus = mutation({
 
     // Member moving forward
     if (args.status === "In Progress" || args.status === "Under Review") {
-      if (!isAssignee && !isCreator && !canComplete) {
+      if (!isAssignee && !isCollaborator && !isCreator && !canComplete) {
         throw new Error("Permission denied to update task status")
       }
     }
@@ -183,7 +212,18 @@ export const getTask = query({
     const user = await requireAuth(ctx)
     const task = await ctx.db.get(args.taskId)
     if (!task) return null
-    await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, task.organizationId)
+
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
+    const isSubscriber = task.subscriberIds?.includes(user._id) || false
+
+    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
+      throw new Error("Permission denied to view this task")
+    }
+
     return task
   },
 })
@@ -201,13 +241,13 @@ export const updateTaskDetails = mutation({
     const task = await ctx.db.get(args.taskId)
     if (!task) throw new Error("Task not found")
 
-    await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, task.organizationId)
 
-    // Check if the user is creator or an assignee of the task
-    const isAssignee = task.assigneeIds.includes(user._id)
+    // Check if the user is creator (assigner) or admin/owner
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
     const isCreator = task.creatorId === user._id
-    if (!isAssignee && !isCreator) {
-      throw new Error("Only the creator or assignees can edit task details")
+    if (!isCreator && !isAdminOrOwner) {
+      throw new Error("Only the creator/assigner or organization admins/owners can edit task details")
     }
 
     const patch: Record<string, any> = {}
@@ -240,31 +280,114 @@ export const inviteAssignees = mutation({
     const task = await ctx.db.get(args.taskId)
     if (!task) throw new Error("Task not found")
 
-    await requireMember(ctx, user._id, task.organizationId)
-
-    // Verify user is assignee or creator
-    const isAssignee = task.assigneeIds.includes(user._id)
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
     const isCreator = task.creatorId === user._id
-    if (!isAssignee && !isCreator) {
-      throw new Error("Only the creator or assignees can invite members")
+
+    // Only assigner (creator) or admin can change assignees
+    if (!isCreator && !isAdminOrOwner) {
+      throw new Error("Only the creator/assigner or organization admins/owners can update assignees")
     }
 
-    // Merge assignees, avoiding duplicates
-    const uniqueAssignees = Array.from(new Set([...task.assigneeIds, ...args.assigneeIds]))
+    const cleanAssignees = Array.from(new Set(args.assigneeIds))
+    const cleanCollaborators = (task.collaboratorIds || []).filter((id: string) => !cleanAssignees.includes(id))
+    const cleanSubscribers = (task.subscriberIds || []).filter((id: string) => !cleanAssignees.includes(id))
 
     await ctx.db.patch(args.taskId, {
-      assigneeIds: uniqueAssignees,
+      assigneeIds: cleanAssignees,
+      collaboratorIds: cleanCollaborators,
+      subscriberIds: cleanSubscribers,
     })
 
     await ctx.db.insert("taskAuditLogs", {
       taskId: args.taskId,
       actorId: user._id,
       action: "ASSIGNEES_UPDATED",
-      details: { previous: task.assigneeIds, new: uniqueAssignees },
+      details: { previous: task.assigneeIds, new: cleanAssignees },
       timestamp: Date.now(),
     })
 
-    return { success: true, assigneeIds: uniqueAssignees }
+    return { success: true, assigneeIds: cleanAssignees }
+  },
+})
+
+export const updateCollaborators = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    collaboratorIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+    const isAssignee = task.assigneeIds.includes(user._id)
+
+    // Only assigner and assignees can add/remove collaborators
+    if (!isCreator && !isAssignee && !isAdminOrOwner) {
+      throw new Error("Only the creator or assignees can manage collaborators")
+    }
+
+    const cleanCollaborators = (Array.from(new Set(args.collaboratorIds)) as string[]).filter(id => !task.assigneeIds.includes(id))
+    const cleanSubscribers = (task.subscriberIds || []).filter((id: string) => !cleanCollaborators.includes(id))
+
+    await ctx.db.patch(args.taskId, {
+      collaboratorIds: cleanCollaborators,
+      subscriberIds: cleanSubscribers,
+    })
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: "COLLABORATORS_UPDATED",
+      details: { previous: task.collaboratorIds || [], new: cleanCollaborators },
+      timestamp: Date.now(),
+    })
+
+    return { success: true, collaboratorIds: cleanCollaborators }
+  },
+})
+
+export const updateSubscribers = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    subscriberIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+    const isAssignee = task.assigneeIds.includes(user._id)
+
+    // Only assigner and assignees can add/remove subscribers
+    if (!isCreator && !isAssignee && !isAdminOrOwner) {
+      throw new Error("Only the creator or assignees can manage subscribers")
+    }
+
+    const cleanSubscribers = (Array.from(new Set(args.subscriberIds)) as string[]).filter(id => !task.assigneeIds.includes(id))
+    const cleanCollaborators = (task.collaboratorIds || []).filter((id: string) => !cleanSubscribers.includes(id))
+
+    await ctx.db.patch(args.taskId, {
+      collaboratorIds: cleanCollaborators,
+      subscriberIds: cleanSubscribers,
+    })
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: "SUBSCRIBERS_UPDATED",
+      details: { previous: task.subscriberIds || [], new: cleanSubscribers },
+      timestamp: Date.now(),
+    })
+
+    return { success: true, subscriberIds: cleanSubscribers }
   },
 })
 
@@ -280,11 +403,12 @@ export const createSubtask = mutation({
 
     await requireMember(ctx, user._id, task.organizationId)
 
-    // Verify user is assignee or creator
+    // Verify user is assignee, creator, or collaborator
     const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
-    if (!isAssignee && !isCreator) {
-      throw new Error("Only the creator or assignees can add subtasks")
+    if (!isAssignee && !isCollaborator && !isCreator) {
+      throw new Error("Only the creator, assignees, or collaborators can add subtasks")
     }
 
     const subtaskId = await ctx.db.insert("subtasks", {
@@ -322,11 +446,12 @@ export const toggleSubtask = mutation({
 
     await requireMember(ctx, user._id, task.organizationId)
 
-    // Verify user is assignee or creator
+    // Verify user is assignee, creator, or collaborator
     const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
-    if (!isAssignee && !isCreator) {
-      throw new Error("Only the creator or assignees can toggle subtasks")
+    if (!isAssignee && !isCollaborator && !isCreator) {
+      throw new Error("Only the creator, assignees, or collaborators can toggle subtasks")
     }
 
     await ctx.db.patch(args.subtaskId, {

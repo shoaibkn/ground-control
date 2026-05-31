@@ -18,6 +18,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@workspace/ui/components/tooltip"
 import {
   Select,
   SelectContent,
@@ -54,6 +55,7 @@ import {
   Download,
   Calendar,
   MessageSquare,
+  Check,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -70,6 +72,7 @@ export default function TaskDetailsSheet({
 }: TaskDetailsSheetProps) {
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: activeMember } = authClient.useActiveMember()
 
   const task = useQuery(api.tasks.getTask, taskId ? { taskId } : "skip")
   const subtasks = useQuery(api.tasks.getSubtasks, taskId ? { taskId } : "skip")
@@ -85,6 +88,8 @@ export default function TaskDetailsSheet({
   const updateDetails = useMutation(api.tasks.updateTaskDetails)
   const updateStatus = useMutation(api.tasks.updateTaskStatus)
   const invite = useMutation(api.tasks.inviteAssignees)
+  const updateCollabs = useMutation(api.tasks.updateCollaborators)
+  const updateSubs = useMutation(api.tasks.updateSubscribers)
   const addSubtask = useMutation(api.tasks.createSubtask)
   const toggleSub = useMutation(api.tasks.toggleSubtask)
   const registerAttach = useMutation(api.taskAttachments.registerAttachment)
@@ -97,6 +102,8 @@ export default function TaskDetailsSheet({
   const [isSubtaskLoading, setIsSubtaskLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [collabInviteOpen, setCollabInviteOpen] = useState(false)
+  const [subInviteOpen, setSubInviteOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<
     "activity" | "my-work" | "assigned" | "comments"
   >("activity")
@@ -117,9 +124,33 @@ export default function TaskDetailsSheet({
     (m: any) => m.userId === currentUserId
   )
   const isAdminOrOwner =
-    currentUserMember?.role === "admin" || currentUserMember?.role === "owner"
+    activeMember?.role === "admin" ||
+    activeMember?.role === "owner" ||
+    currentUserMember?.role === "admin" ||
+    currentUserMember?.role === "owner"
   const isCreator = task?.creatorId === currentUserId
+  const isAssignee = currentUserId ? (task?.assigneeIds?.includes(currentUserId) || false) : false
+  const isCollaborator = currentUserId ? (task?.collaboratorIds?.includes(currentUserId) || false) : false
+  const isSubscriber = currentUserId ? (task?.subscriberIds?.includes(currentUserId) || false) : false
+
   const canEditTaskDetails = isAdminOrOwner || isCreator
+  const canUpdateStatus = isAdminOrOwner || isCreator || isAssignee || isCollaborator
+  const canManageSubtasks = isAdminOrOwner || isCreator || isAssignee || isCollaborator
+  const canManageAssignees = isAdminOrOwner || isCreator
+  const canManageCollaborators = isAdminOrOwner || isCreator || isAssignee
+  const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee
+  const canAddAttachments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
+
+  console.log("Task details permission check:", {
+    currentUserId,
+    activeMemberRole: activeMember?.role,
+    currentUserMemberRole: currentUserMember?.role,
+    isAdminOrOwner,
+    isCreator,
+    isAssignee,
+    canManageCollaborators,
+    canManageSubscribers,
+  })
 
   const totalSubtasks = subtasks?.length || 0
   const completedSubtasks = subtasks?.filter((st) => st.isCompleted).length || 0
@@ -155,7 +186,7 @@ export default function TaskDetailsSheet({
   }
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!taskId || !canEditTaskDetails) return
+    if (!taskId || !canUpdateStatus) return
     try {
       const res = await updateStatus({
         taskId,
@@ -170,7 +201,7 @@ export default function TaskDetailsSheet({
 
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newSubtask.trim() || !taskId || !canEditTaskDetails) return
+    if (!newSubtask.trim() || !taskId || !canManageSubtasks) return
     setIsSubtaskLoading(true)
     try {
       await addSubtask({
@@ -188,8 +219,8 @@ export default function TaskDetailsSheet({
   }
 
   const handleToggleSubtask = async (subtaskId: any, isCompleted: boolean) => {
-    if (!canEditTaskDetails) {
-      toast.error("Only admins or the task creator can complete subtasks")
+    if (!canManageSubtasks) {
+      toast.error("You do not have permission to manage checklist items")
       return
     }
     try {
@@ -203,24 +234,63 @@ export default function TaskDetailsSheet({
     }
   }
 
-  const handleInviteMember = async (memberUserId: string) => {
-    if (!taskId || !canEditTaskDetails) return
+  const handleToggleAssignee = async (memberUserId: string) => {
+    if (!taskId || !canManageAssignees) return
+    const currentList = task?.assigneeIds || []
+    const newList = currentList.includes(memberUserId)
+      ? currentList.filter((id: string) => id !== memberUserId)
+      : [...currentList, memberUserId]
     try {
       await invite({
         taskId,
-        assigneeIds: [memberUserId],
+        assigneeIds: newList,
       })
       toast.success("Assignees updated")
-      setInviteOpen(false)
     } catch (error: any) {
       console.error(error)
-      toast.error(error.message || "Failed to invite member")
+      toast.error(error.message || "Failed to update assignees")
+    }
+  }
+
+  const handleToggleCollaborator = async (memberUserId: string) => {
+    if (!taskId || !canManageCollaborators) return
+    const currentList = task?.collaboratorIds || []
+    const newList = currentList.includes(memberUserId)
+      ? currentList.filter((id: string) => id !== memberUserId)
+      : [...currentList, memberUserId]
+    try {
+      await updateCollabs({
+        taskId,
+        collaboratorIds: newList,
+      })
+      toast.success("Collaborators updated")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to update collaborators")
+    }
+  }
+
+  const handleToggleSubscriber = async (memberUserId: string) => {
+    if (!taskId || !canManageSubscribers) return
+    const currentList = task?.subscriberIds || []
+    const newList = currentList.includes(memberUserId)
+      ? currentList.filter((id: string) => id !== memberUserId)
+      : [...currentList, memberUserId]
+    try {
+      await updateSubs({
+        taskId,
+        subscriberIds: newList,
+      })
+      toast.success("Subscribers updated")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to update subscribers")
     }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !taskId || !canEditTaskDetails) return
+    if (!file || !taskId || !canAddAttachments) return
     setIsUploading(true)
     const toastId = toast.loading("Uploading document...")
     try {
@@ -245,8 +315,10 @@ export default function TaskDetailsSheet({
   }
 
   const handleDeleteAttachment = async (attachmentId: any) => {
-    if (!canEditTaskDetails) {
-      toast.error("Only admins or the task creator can delete attachments")
+    const attach = attachments?.find((a: any) => a._id === attachmentId)
+    const isUploader = attach?.uploaderId === currentUserId
+    if (!canEditTaskDetails && !isUploader) {
+      toast.error("Only admins, the task creator, or the uploader can delete attachments")
       return
     }
     const toastId = toast.loading("Deleting document...")
@@ -366,6 +438,10 @@ export default function TaskDetailsSheet({
         return <>updated task details ({updatedFields || "details"})</>
       case "ASSIGNEES_UPDATED":
         return <>updated task assignees list</>
+      case "COLLABORATORS_UPDATED":
+        return <>updated task collaborators list</>
+      case "SUBSCRIBERS_UPDATED":
+        return <>updated task subscribers list</>
       case "SUBTASK_CREATED":
         return (
           <>
@@ -549,12 +625,12 @@ export default function TaskDetailsSheet({
                     <span>Status</span>
                   </div>
                   <div>
-                    {isEditingDetails && canEditTaskDetails ? (
+                    {canUpdateStatus ? (
                       <Select
                         value={task.status}
                         onValueChange={handleStatusChange}
                       >
-                        <SelectTrigger className="h-8 w-[150px] text-xs">
+                        <SelectTrigger className={`h-8 w-[150px] text-xs font-semibold rounded-full border px-2.5 ${getStatusStyle(task.status)}`}>
                           <SelectValue placeholder={task.status} />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
@@ -712,6 +788,42 @@ export default function TaskDetailsSheet({
                     </Badge>
                   </div>
 
+                  {/* Assigner */}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="size-3.5 shrink-0 text-muted-foreground/60" />
+                    <span>Assigner</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {task.creatorId ? (
+                      (() => {
+                        const userObj = getMemberUser(task.creatorId)
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 cursor-pointer">
+                                <Avatar className="h-6 w-6 border border-card shadow-xs">
+                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarFallback className="text-[9px] font-semibold">
+                                    {userObj?.name?.charAt(0) || "U"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs font-medium text-foreground/80">
+                                  {userObj?.name || "Unknown User"}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
+                              <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
+                              {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
+                            </TooltipContent>
+                          </Tooltip>
+                        )
+                      })()
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">None</span>
+                    )}
+                  </div>
+
                   {/* Assignees */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <User className="size-3.5 shrink-0 text-muted-foreground/60" />
@@ -723,15 +835,22 @@ export default function TaskDetailsSheet({
                         task.assigneeIds.map((userId: string) => {
                           const userObj = getMemberUser(userId)
                           return (
-                            <Avatar
-                              key={userId}
-                              className="h-6 w-6 border border-card shadow-xs"
-                            >
-                              <AvatarImage src={userObj?.image || undefined} />
-                              <AvatarFallback className="text-[9px] font-semibold">
-                                {userObj?.name?.charAt(0) || "U"}
-                              </AvatarFallback>
-                            </Avatar>
+                            <Tooltip key={userId}>
+                              <TooltipTrigger asChild>
+                                <Avatar
+                                  className="h-6 w-6 border border-card shadow-xs cursor-pointer"
+                                >
+                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarFallback className="text-[9px] font-semibold">
+                                    {userObj?.name?.charAt(0) || "U"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TooltipTrigger>
+                              <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
+                                <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
+                                {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
+                              </TooltipContent>
+                            </Tooltip>
                           )
                         })
                       ) : (
@@ -740,9 +859,7 @@ export default function TaskDetailsSheet({
                         </span>
                       )}
                     </div>
-                    {isEditingDetails &&
-                      canEditTaskDetails &&
-                      nonAssignees.length > 0 && (
+                    {canManageAssignees && (
                         <div className="relative">
                           <Button
                             size="icon-xs"
@@ -756,9 +873,10 @@ export default function TaskDetailsSheet({
                             <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
                               <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
                                 <span className="text-[10px] font-bold text-muted-foreground">
-                                  Assign Member
+                                  Manage Assignees
                                 </span>
                                 <button
+                                  type="button"
                                   onClick={() => setInviteOpen(false)}
                                   className="text-muted-foreground hover:text-foreground"
                                 >
@@ -766,30 +884,218 @@ export default function TaskDetailsSheet({
                                 </button>
                               </div>
                               <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {nonAssignees.map((member: any) => (
-                                  <button
-                                    key={member.id}
-                                    onClick={() =>
-                                      handleInviteMember(member.userId)
-                                    }
-                                    className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
-                                  >
-                                    <Avatar className="h-5 w-5 shrink-0">
-                                      <AvatarImage src={member.user?.image} />
-                                      <AvatarFallback className="text-[9px]">
-                                        {member.user?.name?.charAt(0)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex min-w-0 flex-col">
-                                      <span className="truncate text-left text-[10px] font-medium">
-                                        {member.user?.name}
-                                      </span>
-                                      <span className="truncate text-left text-[8px] text-muted-foreground">
-                                        {member.user?.email}
-                                      </span>
-                                    </div>
-                                  </button>
-                                ))}
+                                {(activeOrg?.members || []).map((member: any) => {
+                                  const isChecked = task.assigneeIds?.includes(member.userId)
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={member.id}
+                                      onClick={() => handleToggleAssignee(member.userId)}
+                                      className="flex w-full items-center justify-between rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="h-5 w-5 shrink-0">
+                                          <AvatarImage src={member.user?.image} />
+                                          <AvatarFallback className="text-[9px]">
+                                            {member.user?.name?.charAt(0)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex min-w-0 flex-col">
+                                          <span className="truncate text-left text-[10px] font-medium">
+                                            {member.user?.name}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {isChecked && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Collaborators */}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="size-3.5 shrink-0 text-muted-foreground/60" />
+                    <span>Collaborators</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-1.5 overflow-hidden">
+                      {task.collaboratorIds && task.collaboratorIds.length > 0 ? (
+                        task.collaboratorIds.map((userId: string) => {
+                          const userObj = getMemberUser(userId)
+                          return (
+                            <Tooltip key={userId}>
+                              <TooltipTrigger asChild>
+                                <Avatar
+                                  className="h-6 w-6 border border-card shadow-xs cursor-pointer"
+                                >
+                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarFallback className="text-[9px] font-semibold">
+                                    {userObj?.name?.charAt(0) || "U"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TooltipTrigger>
+                              <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
+                                <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
+                                {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">
+                          No collaborators
+                        </span>
+                      )}
+                    </div>
+                    {canManageCollaborators && (
+                        <div className="relative">
+                          <Button
+                            size="icon-xs"
+                            variant="ghost"
+                            onClick={() => setCollabInviteOpen(!collabInviteOpen)}
+                            className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
+                          >
+                            <UserPlus className="h-3 w-3" />
+                          </Button>
+                          {collabInviteOpen && (
+                            <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
+                              <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
+                                <span className="text-[10px] font-bold text-muted-foreground">
+                                  Manage Collaborators
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCollabInviteOpen(false)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                              <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
+                                {(activeOrg?.members || []).map((member: any) => {
+                                  const isChecked = task.collaboratorIds?.includes(member.userId)
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={member.id}
+                                      onClick={() => handleToggleCollaborator(member.userId)}
+                                      className="flex w-full items-center justify-between rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="h-5 w-5 shrink-0">
+                                          <AvatarImage src={member.user?.image} />
+                                          <AvatarFallback className="text-[9px]">
+                                            {member.user?.name?.charAt(0)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex min-w-0 flex-col">
+                                          <span className="truncate text-left text-[10px] font-medium">
+                                            {member.user?.name}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {isChecked && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Subscribers */}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="size-3.5 shrink-0 text-muted-foreground/60" />
+                    <span>Subscribers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-1.5 overflow-hidden">
+                      {task.subscriberIds && task.subscriberIds.length > 0 ? (
+                        task.subscriberIds.map((userId: string) => {
+                          const userObj = getMemberUser(userId)
+                          return (
+                            <Tooltip key={userId}>
+                              <TooltipTrigger asChild>
+                                <Avatar
+                                  className="h-6 w-6 border border-card shadow-xs cursor-pointer"
+                                >
+                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarFallback className="text-[9px] font-semibold">
+                                    {userObj?.name?.charAt(0) || "U"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TooltipTrigger>
+                              <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
+                                <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
+                                {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">
+                          No subscribers
+                        </span>
+                      )}
+                    </div>
+                    {canManageSubscribers && (
+                        <div className="relative">
+                          <Button
+                            size="icon-xs"
+                            variant="ghost"
+                            onClick={() => setSubInviteOpen(!subInviteOpen)}
+                            className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
+                          >
+                            <UserPlus className="h-3 w-3" />
+                          </Button>
+                          {subInviteOpen && (
+                            <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
+                              <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
+                                <span className="text-[10px] font-bold text-muted-foreground">
+                                  Manage Subscribers
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSubInviteOpen(false)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                              <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
+                                {(activeOrg?.members || []).map((member: any) => {
+                                  const isChecked = task.subscriberIds?.includes(member.userId)
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={member.id}
+                                      onClick={() => handleToggleSubscriber(member.userId)}
+                                      className="flex w-full items-center justify-between rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="h-5 w-5 shrink-0">
+                                          <AvatarImage src={member.user?.image} />
+                                          <AvatarFallback className="text-[9px]">
+                                            {member.user?.name?.charAt(0)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex min-w-0 flex-col">
+                                          <span className="truncate text-left text-[10px] font-medium">
+                                            {member.user?.name}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {isChecked && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                    </button>
+                                  )
+                                })}
                               </div>
                             </div>
                           )}
@@ -830,7 +1136,7 @@ export default function TaskDetailsSheet({
                       <FileText className="h-3.5 w-3.5 animate-pulse text-primary" />
                       Documents & Attachments
                     </span>
-                    {canEditTaskDetails && (
+                    {canAddAttachments && (
                       <div className="relative">
                         <input
                           type="file"
@@ -1086,7 +1392,7 @@ export default function TaskDetailsSheet({
                       )}
 
                       {/* Subtask Input Form */}
-                      {canEditTaskDetails && (
+                      {canManageSubtasks && (
                         <form
                           onSubmit={handleAddSubtask}
                           className="flex gap-2"
@@ -1124,11 +1430,11 @@ export default function TaskDetailsSheet({
                             <div
                               key={sub._id}
                               onClick={() =>
-                                canEditTaskDetails &&
+                                canManageSubtasks &&
                                 handleToggleSubtask(sub._id, !sub.isCompleted)
                               }
                               className={`flex items-center gap-2.5 rounded-lg border p-2 text-xs transition-all select-none ${
-                                canEditTaskDetails
+                                canManageSubtasks
                                   ? "cursor-pointer"
                                   : "cursor-default"
                               } ${
