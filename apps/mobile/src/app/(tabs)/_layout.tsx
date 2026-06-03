@@ -1,13 +1,15 @@
-import { Tabs } from "expo-router";
-import { Home, ListTodo, ClipboardCheck, MessageSquare } from "lucide-react-native";
-import { Platform } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import { Home, ListTodo, ClipboardCheck, MessageSquare, Plus } from "lucide-react-native";
+import { Platform, Pressable, View } from "react-native";
 
 export default function TabLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#2563EB", // Primary blue tint matching shadcn UI
+        tabBarActiveTintColor: "#3B82F6",
         tabBarInactiveTintColor: "#71717A",
         tabBarStyle: {
           backgroundColor: "#09090B",
@@ -27,28 +29,45 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Home size={20} color={color} />,
+          tabBarIcon: ({ color }) => <Home size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="tasks"
         options={{
           title: "Tasks",
-          tabBarIcon: ({ color, size }) => <ListTodo size={20} color={color} />,
+          tabBarIcon: ({ color }) => <ListTodo size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: "Create",
+          tabBarButton: ({ ref, ...props }) => (
+            <Pressable
+              {...props}
+              onPress={() => router.push("/create-task")}
+              className="flex-1 justify-center items-center"
+            >
+              <View className="w-12 h-12 rounded-full bg-primary justify-center items-center shadow-lg -mt-5 border border-border">
+                <Plus size={24} className="text-primary-foreground font-bold" />
+              </View>
+            </Pressable>
+          ),
         }}
       />
       <Tabs.Screen
         name="approvals"
         options={{
           title: "Approvals",
-          tabBarIcon: ({ color, size }) => <ClipboardCheck size={20} color={color} />,
+          tabBarIcon: ({ color }) => <ClipboardCheck size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="chats"
         options={{
           title: "Chats",
-          tabBarIcon: ({ color, size }) => <MessageSquare size={20} color={color} />,
+          tabBarIcon: ({ color }) => <MessageSquare size={20} color={color} />,
         }}
       />
     </Tabs>

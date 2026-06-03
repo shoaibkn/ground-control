@@ -1,7 +1,5 @@
 import { useState } from "react";
 import {
-  StyleSheet,
-  Text,
   View,
   TouchableOpacity,
   ActivityIndicator,
@@ -11,26 +9,28 @@ import {
   Pressable,
   SafeAreaView,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../packages/backend/convex/_generated/api";
 import { authClient } from "../lib/auth-client";
 import { 
-  ArrowLeft, 
   Calendar, 
   Check, 
-  MessageSquare, 
   Paperclip, 
   Plus, 
   Send, 
-  Sparkles, 
   Trash2, 
-  UserPlus, 
-  Users 
+  UserPlus,
+  AlertCircle
 } from "lucide-react-native";
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Header } from "@/components/ui/header";
 
 export default function TaskDetails() {
-  const router = useRouter();
   const { taskId } = useLocalSearchParams();
 
   // Queries
@@ -64,12 +64,27 @@ export default function TaskDetails() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  if (!task || !activeOrg) {
+  if (!activeOrg || task === undefined) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centerContainer}>
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 justify-center items-center p-8">
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>Loading task details...</Text>
+          <Text className="text-xs text-muted-foreground mt-2">Loading task details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (task === null) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <Header title="Task Details" />
+        <View className="flex-1 justify-center items-center p-8 gap-3">
+          <AlertCircle size={40} className="text-destructive" />
+          <Text className="text-sm font-semibold text-foreground mt-2">Task Not Found</Text>
+          <Text className="text-xs text-muted-foreground text-center leading-5">
+            This task may have been deleted or you do not have permission to view it.
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -219,43 +234,43 @@ export default function TaskDetails() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const getPriorityStyle = (priority: string) => {
+  const getPriorityClasses = (priority: string) => {
     const num = parseInt(priority, 10);
     if (isNaN(num)) {
       switch (priority) {
         case "Low":
-          return { bg: "rgba(100, 116, 139, 0.15)", text: "#94A3B8" };
+          return { bg: "bg-slate-500/10 border border-slate-500/20", text: "text-slate-400" };
         case "Normal":
-          return { bg: "rgba(59, 130, 246, 0.15)", text: "#60A5FA" };
+          return { bg: "bg-blue-500/10 border border-blue-500/20", text: "text-blue-400" };
         case "High":
-          return { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24" };
+          return { bg: "bg-yellow-500/10 border border-yellow-500/20", text: "text-yellow-500" };
         case "Urgent":
-          return { bg: "rgba(249, 115, 22, 0.15)", text: "#FB923C" };
+          return { bg: "bg-orange-500/10 border border-orange-500/20", text: "text-orange-500" };
         case "Critical":
-          return { bg: "rgba(239, 68, 68, 0.15)", text: "#F87171" };
+          return { bg: "bg-red-500/10 border border-red-500/20", text: "text-red-400" };
         default:
-          return { bg: "rgba(100, 116, 139, 0.15)", text: "#94A3B8" };
+          return { bg: "bg-slate-500/10 border border-slate-500/20", text: "text-slate-400" };
       }
     }
-    if (num <= 3) return { bg: "rgba(56, 189, 248, 0.15)", text: "#38BDF8" };
-    if (num <= 7) return { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24" };
-    return { bg: "rgba(239, 68, 68, 0.15)", text: "#F87171" };
+    if (num <= 3) return { bg: "bg-sky-500/10 border border-sky-500/20", text: "text-sky-400" };
+    if (num <= 7) return { bg: "bg-yellow-500/10 border border-yellow-500/20", text: "text-yellow-500" };
+    return { bg: "bg-red-500/10 border border-red-500/20", text: "text-red-400" };
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColorClass = (status: string) => {
     switch (status) {
       case "Pending":
-        return "#EAB308";
+        return "bg-yellow-500";
       case "In Progress":
-        return "#3B82F6";
+        return "bg-blue-500";
       case "Under Review":
-        return "#A855F7";
+        return "bg-purple-500";
       case "Completed":
-        return "#10B981";
+        return "bg-emerald-500";
       case "Cancelled":
-        return "#64748B";
+        return "bg-slate-500";
       default:
-        return "#94A3B8";
+        return "bg-slate-400";
     }
   };
 
@@ -269,59 +284,54 @@ export default function TaskDetails() {
       .toUpperCase();
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header bar */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={16} color="#FAFAFA" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Task Details
-        </Text>
-        <View style={{ width: 32 }} />
-      </View>
+  const getMemberUserInitials = (userId: string) => {
+    const member = activeOrg?.members?.find((m: any) => m.userId === userId);
+    return getInitials(member?.user?.name);
+  };
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+  const priorityStyle = getPriorityClasses(task.priority);
+
+  return (
+    <SafeAreaView className="flex-1 bg-background">
+      <Header title="Task Details" />
+
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
         {/* Title and details */}
-        <View style={styles.card}>
-          <View style={styles.titleRow}>
-            <Text style={styles.taskTitle}>{task.title}</Text>
-            <View style={[styles.priorityBadge, { backgroundColor: getPriorityStyle(task.priority).bg }]}>
-              <Text style={[styles.priorityText, { color: getPriorityStyle(task.priority).text }]}>
+        <Card className="p-4 gap-3 bg-card border-border">
+          <View className="gap-1.5">
+            <Text className="text-lg font-bold text-foreground">{task.title}</Text>
+            <Badge className={`px-2 py-0.5 rounded-md self-start ${priorityStyle.bg}`}>
+              <Text className={`text-[10px] font-bold ${priorityStyle.text}`}>
                 Priority: {task.priority}
               </Text>
-            </View>
+            </Badge>
           </View>
 
           {task.description ? (
-            <Text style={styles.taskDesc}>{task.description}</Text>
+            <Text className="text-xs text-muted-foreground leading-5">{task.description}</Text>
           ) : (
-            <Text style={styles.taskDescItalic}>No description provided.</Text>
+            <Text className="text-xs text-muted-foreground italic">No description provided.</Text>
           )}
 
           {/* Grid fields */}
-          <View style={styles.grid}>
+          <View className="border-t border-border pt-3 gap-2.5">
             {/* Status Field */}
-            <View style={styles.gridRow}>
-              <Text style={styles.gridLabel}>Status</Text>
-              <View style={styles.gridValue}>
+            <View className="flex-row items-center">
+              <Text className="w-[100px] text-xs text-muted-foreground font-medium">Status</Text>
+              <View className="flex-row items-center gap-1.5 flex-1">
                 {canUpdateStatus ? (
                   <TouchableOpacity
-                    style={styles.statusDropdown}
+                    className="flex-row items-center gap-1.5 border border-border bg-background py-1 px-2 rounded-md"
                     onPress={() => setStatusDropdownOpen(!statusDropdownOpen)}
                   >
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(task.status) }]} />
-                    <Text style={styles.statusText}>{task.status}</Text>
-                    <ChevronDown size={12} color="#94A3B8" />
+                    <View className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(task.status)}`} />
+                    <Text className="text-xs font-semibold text-foreground">{task.status}</Text>
+                    <Text className="text-[9px] text-muted-foreground ml-1">▼</Text>
                   </TouchableOpacity>
                 ) : (
-                  <View style={styles.statusViewBadge}>
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(task.status) }]} />
-                    <Text style={styles.statusText}>{task.status}</Text>
+                  <View className="flex-row items-center gap-1.5">
+                    <View className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(task.status)}`} />
+                    <Text className="text-xs font-semibold text-foreground">{task.status}</Text>
                   </View>
                 )}
               </View>
@@ -329,81 +339,81 @@ export default function TaskDetails() {
 
             {/* Status selection dropdown */}
             {statusDropdownOpen && (
-              <View style={styles.dropdownBox}>
+              <View className="bg-background border border-border rounded-lg p-1 gap-0.5">
                 {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((st) => (
                   <TouchableOpacity
                     key={st}
-                    style={styles.dropdownItem}
+                    className="flex-row items-center py-2 px-2.5 rounded-md gap-2 active:bg-accent"
                     onPress={() => handleStatusChange(st)}
                   >
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(st) }]} />
-                    <Text style={styles.dropdownItemText}>{st}</Text>
-                    {task.status === st && <Check size={12} color="#3B82F6" />}
+                    <View className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(st)}`} />
+                    <Text className="text-xs text-foreground flex-1">{st}</Text>
+                    {task.status === st && <Check size={12} className="text-primary" />}
                   </TouchableOpacity>
                 ))}
               </View>
             )}
 
             {/* Due Date Field */}
-            <View style={styles.gridRow}>
-              <Text style={styles.gridLabel}>Due Date</Text>
-              <View style={styles.gridValue}>
-                <Calendar size={13} color="#94A3B8" />
-                <Text style={styles.gridText}>
+            <View className="flex-row items-center">
+              <Text className="w-[100px] text-xs text-muted-foreground font-medium">Due Date</Text>
+              <View className="flex-row items-center gap-1.5 flex-1">
+                <Calendar size={13} className="text-muted-foreground" />
+                <Text className="text-xs text-foreground">
                   {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"}
                 </Text>
               </View>
             </View>
 
             {/* Assigner Field */}
-            <View style={styles.gridRow}>
-              <Text style={styles.gridLabel}>Assigner</Text>
-              <View style={styles.gridValue}>
-                <View style={styles.smallAvatar}>
-                  <Text style={styles.smallAvatarText}>
+            <View className="flex-row items-center">
+              <Text className="w-[100px] text-xs text-muted-foreground font-medium">Assigner</Text>
+              <View className="flex-row items-center gap-1.5 flex-1">
+                <View className="w-5 h-5 rounded-full bg-primary justify-center items-center">
+                  <Text className="text-[8px] font-bold text-primary-foreground">
                     {getInitials(getMemberDetails(task.creatorId)?.name)}
                   </Text>
                 </View>
-                <Text style={styles.gridText}>
+                <Text className="text-xs text-foreground">
                   {getMemberDetails(task.creatorId)?.name || "Unknown User"}
                 </Text>
               </View>
             </View>
           </View>
-        </View>
+        </Card>
 
         {/* Members Section */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Members & Collaboration</Text>
+        <Card className="p-4 gap-3 bg-card border-border">
+          <Text className="text-sm font-bold text-foreground">Members & Collaboration</Text>
 
           {/* Assignees */}
-          <View style={styles.memberListGroup}>
-            <View style={styles.memberListHeader}>
-              <Text style={styles.memberListLabel}>Assignees</Text>
+          <View className="gap-2 border-b border-border pb-2.5 mb-0.5">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-xs font-semibold text-muted-foreground">Assignees</Text>
             </View>
-            <View style={styles.avatarList}>
+            <View className="flex-row flex-wrap gap-2">
               {task.assigneeIds && task.assigneeIds.length > 0 ? (
                 task.assigneeIds.map((userId) => {
                   const m = getMemberDetails(userId);
                   return (
-                    <View key={userId} style={styles.memberItem}>
-                      <View style={styles.smallAvatar}>
-                        <Text style={styles.smallAvatarText}>{getInitials(m?.name)}</Text>
+                    <View key={userId} className="flex-row items-center gap-1.5 bg-background border border-border rounded-md py-1 px-2">
+                      <View className="w-5 h-5 rounded-full bg-primary justify-center items-center">
+                        <Text className="text-[8px] font-bold text-primary-foreground">{getInitials(m?.name)}</Text>
                       </View>
-                      <Text style={styles.memberNameText} numberOfLines={1}>{m?.name}</Text>
+                      <Text className="text-[11px] font-medium text-foreground" numberOfLines={1}>{m?.name}</Text>
                     </View>
                   );
                 })
               ) : (
-                <Text style={styles.taskDescItalic}>Unassigned</Text>
+                <Text className="text-xs text-muted-foreground italic">Unassigned</Text>
               )}
             </View>
           </View>
 
           {/* Collaborators */}
-          <View style={styles.memberListGroup}>
-            <View style={styles.memberListHeader}>
-              <Text style={styles.memberListLabel}>Collaborators</Text>
+          <View className="gap-2 border-b border-border pb-2.5 mb-0.5">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-xs font-semibold text-muted-foreground">Collaborators</Text>
               {canManageCollaborators && (
                 <TouchableOpacity
                   onPress={() => {
@@ -411,33 +421,33 @@ export default function TaskDetails() {
                     setMemberModalOpen(true);
                   }}
                 >
-                  <UserPlus size={14} color="#3B82F6" />
+                  <UserPlus size={14} className="text-primary" />
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.avatarList}>
+            <View className="flex-row flex-wrap gap-2">
               {task.collaboratorIds && task.collaboratorIds.length > 0 ? (
                 task.collaboratorIds.map((userId) => {
                   const m = getMemberDetails(userId);
                   return (
-                    <View key={userId} style={styles.memberItem}>
-                      <View style={styles.smallAvatar}>
-                        <Text style={styles.smallAvatarText}>{getInitials(m?.name)}</Text>
+                    <View key={userId} className="flex-row items-center gap-1.5 bg-background border border-border rounded-md py-1 px-2">
+                      <View className="w-5 h-5 rounded-full bg-primary justify-center items-center">
+                        <Text className="text-[8px] font-bold text-primary-foreground">{getInitials(m?.name)}</Text>
                       </View>
-                      <Text style={styles.memberNameText} numberOfLines={1}>{m?.name}</Text>
+                      <Text className="text-[11px] font-medium text-foreground" numberOfLines={1}>{m?.name}</Text>
                     </View>
                   );
                 })
               ) : (
-                <Text style={styles.taskDescItalic}>No collaborators</Text>
+                <Text className="text-xs text-muted-foreground italic">No collaborators</Text>
               )}
             </View>
           </View>
 
           {/* Subscribers */}
-          <View style={styles.memberListGroup}>
-            <View style={styles.memberListHeader}>
-              <Text style={styles.memberListLabel}>Subscribers</Text>
+          <View className="gap-2">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-xs font-semibold text-muted-foreground">Subscribers</Text>
               {canManageSubscribers && (
                 <TouchableOpacity
                   onPress={() => {
@@ -445,46 +455,50 @@ export default function TaskDetails() {
                     setMemberModalOpen(true);
                   }}
                 >
-                  <UserPlus size={14} color="#3B82F6" />
+                  <UserPlus size={14} className="text-primary" />
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.avatarList}>
+            <View className="flex-row flex-wrap gap-2">
               {task.subscriberIds && task.subscriberIds.length > 0 ? (
                 task.subscriberIds.map((userId) => {
                   const m = getMemberDetails(userId);
                   return (
-                    <View key={userId} style={styles.memberItem}>
-                      <View style={styles.smallAvatar}>
-                        <Text style={styles.smallAvatarText}>{getInitials(m?.name)}</Text>
+                    <View key={userId} className="flex-row items-center gap-1.5 bg-background border border-border rounded-md py-1 px-2">
+                      <View className="w-5 h-5 rounded-full bg-primary justify-center items-center">
+                        <Text className="text-[8px] font-bold text-primary-foreground">{getInitials(m?.name)}</Text>
                       </View>
-                      <Text style={styles.memberNameText} numberOfLines={1}>{m?.name}</Text>
+                      <Text className="text-[11px] font-medium text-foreground" numberOfLines={1}>{m?.name}</Text>
                     </View>
                   );
                 })
               ) : (
-                <Text style={styles.taskDescItalic}>No subscribers</Text>
+                <Text className="text-xs text-muted-foreground italic">No subscribers</Text>
               )}
             </View>
           </View>
-        </View>
+        </Card>
 
         {/* Checklist / Subtasks */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Checklist</Text>
+        <Card className="p-4 gap-3 bg-card border-border">
+          <Text className="text-sm font-bold text-foreground">Checklist</Text>
           
-          <View style={styles.checklistItems}>
+          <View className="gap-2.5">
             {(subtasks || []).map((sub) => (
               <TouchableOpacity
                 key={sub._id}
-                style={styles.subtaskRow}
+                className="flex-row items-center gap-2.5 py-1"
                 onPress={() => handleToggleSubtask(sub._id, sub.isCompleted)}
                 disabled={!canManageSubtasks}
               >
-                <View style={[styles.subtaskCheckbox, sub.isCompleted && styles.checkboxSelected]}>
-                  {sub.isCompleted && <Check size={10} color="#FFFFFF" />}
+                <View className={`w-4 h-4 rounded border justify-center items-center ${
+                  sub.isCompleted ? "bg-primary border-primary" : "border-border bg-background"
+                }`}>
+                  {sub.isCompleted && <Check size={10} className="text-primary-foreground font-bold" />}
                 </View>
-                <Text style={[styles.subtaskText, sub.isCompleted && styles.subtaskTextCompleted]}>
+                <Text className={`text-xs ${
+                  sub.isCompleted ? "line-through text-muted-foreground" : "text-foreground"
+                }`}>
                   {sub.title}
                 </Text>
               </TouchableOpacity>
@@ -492,99 +506,98 @@ export default function TaskDetails() {
           </View>
 
           {canManageSubtasks && (
-            <View style={styles.addSubtaskRow}>
-              <TextInput
-                style={styles.subtaskInput}
+            <View className="flex-row gap-2 mt-1.5">
+              <Input
+                className="flex-1 h-9 px-2.5 text-xs bg-background"
                 placeholder="Add checklist item..."
-                placeholderTextColor="#71717A"
                 value={newSubtaskTitle}
                 onChangeText={setNewSubtaskTitle}
                 editable={!submittingSubtask}
               />
               <TouchableOpacity
-                style={styles.addSubtaskBtn}
+                className="w-9 h-9 rounded-md bg-primary justify-center items-center active:opacity-90"
                 onPress={handleAddSubtask}
                 disabled={submittingSubtask || !newSubtaskTitle.trim()}
               >
                 {submittingSubtask ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Plus size={16} color="#FFFFFF" />
+                  <Plus size={16} className="text-primary-foreground font-bold" />
                 )}
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </Card>
 
         {/* Documents / Attachments */}
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <Text style={styles.cardTitle}>Documents</Text>
+        <Card className="p-4 gap-3 bg-card border-border">
+          <View className="flex-row justify-between items-center">
+            <Text className="text-sm font-bold text-foreground">Documents</Text>
             {canAddAttachments && (
               <TouchableOpacity onPress={handleMockUpload} disabled={uploadingFile}>
                 {uploadingFile ? (
                   <ActivityIndicator size="small" color="#3B82F6" />
                 ) : (
-                  <Paperclip size={16} color="#3B82F6" />
+                  <Paperclip size={16} className="text-primary" />
                 )}
               </TouchableOpacity>
             )}
           </View>
 
-          <View style={styles.attachmentsBox}>
+          <View className="gap-2">
             {attachments && attachments.length > 0 ? (
               attachments.map((file) => (
-                <View key={file._id} style={styles.attachmentItem}>
-                  <View style={styles.attachmentInfo}>
-                    <Paperclip size={14} color="#A1A1AA" />
+                <View key={file._id} className="flex-row justify-between items-center p-2.5 rounded-md border border-border bg-background">
+                  <View className="flex-row items-center gap-2.5 flex-1">
+                    <Paperclip size={14} className="text-muted-foreground" />
                     <View>
-                      <Text style={styles.attachmentName} numberOfLines={1}>{file.fileName}</Text>
-                      <Text style={styles.attachmentSize}>{formatSize(file.fileSize)}</Text>
+                      <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>{file.fileName}</Text>
+                      <Text className="text-[10px] text-muted-foreground mt-0.5">{formatSize(file.fileSize)}</Text>
                     </View>
                   </View>
                   {(isAdminOrOwner || file.uploaderId === currentUserId) && (
                     <TouchableOpacity onPress={() => handleDeleteAttachment(file._id)}>
-                      <Trash2 size={14} color="#EF4444" />
+                      <Trash2 size={14} className="text-destructive" />
                     </TouchableOpacity>
                   )}
                 </View>
               ))
             ) : (
-              <Text style={styles.taskDescItalic}>No documents uploaded yet.</Text>
+              <Text className="text-xs text-muted-foreground italic">No documents uploaded yet.</Text>
             )}
           </View>
-        </View>
+        </Card>
 
         {/* Comments section */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Comments</Text>
+        <Card className="p-4 gap-3 bg-card border-border">
+          <Text className="text-sm font-bold text-foreground">Comments</Text>
 
-          <View style={styles.commentsBox}>
+          <View className="gap-3">
             {comments && comments.length > 0 ? (
               comments.map((comm) => {
                 const u = getMemberUserInitials(comm.userId);
                 const name = getMemberDetails(comm.userId)?.name || "Unknown Member";
                 return (
-                  <View key={comm._id} style={styles.commentItem}>
-                    <View style={styles.commentHeader}>
-                      <View style={styles.smallAvatar}>
-                        <Text style={styles.smallAvatarText}>{u}</Text>
+                  <View key={comm._id} className="bg-background border border-border rounded-md p-2.5 gap-1.5">
+                    <View className="flex-row items-center gap-2">
+                      <View className="w-5.5 h-5.5 rounded-full bg-primary justify-center items-center">
+                        <Text className="text-[8px] font-bold text-primary-foreground">{u}</Text>
                       </View>
-                      <Text style={styles.commentUser}>{name}</Text>
+                      <Text className="text-xs font-semibold text-foreground">{name}</Text>
                     </View>
-                    <Text style={styles.commentContent}>{comm.content}</Text>
+                    <Text className="text-xs text-muted-foreground leading-4 pl-0.5">{comm.content}</Text>
                   </View>
                 );
               })
             ) : (
-              <Text style={styles.taskDescItalic}>No comments yet.</Text>
+              <Text className="text-xs text-muted-foreground italic">No comments yet.</Text>
             )}
           </View>
 
           {canAddComments && (
-            <View style={styles.commentInputRow}>
+            <View className="flex-row gap-2 mt-1.5 items-end">
               <TextInput
-                style={styles.commentInput}
+                className="flex-1 bg-background border border-border rounded-md min-h-[36px] max-h-[80px] px-2.5 py-2 text-xs text-foreground"
                 placeholder="Write a comment..."
                 placeholderTextColor="#71717A"
                 value={newCommentContent}
@@ -593,19 +606,19 @@ export default function TaskDetails() {
                 multiline
               />
               <TouchableOpacity
-                style={styles.commentSendBtn}
+                className="w-9 h-9 rounded-md bg-primary justify-center items-center active:opacity-90"
                 onPress={handleAddComment}
                 disabled={submittingComment || !newCommentContent.trim()}
               >
                 {submittingComment ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Send size={14} color="#FFFFFF" />
+                  <Send size={14} className="text-primary-foreground" />
                 )}
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </Card>
       </ScrollView>
 
       {/* Member Management Popup Modal */}
@@ -616,20 +629,20 @@ export default function TaskDetails() {
         onRequestClose={() => setMemberModalOpen(false)}
       >
         <Pressable 
-          style={styles.modalOverlay}
+          className="flex-1 bg-black/75 justify-center items-center p-6"
           onPress={() => setMemberModalOpen(false)}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <Card className="w-full max-h-[80%] p-5 gap-4 bg-background border-border shadow-2xl">
+            <View className="gap-1">
+              <Text className="text-base font-bold text-foreground">
                 Manage {memberModalType === "collaborators" ? "Collaborators" : "Subscribers"}
               </Text>
-              <Text style={styles.modalSubtitle}>
+              <Text className="text-xs text-muted-foreground">
                 Add or remove team members to this role
               </Text>
             </View>
 
-            <ScrollView style={styles.modalOrgList}>
+            <ScrollView className="max-h-[250px]">
               {(activeOrg.members || []).map((member: any) => {
                 const currentList = memberModalType === "collaborators"
                   ? (task.collaboratorIds || [])
@@ -642,493 +655,32 @@ export default function TaskDetails() {
                 return (
                   <TouchableOpacity
                     key={member.id}
-                    style={[
-                      styles.modalOrgItem,
-                      isChecked && styles.modalOrgItemActive
-                    ]}
+                    className={`flex-row justify-between items-center py-2.5 px-3 rounded-lg border mb-1.5 ${
+                      isChecked ? "bg-card border-border" : "border-transparent"
+                    }`}
                     onPress={() => handleToggleMember(member.userId)}
                   >
-                    <View style={styles.modalOrgInfo}>
-                      <Text style={styles.modalOrgName}>{member.user?.name}</Text>
-                      <Text style={styles.modalOrgSlug}>{member.user?.email}</Text>
+                    <View className="gap-0.5 flex-1">
+                      <Text className="text-xs font-semibold text-foreground">{member.user?.name}</Text>
+                      <Text className="text-[10px] text-muted-foreground">{member.user?.email}</Text>
                     </View>
 
-                    {isChecked && <Check size={16} color="#3B82F6" />}
+                    {isChecked && <Check size={16} className="text-primary" />}
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
 
-            <TouchableOpacity
-              style={styles.modalCloseButton}
+            <Button
+              variant="outline"
+              className="h-10 mt-1 border-border bg-card"
               onPress={() => setMemberModalOpen(false)}
             >
-              <Text style={styles.modalCloseText}>Done</Text>
-            </TouchableOpacity>
-          </View>
+              Done
+            </Button>
+          </Card>
         </Pressable>
       </Modal>
     </SafeAreaView>
   );
 }
-
-// Helpers
-const getInitials = (name?: string) => {
-  if (!name) return "U";
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
-};
-
-const getMemberUserInitials = (userId: string) => {
-  return "U"; // fallback initials handler
-};
-
-const ChevronDown = ({ size, color, style }: any) => {
-  return (
-    <View style={style}>
-      <Text style={{ color, fontSize: size, fontWeight: "bold" }}>▼</Text>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#09090B",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: "#A1A1AA",
-    marginTop: 8,
-  },
-  header: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1E1E24",
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FAFAFA",
-    maxWidth: "70%",
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    gap: 16,
-    paddingBottom: 40,
-  },
-  card: {
-    backgroundColor: "#09090B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 16,
-    gap: 12,
-  },
-  cardTitleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FAFAFA",
-    letterSpacing: -0.2,
-  },
-  titleRow: {
-    gap: 6,
-  },
-  taskTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FAFAFA",
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    alignSelf: "flex-start",
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  taskDesc: {
-    fontSize: 13,
-    color: "#A1A1AA",
-    lineHeight: 18,
-  },
-  taskDescItalic: {
-    fontSize: 12,
-    color: "#71717A",
-    fontStyle: "italic",
-  },
-  grid: {
-    borderTopWidth: 1,
-    borderTopColor: "#1E1E24",
-    paddingTop: 12,
-    gap: 10,
-  },
-  gridRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  gridLabel: {
-    width: 100,
-    fontSize: 12,
-    color: "#71717A",
-    fontWeight: "500",
-  },
-  gridValue: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flex: 1,
-  },
-  gridText: {
-    fontSize: 12,
-    color: "#E4E4E7",
-  },
-  statusDropdown: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  statusViewBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#E4E4E7",
-  },
-  dropdownBox: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 4,
-    gap: 2,
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    gap: 8,
-  },
-  dropdownItemText: {
-    fontSize: 12,
-    color: "#FAFAFA",
-    flex: 1,
-  },
-  memberListGroup: {
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1E1E24",
-    paddingBottom: 10,
-    marginBottom: 2,
-  },
-  memberListHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  memberListLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#71717A",
-  },
-  avatarList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  memberItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  memberNameText: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#FAFAFA",
-    maxWidth: 80,
-  },
-  smallAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  smallAvatarText: {
-    fontSize: 8,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  checklistItems: {
-    gap: 10,
-  },
-  subtaskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 4,
-  },
-  subtaskCheckbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxSelected: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
-  },
-  subtaskText: {
-    fontSize: 13,
-    color: "#E4E4E7",
-  },
-  subtaskTextCompleted: {
-    textDecorationLine: "line-through",
-    color: "#71717A",
-  },
-  addSubtaskRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 6,
-  },
-  subtaskInput: {
-    flex: 1,
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 6,
-    height: 36,
-    paddingHorizontal: 10,
-    fontSize: 12,
-    color: "#FAFAFA",
-  },
-  addSubtaskBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  attachmentsBox: {
-    gap: 8,
-  },
-  attachmentItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-  },
-  attachmentInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  attachmentName: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#FAFAFA",
-    maxWidth: 220,
-  },
-  attachmentSize: {
-    fontSize: 10,
-    color: "#71717A",
-    marginTop: 1,
-  },
-  commentsBox: {
-    gap: 12,
-  },
-  commentItem: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 6,
-    padding: 10,
-    gap: 6,
-  },
-  commentHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  commentUser: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#E4E4E7",
-  },
-  commentContent: {
-    fontSize: 12,
-    color: "#A1A1AA",
-    lineHeight: 16,
-    paddingLeft: 2,
-  },
-  commentInputRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 6,
-    alignItems: "flex-end",
-  },
-  commentInput: {
-    flex: 1,
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 6,
-    minHeight: 36,
-    maxHeight: 80,
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
-    fontSize: 12,
-    color: "#FAFAFA",
-    textAlignVertical: "top",
-  },
-  commentSendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  modalContainer: {
-    width: "100%",
-    maxHeight: "80%",
-    backgroundColor: "#09090B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 20,
-    gap: 16,
-  },
-  modalHeader: {
-    gap: 4,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FAFAFA",
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: "#71717A",
-  },
-  modalOrgList: {
-    maxHeight: 250,
-  },
-  modalOrgItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginBottom: 6,
-  },
-  modalOrgItemActive: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-  },
-  modalOrgInfo: {
-    gap: 2,
-    flex: 1,
-  },
-  modalOrgName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  modalOrgSlug: {
-    fontSize: 11,
-    color: "#71717A",
-  },
-  modalCloseButton: {
-    height: 42,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  modalCloseText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-});

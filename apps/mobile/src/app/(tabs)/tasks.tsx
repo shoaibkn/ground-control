@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, ScrollView, Modal, Pressable } from "react-native";
+import { View, TouchableOpacity, ActivityIndicator, ScrollView, Modal, Pressable } from "react-native";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../packages/backend/convex/_generated/api";
@@ -6,15 +6,18 @@ import { authClient } from "../../lib/auth-client";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { 
-  Plus, 
   Check, 
   ChevronDown, 
   Calendar, 
   AlertCircle 
 } from "lucide-react-native";
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/ui/header";
 
 export default function TasksTab() {
-  const { data: session } = authClient.useSession();
   const { data: activeOrg, refetch: refetchActiveOrg } = authClient.useActiveOrganization();
   const { data: organizations } = authClient.useListOrganizations();
   
@@ -67,43 +70,43 @@ export default function TasksTab() {
       })
     : [];
 
-  const getPriorityStyle = (priority: string) => {
+  const getPriorityClasses = (priority: string) => {
     const num = parseInt(priority, 10);
     if (isNaN(num)) {
       switch (priority) {
         case "Low":
-          return { bg: "rgba(100, 116, 139, 0.15)", text: "#94A3B8" };
+          return { bg: "bg-slate-500/10 border border-slate-500/20", text: "text-slate-400" };
         case "Normal":
-          return { bg: "rgba(59, 130, 246, 0.15)", text: "#60A5FA" };
+          return { bg: "bg-blue-500/10 border border-blue-500/20", text: "text-blue-400" };
         case "High":
-          return { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24" };
+          return { bg: "bg-yellow-500/10 border border-yellow-500/20", text: "text-yellow-500" };
         case "Urgent":
-          return { bg: "rgba(249, 115, 22, 0.15)", text: "#FB923C" };
+          return { bg: "bg-orange-500/10 border border-orange-500/20", text: "text-orange-500" };
         case "Critical":
-          return { bg: "rgba(239, 68, 68, 0.15)", text: "#F87171" };
+          return { bg: "bg-red-500/10 border border-red-500/20", text: "text-red-400" };
         default:
-          return { bg: "rgba(100, 116, 139, 0.15)", text: "#94A3B8" };
+          return { bg: "bg-slate-500/10 border border-slate-500/20", text: "text-slate-400" };
       }
     }
-    if (num <= 3) return { bg: "rgba(56, 189, 248, 0.15)", text: "#38BDF8" };
-    if (num <= 7) return { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24" };
-    return { bg: "rgba(239, 68, 68, 0.15)", text: "#F87171" };
+    if (num <= 3) return { bg: "bg-sky-500/10 border border-sky-500/20", text: "text-sky-400" };
+    if (num <= 7) return { bg: "bg-yellow-500/10 border border-yellow-500/20", text: "text-yellow-500" };
+    return { bg: "bg-red-500/10 border border-red-500/20", text: "text-red-400" };
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColorClass = (status: string) => {
     switch (status) {
       case "Pending":
-        return "#EAB308";
+        return "bg-yellow-500";
       case "In Progress":
-        return "#3B82F6";
+        return "bg-blue-500";
       case "Under Review":
-        return "#A855F7";
+        return "bg-purple-500";
       case "Completed":
-        return "#10B981";
+        return "bg-emerald-500";
       case "Cancelled":
-        return "#64748B";
+        return "bg-slate-500";
       default:
-        return "#94A3B8";
+        return "bg-slate-400";
     }
   };
 
@@ -120,64 +123,57 @@ export default function TasksTab() {
     return getInitials(member?.user?.name);
   };
 
+  // Borderless Switcher header
+  const titleNode = activeOrg ? (
+    <TouchableOpacity 
+      className="flex-row items-center max-w-[80%] py-1 px-2 rounded-md border border-border bg-card"
+      onPress={() => setOrgModalVisible(true)}
+    >
+      <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+        {activeOrg.name}
+      </Text>
+      <ChevronDown size={14} className="ml-1.5 text-muted-foreground" />
+    </TouchableOpacity>
+  ) : (
+    <Text className="text-base font-bold text-primary">Ground Control</Text>
+  );
+
   return (
-    <View style={styles.container}>
-      {/* Header bar */}
-      <View style={styles.header}>
-        {activeOrg ? (
-          <TouchableOpacity 
-            style={styles.orgSelector} 
-            onPress={() => setOrgModalVisible(true)}
-          >
-            <Text style={styles.orgName} numberOfLines={1}>
-              {activeOrg.name}
-            </Text>
-            <ChevronDown size={14} color="#94A3B8" style={styles.chevron} />
-          </TouchableOpacity>
-        ) : (
-          <Text style={styles.headerTitle}>Ground Control</Text>
-        )}
+    <View className="flex-1 bg-background">
+      <Header title={titleNode} />
 
-        <TouchableOpacity
-          style={styles.avatarButton}
-          onPress={() => router.push("/settings")}
-        >
-          <Text style={styles.avatarButtonText}>
-            {getInitials(session?.user?.name)}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.mainView}>
+      <View className="flex-1">
         {/* Header Title */}
-        <View style={styles.viewHeader}>
-          <Text style={styles.viewTitle}>Tasks</Text>
-          <Text style={styles.viewSubtitle}>
+        <View className="pt-[18px] px-5 pb-3">
+          <Text className="text-xl font-bold text-foreground tracking-tight">Tasks</Text>
+          <Text className="text-xs text-muted-foreground mt-0.5">
             Manage and collaborate on tasks inside your team
           </Text>
         </View>
 
         {/* Filter Row */}
-        <View style={styles.filterContainer}>
+        <View className="h-11 border-b border-border">
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterScroll}
+            contentContainerStyle={{ paddingHorizontal: 16, alignItems: "center", gap: 8 }}
           >
             {["All", "Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => (
               <TouchableOpacity
                 key={status}
-                style={[
-                  styles.filterTab,
-                  statusFilter === status && styles.filterTabActive
-                ]}
+                className={`px-3 py-1.5 rounded-md border ${
+                  statusFilter === status 
+                    ? "border-border bg-card" 
+                    : "border-transparent"
+                }`}
                 onPress={() => setStatusFilter(status)}
               >
                 <Text 
-                  style={[
-                    styles.filterText,
-                    statusFilter === status && styles.filterTextActive
-                  ]}
+                  className={`text-xs ${
+                    statusFilter === status 
+                      ? "text-foreground font-semibold" 
+                      : "text-muted-foreground font-medium"
+                  }`}
                 >
                   {status}
                 </Text>
@@ -187,24 +183,24 @@ export default function TasksTab() {
         </View>
 
         {/* Tasks List */}
-        {tasks === undefined ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#3B82F6" />
-            <Text style={styles.loadingText}>Loading tasks...</Text>
-          </View>
-        ) : !activeOrg ? (
-          <View style={styles.centerContainer}>
-            <AlertCircle size={40} color="#EF4444" />
-            <Text style={styles.emptyTitle}>No Active Organization</Text>
-            <Text style={styles.emptySubtitle}>
+        {!activeOrg ? (
+          <View className="flex-1 justify-center items-center p-8 gap-3">
+            <AlertCircle size={40} className="text-destructive" />
+            <Text className="text-sm font-semibold text-foreground mt-2">No Active Organization</Text>
+            <Text className="text-xs text-muted-foreground text-center leading-5">
               Please switch to or create an organization to view tasks.
             </Text>
           </View>
+        ) : tasks === undefined ? (
+          <View className="flex-1 justify-center items-center p-8 gap-3">
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text className="text-xs text-muted-foreground mt-1">Loading tasks...</Text>
+          </View>
         ) : filteredTasks.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <AlertCircle size={40} color="#475569" />
-            <Text style={styles.emptyTitle}>No Tasks Found</Text>
-            <Text style={styles.emptySubtitle}>
+          <View className="flex-1 justify-center items-center p-8 gap-3">
+            <AlertCircle size={40} className="text-muted-foreground" />
+            <Text className="text-sm font-semibold text-foreground mt-2">No Tasks Found</Text>
+            <Text className="text-xs text-muted-foreground text-center leading-5">
               {statusFilter === "All"
                 ? "Get started by creating a new task."
                 : `No tasks found with status "${statusFilter}".`}
@@ -212,15 +208,15 @@ export default function TasksTab() {
           </View>
         ) : (
           <ScrollView 
-            style={styles.tasksScroll}
-            contentContainerStyle={styles.tasksContent}
+            className="flex-1"
+            contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
           >
             {filteredTasks.map((task) => {
-              const priorityStyle = getPriorityStyle(task.priority);
+              const priorityClasses = getPriorityClasses(task.priority);
               return (
                 <TouchableOpacity
                   key={task._id}
-                  style={styles.taskCard}
+                  className="p-3.5 rounded-lg border border-border bg-card gap-2"
                   onPress={() => {
                     router.push({
                       pathname: "/task-details",
@@ -228,65 +224,58 @@ export default function TasksTab() {
                     });
                   }}
                 >
-                  <View style={styles.taskCardHeader}>
-                    <Text style={styles.taskTitle} numberOfLines={1}>
+                  <View className="flex-row justify-between items-center gap-2">
+                    <Text className="text-sm font-semibold text-foreground flex-1" numberOfLines={1}>
                       {task.title}
                     </Text>
-                    <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
-                      <Text style={[styles.priorityText, { color: priorityStyle.text }]}>
+                    <Badge className={`px-1.5 py-0.5 rounded-md ${priorityClasses.bg}`}>
+                      <Text className={`text-[9px] font-bold ${priorityClasses.text}`}>
                         Lvl {task.priority}
                       </Text>
-                    </View>
+                    </Badge>
                   </View>
 
                   {task.description ? (
-                    <Text style={styles.taskDesc} numberOfLines={2}>
+                    <Text className="text-xs text-muted-foreground leading-4" numberOfLines={2}>
                       {task.description}
                     </Text>
                   ) : null}
 
-                  <View style={styles.taskCardFooter}>
-                    <View style={styles.taskInfoRow}>
-                      <View 
-                        style={[
-                          styles.statusDot, 
-                          { backgroundColor: getStatusColor(task.status) }
-                        ]} 
-                      />
-                      <Text style={styles.statusText}>{task.status}</Text>
+                  <View className="flex-row justify-between items-center mt-1">
+                    <View className="flex-row items-center gap-1.5">
+                      <View className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(task.status)}`} />
+                      <Text className="text-[11px] font-medium text-foreground">{task.status}</Text>
                       
-                      <View style={styles.dotSeparator} />
+                      <View className="w-1 h-1 rounded-full bg-border mx-1" />
                       
-                      <Calendar size={12} color="#64748B" />
-                      <Text style={styles.dueDateText}>
+                      <Calendar size={12} className="text-muted-foreground" />
+                      <Text className="text-[11px] text-muted-foreground ml-0.5">
                         {formatDueDate(task.dueDate)}
                       </Text>
                     </View>
 
                     {/* Assignee Avatar Stack */}
-                    <View style={styles.avatarStack}>
+                    <View className="flex-row items-center">
                       {task.assigneeIds && task.assigneeIds.length > 0 ? (
                         task.assigneeIds.slice(0, 3).map((userId, idx) => (
                           <View 
                             key={userId} 
-                            style={[
-                              styles.smallAvatar, 
-                              { marginLeft: idx > 0 ? -8 : 0 }
-                            ]}
+                            className="w-5.5 h-5.5 rounded-full bg-primary justify-center items-center border-2 border-card"
+                            style={{ marginLeft: idx > 0 ? -8 : 0 }}
                           >
-                            <Text style={styles.smallAvatarText}>
+                            <Text className="text-[8px] font-bold text-primary-foreground">
                               {getMemberUserInitials(userId)}
                             </Text>
                           </View>
                         ))
                       ) : (
-                        <View style={styles.smallAvatarEmpty}>
-                          <Text style={styles.smallAvatarText}>-</Text>
+                        <View className="w-5.5 h-5.5 rounded-full bg-border justify-center items-center border-2 border-card">
+                          <Text className="text-[8px] font-bold text-muted-foreground">-</Text>
                         </View>
                       )}
                       {task.assigneeIds && task.assigneeIds.length > 3 ? (
-                        <View style={[styles.smallAvatar, { marginLeft: -8, backgroundColor: "#334155" }]}>
-                          <Text style={styles.smallAvatarText}>+{task.assigneeIds.length - 3}</Text>
+                        <View className="w-5.5 h-5.5 rounded-full bg-slate-700 justify-center items-center border-2 border-card -ml-2">
+                          <Text className="text-[8px] font-bold text-white">+{task.assigneeIds.length - 3}</Text>
                         </View>
                       ) : null}
                     </View>
@@ -295,16 +284,6 @@ export default function TasksTab() {
               );
             })}
           </ScrollView>
-        )}
-
-        {/* Floating Action Button */}
-        {activeOrg && (
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => router.push("/create-task")}
-          >
-            <Plus size={24} color="#FFFFFF" />
-          </TouchableOpacity>
         )}
       </View>
 
@@ -316,18 +295,18 @@ export default function TasksTab() {
         onRequestClose={() => setOrgModalVisible(false)}
       >
         <Pressable 
-          style={styles.modalOverlay}
+          className="flex-1 bg-black/75 justify-center items-center p-6"
           onPress={() => setOrgModalVisible(false)}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Switch Workspace</Text>
-              <Text style={styles.modalSubtitle}>
+          <Card className="w-full max-h-[80%] p-5 gap-4 bg-background border-border shadow-2xl">
+            <View className="gap-1">
+              <Text className="text-base font-bold text-foreground">Switch Workspace</Text>
+              <Text className="text-xs text-muted-foreground">
                 Select another workspace to view its tasks
               </Text>
             </View>
 
-            <ScrollView style={styles.modalOrgList}>
+            <ScrollView className="max-h-[250px]">
               {(organizations || []).map((org: any) => {
                 const isSelected = activeOrg?.id === org.id;
                 const isSwitching = switchingOrgId === org.id;
@@ -335,362 +314,37 @@ export default function TasksTab() {
                 return (
                   <TouchableOpacity
                     key={org.id}
-                    style={[
-                      styles.modalOrgItem,
-                      isSelected && styles.modalOrgItemActive
-                    ]}
+                    className={`flex-row justify-between items-center py-3 px-3 rounded-lg border mb-1.5 ${
+                      isSelected ? "bg-card border-border" : "border-transparent"
+                    }`}
                     onPress={() => !isSelected && handleSwitchOrg(org.id)}
                     disabled={isSwitching || isSelected}
                   >
-                    <View style={styles.modalOrgInfo}>
-                      <Text style={styles.modalOrgName}>{org.name}</Text>
-                      <Text style={styles.modalOrgSlug}>{org.slug}</Text>
+                    <View className="gap-0.5 flex-1">
+                      <Text className="text-xs font-semibold text-foreground">{org.name}</Text>
+                      <Text className="text-[11px] text-muted-foreground">{org.slug}</Text>
                     </View>
 
                     {isSwitching ? (
                       <ActivityIndicator size="small" color="#3B82F6" />
                     ) : isSelected ? (
-                      <Check size={18} color="#3B82F6" />
+                      <Check size={18} className="text-primary" />
                     ) : null}
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
 
-            <TouchableOpacity
-              style={styles.modalCloseButton}
+            <Button
+              variant="outline"
+              className="h-10 mt-1 border-border bg-card"
               onPress={() => setOrgModalVisible(false)}
             >
-              <Text style={styles.modalCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+              Close
+            </Button>
+          </Card>
         </Pressable>
       </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#09090B",
-  },
-  header: {
-    paddingTop: 54,
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1E1E24",
-    backgroundColor: "#09090B",
-  },
-  orgSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    maxWidth: "80%",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-  },
-  orgName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  chevron: {
-    marginLeft: 6,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#3B82F6",
-  },
-  avatarButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#1E293B",
-  },
-  avatarButtonText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  mainView: {
-    flex: 1,
-  },
-  viewHeader: {
-    paddingTop: 18,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  viewTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FAFAFA",
-    letterSpacing: -0.5,
-  },
-  viewSubtitle: {
-    fontSize: 12,
-    color: "#A1A1AA",
-    marginTop: 2,
-  },
-  filterContainer: {
-    height: 44,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1E1E24",
-  },
-  filterScroll: {
-    paddingHorizontal: 16,
-    alignItems: "center",
-    gap: 8,
-  },
-  filterTab: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  filterTabActive: {
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-  },
-  filterText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#71717A",
-  },
-  filterTextActive: {
-    color: "#FAFAFA",
-    fontWeight: "600",
-  },
-  tasksScroll: {
-    flex: 1,
-  },
-  tasksContent: {
-    padding: 16,
-    gap: 12,
-    paddingBottom: 90,
-  },
-  taskCard: {
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#09090B",
-    gap: 8,
-  },
-  taskCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  taskTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FAFAFA",
-    flex: 1,
-  },
-  priorityBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  priorityText: {
-    fontSize: 9,
-    fontWeight: "700",
-  },
-  taskDesc: {
-    fontSize: 12,
-    color: "#A1A1AA",
-    lineHeight: 16,
-  },
-  taskCardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  taskInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#E4E4E7",
-  },
-  dotSeparator: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "#27272A",
-    marginHorizontal: 2,
-  },
-  dueDateText: {
-    fontSize: 11,
-    color: "#A1A1AA",
-    marginLeft: 2,
-  },
-  avatarStack: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  smallAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#09090B",
-  },
-  smallAvatarEmpty: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#27272A",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#09090B",
-  },
-  smallAvatarText: {
-    fontSize: 8,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 24,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#2563EB",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: "#A1A1AA",
-    marginTop: 4,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FAFAFA",
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    color: "#71717A",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  modalContainer: {
-    width: "100%",
-    maxHeight: "80%",
-    backgroundColor: "#09090B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 20,
-    gap: 16,
-  },
-  modalHeader: {
-    gap: 4,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FAFAFA",
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: "#71717A",
-  },
-  modalOrgList: {
-    maxHeight: 250,
-  },
-  modalOrgItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginBottom: 6,
-  },
-  modalOrgItemActive: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-  },
-  modalOrgInfo: {
-    gap: 2,
-    flex: 1,
-  },
-  modalOrgName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  modalOrgSlug: {
-    fontSize: 11,
-    color: "#71717A",
-  },
-  modalCloseButton: {
-    height: 42,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  modalCloseText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-});

@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, ScrollView, Modal, Pressable } from "react-native";
 import { useState } from "react";
+import { View, TouchableOpacity, ActivityIndicator, ScrollView, Modal, Pressable } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../packages/backend/convex/_generated/api";
 import { authClient } from "../../lib/auth-client";
@@ -10,10 +10,13 @@ import {
   ListTodo, 
   Calendar, 
   Shield, 
-  MessageSquare, 
   TrendingUp, 
   Users 
 } from "lucide-react-native";
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function HomeTab() {
   const router = useRouter();
@@ -64,129 +67,133 @@ export default function HomeTab() {
     ? tasks.slice(0, 3)
     : [];
 
-  const getStatusColor = (status: string) => {
+  const getStatusColorClass = (status: string) => {
     switch (status) {
       case "Pending":
-        return "#EAB308";
+        return "bg-yellow-500";
       case "In Progress":
-        return "#3B82F6";
+        return "bg-blue-500";
       case "Under Review":
-        return "#A855F7";
+        return "bg-purple-500";
       case "Completed":
-        return "#10B981";
+        return "bg-emerald-500";
       case "Cancelled":
-        return "#64748B";
+        return "bg-slate-500";
       default:
-        return "#94A3B8";
+        return "bg-slate-400";
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-background">
       {/* Header bar */}
-      <View style={styles.header}>
+      <View className="pt-[54px] pb-[14px] px-5 flex-row justify-between items-center border-b border-border bg-background">
         {activeOrg ? (
           <TouchableOpacity 
-            style={styles.orgSelector} 
+            className="flex-row items-center max-w-[80%] py-1 px-2 rounded-md border border-border bg-card"
             onPress={() => setOrgModalVisible(true)}
           >
-            <Text style={styles.orgName} numberOfLines={1}>
+            <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
               {activeOrg.name}
             </Text>
-            <ChevronDown size={14} color="#94A3B8" style={styles.chevron} />
+            <ChevronDown size={14} className="ml-1.5 text-muted-foreground" />
           </TouchableOpacity>
         ) : (
-          <Text style={styles.headerTitle}>Ground Control</Text>
+          <Text className="text-base font-bold text-primary">Ground Control</Text>
         )}
 
         <TouchableOpacity
-          style={styles.avatarButton}
+          className="w-8 h-8 rounded-full bg-primary justify-center items-center border border-border"
           onPress={() => router.push("/settings")}
         >
-          <Text style={styles.avatarButtonText}>
+          <Text className="text-[11px] font-extrabold text-primary-foreground">
             {getInitials(session?.user?.name)}
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView 
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 40 }}
       >
         {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.greeting}>Hello, {session?.user?.name?.split(" ")[0] || "User"} 👋</Text>
-          <Text style={styles.subtitle}>Welcome to Ground Control control center.</Text>
+        <View className="gap-1 py-1.5">
+          <Text className="text-2xl font-bold text-foreground tracking-tight">Hello, {session?.user?.name?.split(" ")[0] || "User"} 👋</Text>
+          <Text className="text-xs text-muted-foreground">Welcome to Ground Control control center.</Text>
         </View>
 
         {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
-              <ListTodo size={16} color="#3B82F6" />
+        <View className="flex-row gap-3">
+          <Card className="flex-1 p-3 gap-1 bg-card border-border">
+            <View className="w-[26px] h-[26px] rounded bg-blue-500/10 justify-center items-center mb-1">
+              <ListTodo size={16} className="text-blue-500" />
             </View>
-            <Text style={styles.statNumber}>{totalTasks}</Text>
-            <Text style={styles.statLabel}>Total Tasks</Text>
-          </View>
+            <Text className="text-lg font-bold text-foreground">{totalTasks}</Text>
+            <Text className="text-[10px] text-muted-foreground font-medium">Total Tasks</Text>
+          </Card>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: "rgba(234, 179, 8, 0.1)" }]}>
-              <TrendingUp size={16} color="#EAB308" />
+          <Card className="flex-1 p-3 gap-1 bg-card border-border">
+            <View className="w-[26px] h-[26px] rounded bg-yellow-500/10 justify-center items-center mb-1">
+              <TrendingUp size={16} className="text-yellow-500" />
             </View>
-            <Text style={styles.statNumber}>{pendingTasks}</Text>
-            <Text style={styles.statLabel}>Active Tasks</Text>
-          </View>
+            <Text className="text-lg font-bold text-foreground">{pendingTasks}</Text>
+            <Text className="text-[10px] text-muted-foreground font-medium">Active Tasks</Text>
+          </Card>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
-              <Check size={16} color="#10B981" />
+          <Card className="flex-1 p-3 gap-1 bg-card border-border">
+            <View className="w-[26px] h-[26px] rounded bg-emerald-500/10 justify-center items-center mb-1">
+              <Check size={16} className="text-emerald-500" />
             </View>
-            <Text style={styles.statNumber}>{completedTasks}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
+            <Text className="text-lg font-bold text-foreground">{completedTasks}</Text>
+            <Text className="text-[10px] text-muted-foreground font-medium">Completed</Text>
+          </Card>
         </View>
 
         {/* Active Workspace Info */}
         {activeOrg && (
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionCardHeader}>
-              <Text style={styles.sectionCardTitle}>Workspace Overview</Text>
-              <Users size={14} color="#71717A" />
+          <Card className="p-4 gap-3 bg-card border-border">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Workspace Overview</Text>
+              <Users size={14} className="text-muted-foreground" />
             </View>
-            <View style={styles.workspaceInfo}>
-              <Text style={styles.orgNameLabel}>{activeOrg.name}</Text>
-              <View style={styles.roleBadgeRow}>
-                <View style={styles.roleBadge}>
-                  <Shield size={10} color="#3B82F6" style={{ marginRight: 4 }} />
-                  <Text style={styles.roleBadgeText}>
+            <View className="gap-1.5">
+              <Text className="text-sm font-semibold text-foreground">{activeOrg.name}</Text>
+              <View className="flex-row items-center gap-2">
+                <Badge variant="secondary" className="flex-row items-center gap-1.5 px-2 py-0.5 bg-primary/10 border border-primary/20">
+                  <Shield size={10} className="text-primary mr-1" />
+                  <Text className="text-[9px] font-semibold text-primary">
                     {activeMember?.role 
                       ? activeMember.role.charAt(0).toUpperCase() + activeMember.role.slice(1)
                       : "Member"}
                   </Text>
-                </View>
-                <Text style={styles.membersCount}>
+                </Badge>
+                <Text className="text-xs text-muted-foreground">
                   {(activeOrg.members || []).length} members
                 </Text>
               </View>
             </View>
-          </View>
+          </Card>
         )}
 
         {/* Recent Tasks */}
-        <View style={styles.tasksSection}>
-          <Text style={styles.sectionHeaderTitle}>Recent Tasks</Text>
-          {tasks === undefined ? (
-            <ActivityIndicator size="small" color="#3B82F6" style={{ marginVertical: 20 }} />
+        <View className="gap-2.5">
+          <Text className="text-sm font-bold text-foreground">Recent Tasks</Text>
+          {!activeOrg ? (
+            <Card className="p-5 items-center justify-center bg-card border-border">
+              <Text className="text-xs text-muted-foreground italic">Select a workspace to view tasks.</Text>
+            </Card>
+          ) : tasks === undefined ? (
+            <ActivityIndicator size="small" color="#3B82F6" className="my-5" />
           ) : recentTasks.length === 0 ? (
-            <View style={styles.emptyTasksBox}>
-              <Text style={styles.emptyTasksText}>No tasks created yet.</Text>
-            </View>
+            <Card className="p-5 items-center justify-center bg-card border-border">
+              <Text className="text-xs text-muted-foreground italic">No tasks created yet.</Text>
+            </Card>
           ) : (
-            <View style={styles.recentTasksList}>
+            <Card className="p-1 gap-0.5 bg-card border-border">
               {recentTasks.map((t) => (
                 <TouchableOpacity
                   key={t._id}
-                  style={styles.recentTaskItem}
+                  className="flex-row justify-between items-center py-2.5 px-3 rounded-md active:bg-accent"
                   onPress={() => {
                     router.push({
                       pathname: "/task-details",
@@ -194,38 +201,40 @@ export default function HomeTab() {
                     });
                   }}
                 >
-                  <View style={styles.recentTaskLeft}>
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(t.status) }]} />
-                    <Text style={styles.recentTaskTitle} numberOfLines={1}>
+                  <View className="flex-row items-center gap-2 flex-1">
+                    <View className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(t.status)}`} />
+                    <Text className="text-xs text-foreground font-medium max-w-[85%]" numberOfLines={1}>
                       {t.title}
                     </Text>
                   </View>
-                  <Calendar size={12} color="#71717A" />
+                  <Calendar size={12} className="text-muted-foreground" />
                 </TouchableOpacity>
               ))}
-            </View>
+            </Card>
           )}
         </View>
 
         {/* Shortcuts */}
-        <View style={styles.tasksSection}>
-          <Text style={styles.sectionHeaderTitle}>Quick Access</Text>
-          <View style={styles.shortcutsRow}>
-            <TouchableOpacity 
-              style={styles.shortcutBtn}
+        <View className="gap-2.5">
+          <Text className="text-sm font-bold text-foreground">Quick Access</Text>
+          <View className="flex-row gap-3">
+            <Button 
+              variant="outline" 
+              className="flex-1 flex-row gap-2 h-10 border-border bg-card"
               onPress={() => router.push("/(tabs)/tasks")}
             >
-              <ListTodo size={16} color="#FAFAFA" />
-              <Text style={styles.shortcutBtnText}>View Tasks</Text>
-            </TouchableOpacity>
+              <ListTodo size={16} className="text-foreground" />
+              <Text className="text-xs font-semibold text-foreground">View Tasks</Text>
+            </Button>
 
-            <TouchableOpacity 
-              style={styles.shortcutBtn}
+            <Button 
+              variant="outline" 
+              className="flex-1 flex-row gap-2 h-10 border-border bg-card"
               onPress={() => router.push("/settings")}
             >
-              <Users size={16} color="#FAFAFA" />
-              <Text style={styles.shortcutBtnText}>Settings</Text>
-            </TouchableOpacity>
+              <Users size={16} className="text-foreground" />
+              <Text className="text-xs font-semibold text-foreground">Settings</Text>
+            </Button>
           </View>
         </View>
       </ScrollView>
@@ -238,18 +247,18 @@ export default function HomeTab() {
         onRequestClose={() => setOrgModalVisible(false)}
       >
         <Pressable 
-          style={styles.modalOverlay}
+          className="flex-1 bg-black/75 justify-center items-center p-6"
           onPress={() => setOrgModalVisible(false)}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Switch Workspace</Text>
-              <Text style={styles.modalSubtitle}>
+          <Card className="w-full max-h-[80%] p-5 gap-4 bg-background border-border shadow-2xl">
+            <View className="gap-1">
+              <Text className="text-base font-bold text-foreground">Switch Workspace</Text>
+              <Text className="text-xs text-muted-foreground">
                 Select another workspace to view its tasks
               </Text>
             </View>
 
-            <ScrollView style={styles.modalOrgList}>
+            <ScrollView className="max-h-[250px]">
               {(organizations || []).map((org: any) => {
                 const isSelected = activeOrg?.id === org.id;
                 const isSwitching = switchingOrgId === org.id;
@@ -257,350 +266,37 @@ export default function HomeTab() {
                 return (
                   <TouchableOpacity
                     key={org.id}
-                    style={[
-                      styles.modalOrgItem,
-                      isSelected && styles.modalOrgItemActive
-                    ]}
+                    className={`flex-row justify-between items-center py-3 px-3 rounded-lg border mb-1.5 ${
+                      isSelected ? "bg-card border-border" : "border-transparent"
+                    }`}
                     onPress={() => !isSelected && handleSwitchOrg(org.id)}
                     disabled={isSwitching || isSelected}
                   >
-                    <View style={styles.modalOrgInfo}>
-                      <Text style={styles.modalOrgName}>{org.name}</Text>
-                      <Text style={styles.modalOrgSlug}>{org.slug}</Text>
+                    <View className="gap-0.5 flex-1">
+                      <Text className="text-xs font-semibold text-foreground">{org.name}</Text>
+                      <Text className="text-[11px] text-muted-foreground">{org.slug}</Text>
                     </View>
 
                     {isSwitching ? (
                       <ActivityIndicator size="small" color="#3B82F6" />
                     ) : isSelected ? (
-                      <Check size={18} color="#3B82F6" />
+                      <Check size={18} className="text-primary" />
                     ) : null}
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
 
-            <TouchableOpacity
-              style={styles.modalCloseButton}
+            <Button
+              variant="outline"
+              className="h-10 mt-1 border-border bg-card"
               onPress={() => setOrgModalVisible(false)}
             >
-              <Text style={styles.modalCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+              Close
+            </Button>
+          </Card>
         </Pressable>
       </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#09090B",
-  },
-  header: {
-    paddingTop: 54,
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1E1E24",
-    backgroundColor: "#09090B",
-  },
-  orgSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    maxWidth: "80%",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-  },
-  orgName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  chevron: {
-    marginLeft: 6,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#3B82F6",
-  },
-  avatarButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#1E293B",
-  },
-  avatarButtonText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    gap: 20,
-    paddingBottom: 40,
-  },
-  welcomeSection: {
-    gap: 4,
-    paddingVertical: 6,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FAFAFA",
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: "#A1A1AA",
-  },
-  statsGrid: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    gap: 4,
-  },
-  statIconBox: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FAFAFA",
-  },
-  statLabel: {
-    fontSize: 10,
-    color: "#71717A",
-    fontWeight: "500",
-  },
-  sectionCard: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 16,
-    gap: 12,
-  },
-  sectionCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionCardTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#71717A",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  workspaceInfo: {
-    gap: 6,
-  },
-  orgNameLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  roleBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(37, 99, 235, 0.1)",
-    borderColor: "rgba(37, 99, 235, 0.2)",
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  roleBadgeText: {
-    color: "#3B82F6",
-    fontSize: 9,
-    fontWeight: "600",
-  },
-  membersCount: {
-    fontSize: 11,
-    color: "#71717A",
-  },
-  tasksSection: {
-    gap: 10,
-  },
-  sectionHeaderTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FAFAFA",
-    letterSpacing: -0.2,
-  },
-  emptyTasksBox: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 20,
-    alignItems: "center",
-  },
-  emptyTasksText: {
-    fontSize: 12,
-    color: "#71717A",
-    fontStyle: "italic",
-  },
-  recentTasksList: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 4,
-    gap: 2,
-  },
-  recentTaskItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  recentTaskLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  recentTaskTitle: {
-    fontSize: 12,
-    color: "#E4E4E7",
-    fontWeight: "500",
-    maxWidth: "85%",
-  },
-  shortcutsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  shortcutBtn: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    height: 40,
-  },
-  shortcutBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  modalContainer: {
-    width: "100%",
-    maxHeight: "80%",
-    backgroundColor: "#09090B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 20,
-    gap: 16,
-  },
-  modalHeader: {
-    gap: 4,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FAFAFA",
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: "#71717A",
-  },
-  modalOrgList: {
-    maxHeight: 250,
-  },
-  modalOrgItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginBottom: 6,
-  },
-  modalOrgItemActive: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-  },
-  modalOrgInfo: {
-    gap: 2,
-    flex: 1,
-  },
-  modalOrgName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  modalOrgSlug: {
-    fontSize: 11,
-    color: "#71717A",
-  },
-  modalCloseButton: {
-    height: 42,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#27272A",
-    backgroundColor: "#18181B",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  modalCloseText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-});

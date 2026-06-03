@@ -1,107 +1,33 @@
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { ClipboardCheck } from "lucide-react-native";
+import { Text } from "@/components/ui/text";
+import { Card } from "@/components/ui/card";
+import { Header } from "@/components/ui/header";
 
 export default function ApprovalsTab() {
   return (
-    <View style={styles.container}>
-      {/* Header bar */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ground Control</Text>
-      </View>
+    <View className="flex-1 bg-background">
+      <Header title="Ground Control" />
 
       <ScrollView 
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerStyle={{ padding: 20, gap: 24 }}
       >
-        <View style={styles.contentHeader}>
-          <Text style={styles.title}>Approvals</Text>
-          <Text style={styles.subtitle}>Track, review, and sign off on tasks and documents</Text>
+        <View className="gap-1 py-1.5">
+          <Text className="text-2xl font-bold text-foreground tracking-tight">Approvals</Text>
+          <Text className="text-xs text-muted-foreground">Track, review, and sign off on tasks and documents</Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <ClipboardCheck size={40} color="#3B82F6" />
+        <Card className="p-6 items-center justify-center gap-3 mt-4 bg-card border-border">
+          <View className="w-16 h-16 rounded-full bg-primary/10 items-center justify-center">
+            <ClipboardCheck size={40} className="text-primary" />
           </View>
-          <Text style={styles.cardTitle}>Approvals Board</Text>
-          <Text style={styles.cardDescription}>
+          <Text className="text-base font-semibold text-foreground">Approvals Board</Text>
+          <Text className="text-xs text-muted-foreground text-center leading-5 px-3">
             Any tasks requiring your official sign-off or review will appear here. No approval requests pending.
           </Text>
-        </View>
+        </Card>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#09090B",
-  },
-  header: {
-    paddingTop: 54,
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1E1E24",
-    backgroundColor: "#09090B",
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#3B82F6",
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    gap: 24,
-  },
-  contentHeader: {
-    gap: 4,
-    paddingVertical: 6,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FAFAFA",
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: "#A1A1AA",
-  },
-  card: {
-    backgroundColor: "#18181B",
-    borderColor: "#27272A",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    marginTop: 16,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FAFAFA",
-  },
-  cardDescription: {
-    fontSize: 12,
-    color: "#71717A",
-    textAlign: "center",
-    lineHeight: 18,
-    paddingHorizontal: 12,
-  },
-});

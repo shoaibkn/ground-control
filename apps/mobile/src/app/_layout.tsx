@@ -1,9 +1,11 @@
+import "../../global.css";
 import { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { ConvexReactClient } from "convex/react";
 import { authClient } from "../lib/auth-client";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import { PortalHost } from "@rn-primitives/portal";
 
 const convex = new ConvexReactClient(
   process.env.EXPO_PUBLIC_CONVEX_URL || "https://posh-hummingbird-102.convex.cloud"
@@ -30,8 +32,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isPending) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#208AEF" />
+      <View className="flex-1 justify-center items-center bg-background">
+        <ActivityIndicator size="large" color="#3B82F6" />
       </View>
     );
   }
@@ -44,16 +46,8 @@ export default function RootLayout() {
     <ConvexBetterAuthProvider client={convex} authClient={authClient}>
       <AuthGuard>
         <Stack screenOptions={{ headerShown: false }} />
+        <PortalHost />
       </AuthGuard>
     </ConvexBetterAuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#0B0F19",
-  },
-});
