@@ -30,6 +30,14 @@ export default defineSchema({
     subscriberIds: v.optional(v.array(v.string())),
     isArchived: v.boolean(),
     lastOverdueNotifiedAt: v.optional(v.number()),
+    reactions: v.optional(
+      v.array(
+        v.object({
+          userId: v.string(),
+          emoji: v.string(),
+        })
+      )
+    ),
   }).index("by_organization", ["organizationId"]),
 
   taskComments: defineTable({
@@ -73,4 +81,12 @@ export default defineSchema({
     creatorId: v.string(),
     createdAt: v.number(),
   }).index("by_task", ["taskId"]),
+
+  taskReadReceipts: defineTable({
+    taskId: v.id("tasks"),
+    userId: v.string(),
+    lastReadTime: v.number(),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_task_user", ["taskId", "userId"]),
 })

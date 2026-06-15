@@ -108,3 +108,58 @@ export const upsertProfile = mutation({
     return { success: true }
   },
 })
+
+export const getOrganizationProfiles = query({
+  args: {
+    organizationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const callerUser = await authComponent.getAuthUser(ctx)
+    if (!callerUser) {
+      throw new Error("Unauthorized")
+    }
+
+    // Check if caller is member of this org
+    const callerMember = (await ctx.runQuery(
+      components.betterAuth.adapter.findOne,
+      {
+        model: "member",
+        where: [
+          { field: "organizationId", value: args.organizationId },
+          { field: "userId", value: callerUser._id },
+        ],
+      }
+    )) as any
+
+    if (!callerMember) {
+      throw new Error("Unauthorized")
+    }
+
+    // Get all members of the organization
+    const membersResult = (await ctx.runQuery(
+      components.betterAuth.adapter.findMany,
+      {
+        model: "member",
+        where: [{ field: "organizationId", value: args.organizationId }],
+        paginationOpts: { numItems: 1000, cursor: null },
+      }
+    )) as any
+
+    const members = membersResult?.page || []
+    
+    const profiles = []
+    for (const member of members) {
+      if (member && member.id) {
+        const profile = await ctx.db
+          .query("memberProfiles")
+          .withIndex("by_memberId", (q) => q.eq("memberId", member.id))
+          .first()
+        if (profile) {
+          profiles.push(profile)
+        }
+      }
+    }
+
+    return profiles
+  },
+})

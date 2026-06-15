@@ -36,6 +36,8 @@ import {
   CheckCircle2,
   HelpCircle,
   Loader2,
+  Paperclip,
+  MessageSquare,
 } from "lucide-react"
 import TasksSidebar from "./components/tasks-internal-sidebar"
 import { CreateTaskDialog } from "./components/create-task-dialog"
@@ -43,6 +45,7 @@ import TaskDetailsSheet from "./components/task-details-sheet"
 import { toast } from "sonner"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
+import { UserAvatar } from "@/components/user-avatar"
 
 export default function TasksPage() {
   const isMobile = useIsMobile()
@@ -56,6 +59,12 @@ export default function TasksPage() {
   // Fetch tasks for the current organization
   const tasks = useQuery(
     api.tasks.getTasks,
+    activeOrg ? { organizationId: activeOrg.id } : "skip"
+  )
+
+  // Fetch organization member profiles
+  const profiles = useQuery(
+    api.memberProfiles.getOrganizationProfiles,
     activeOrg ? { organizationId: activeOrg.id } : "skip"
   )
 
@@ -86,6 +95,19 @@ export default function TasksPage() {
   const getAssigneeDetails = (userId: string) => {
     const member = activeOrg.members?.find((m: any) => m.userId === userId)
     return member?.user
+  }
+
+  const getAssigneeDesignation = (userId: string) => {
+    const member = activeOrg.members?.find((m: any) => m.userId === userId)
+    if (!member) return undefined
+    const profile = profiles?.find((p: any) => p.memberId === member.id)
+    if (!profile) return undefined
+    const position = profile.position
+    const department = profile.department
+    if (position && department) {
+      return `${position}, ${department}`
+    }
+    return position || department
   }
 
   // Filter tasks by search query
@@ -260,6 +282,45 @@ export default function TasksPage() {
                         </div>
                       </div>
 
+                      {/* Metrics: Files, Comments, and Last Activity */}
+                      <div className="flex flex-wrap items-center justify-between gap-y-2 pt-1">
+                        <div className="flex items-center gap-3">
+                          {/* Files Count */}
+                          <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
+                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground/60" />
+                            <span>{task.documentCount || 0} files</span>
+                          </div>
+
+                          {/* Comments Count */}
+                          <div className="flex items-center gap-1.5 text-[10px]">
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <MessageSquare className={`h-3.5 w-3.5 ${task.unreadCommentCount > 0 ? "text-blue-500 fill-blue-500/10" : "text-muted-foreground/60"}`} />
+                              <span className={task.unreadCommentCount > 0 ? "font-semibold text-foreground" : ""}>
+                                {task.commentCount || 0}
+                              </span>
+                            </div>
+                            {task.unreadCommentCount > 0 && (
+                              <Badge variant="default" className="h-4 px-1 text-[9px] bg-blue-500 hover:bg-blue-600 text-white border-none scale-90 font-semibold shrink-0">
+                                {task.unreadCommentCount} new
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Last Activity */}
+                        <div className="flex items-center gap-1.5 text-[10px]">
+                          <Avatar className="h-4 w-4 shrink-0">
+                            <AvatarImage src={getAvatarUrl(task.lastActivity?.actor?.image, task.lastActivity?.actor?.name)} />
+                            <AvatarFallback className="text-[7px] bg-accent text-accent-foreground font-semibold">
+                              {task.lastActivity?.actor?.name?.charAt(0) || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-[9px] text-muted-foreground max-w-[150px] truncate">
+                            {formatAction(task.lastActivity?.action)} • {formatTimeAgo(task.lastActivity?.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+
                       {/* Footer: Date and Assignees */}
                       <div className="flex items-center justify-between pt-2.5 text-[10px] text-muted-foreground border-t border-dashed border-border/40">
                         <div className="flex items-center gap-1.5">
@@ -276,25 +337,13 @@ export default function TasksPage() {
 
                         <div className="flex -space-x-1.5 overflow-hidden">
                           {task.assigneeIds && task.assigneeIds.length > 0 ? (
-                            task.assigneeIds.map((userId: string) => {
-                              const user = getAssigneeDetails(userId)
-                              return (
-                                <Tooltip key={userId}>
-                                  <TooltipTrigger asChild>
-                                    <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs cursor-pointer">
-                                      <AvatarImage src={getAvatarUrl(user?.image, user?.name)} />
-                                      <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
-                                        {user?.name?.charAt(0) || "U"}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
-                                    <span className="font-semibold text-xs">{user?.name || "Unknown User"}</span>
-                                    {user?.email && <span className="text-[10px] text-muted-foreground">{user?.email}</span>}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )
-                            })
+                            task.assigneeIds.map((userId: string) => (
+                              <UserAvatar
+                                key={userId}
+                                userId={userId}
+                                avatarClassName="h-5.5 w-5.5 border-2 border-card shadow-xs hover:translate-y-[-2px] transition-transform"
+                              />
+                            ))
                           ) : (
                             <span className="text-[10px] italic">Unassigned</span>
                           )}
@@ -313,11 +362,14 @@ export default function TasksPage() {
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="w-[30%]">Task Title</TableHead>
-                      <TableHead className="w-[15%]">Priority</TableHead>
-                      <TableHead className="w-[20%]">Status</TableHead>
-                      <TableHead className="w-[15%]">Due Date</TableHead>
-                      <TableHead className="w-[20%]">Assignees</TableHead>
+                      <TableHead className="w-[22%]">Task Title</TableHead>
+                      <TableHead className="w-[10%]">Priority</TableHead>
+                      <TableHead className="w-[13%]">Status</TableHead>
+                      <TableHead className="w-[12%]">Due Date</TableHead>
+                      <TableHead className="w-[13%]">Assignees</TableHead>
+                      <TableHead className="w-[6%]">Files</TableHead>
+                      <TableHead className="w-[8%]">Comments</TableHead>
+                      <TableHead className="w-[16%]">Last Activity</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -386,35 +438,66 @@ export default function TasksPage() {
                           <TableCell>
                             <div className="flex -space-x-1.5 overflow-hidden">
                               {task.assigneeIds && task.assigneeIds.length > 0 ? (
-                                task.assigneeIds.map((userId: string) => {
-                                  const user = getAssigneeDetails(userId)
-                                  return (
-                                    <Tooltip key={userId}>
-                                      <TooltipTrigger asChild>
-                                        <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs transition-transform hover:translate-y-[-2px] cursor-pointer">
-                                          <AvatarImage src={getAvatarUrl(user?.image, user?.name)} />
-                                          <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
-                                            {user?.name?.charAt(0) || "U"}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
-                                        <span className="font-semibold text-xs">{user?.name || "Unknown User"}</span>
-                                        {user?.email && <span className="text-[10px] text-muted-foreground">{user?.email}</span>}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )
-                                })
+                                task.assigneeIds.map((userId: string) => (
+                                  <UserAvatar
+                                    key={userId}
+                                    userId={userId}
+                                    avatarClassName="h-5.5 w-5.5 border-2 border-card shadow-xs transition-transform hover:translate-y-[-2px]"
+                                  />
+                                ))
                               ) : (
                                 <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
                               )}
                             </div>
                           </TableCell>
+
+                          {/* Files */}
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
+                              <Paperclip className="h-3 w-3 text-muted-foreground/60" />
+                              <span>{task.documentCount || 0}</span>
+                            </div>
+                          </TableCell>
+
+                          {/* Comments */}
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 text-[10px]">
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <MessageSquare className={`h-3 w-3 ${task.unreadCommentCount > 0 ? "text-blue-500 fill-blue-500/10" : "text-muted-foreground/60"}`} />
+                                <span className={task.unreadCommentCount > 0 ? "font-semibold text-foreground" : ""}>
+                                  {task.commentCount || 0}
+                                </span>
+                              </div>
+                              {task.unreadCommentCount > 0 && (
+                                <Badge variant="default" className="h-4 px-1 text-[9px] bg-blue-500 hover:bg-blue-600 text-white border-none scale-90 font-semibold shrink-0">
+                                  {task.unreadCommentCount} new
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>                           {/* Last Activity */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-4.5 w-4.5 shrink-0">
+                                <AvatarImage src={getAvatarUrl(task.lastActivity?.actor?.image, task.lastActivity?.actor?.name)} />
+                                <AvatarFallback className="text-[8px] bg-accent text-accent-foreground font-semibold">
+                                  {task.lastActivity?.actor?.name?.charAt(0) || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col min-w-0 select-none">
+                                <span className="text-[10px] text-foreground font-medium truncate max-w-[110px]" title={formatAction(task.lastActivity?.action)}>
+                                  {formatAction(task.lastActivity?.action)}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground truncate">
+                                  {formatTimeAgo(task.lastActivity?.timestamp)}
+                                </span>
+                              </div>
+                            </div>
+                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                        <TableCell colSpan={8} className="h-32 text-center text-muted-foreground text-xs">
                           No tasks found. Try creating a new task to get started!
                         </TableCell>
                       </TableRow>
@@ -443,16 +526,66 @@ export default function TasksPage() {
             </div>
           )}
         </div>
+ 
+       {/* Dialog for creating tasks */}
+       <CreateTaskDialog isOpen={isCreateDialogOpen} setIsOpen={setIsCreateDialogOpen} />
+ 
+       {/* Sheet for displaying task details */}
+       <TaskDetailsSheet
+         taskId={selectedTaskId}
+         isOpen={!!selectedTaskId}
+         onClose={() => setSelectedTaskId(null)}
+       />
+     </div>
+   )
+ }
 
-      {/* Dialog for creating tasks */}
-      <CreateTaskDialog isOpen={isCreateDialogOpen} setIsOpen={setIsCreateDialogOpen} />
+const formatAction = (action?: string) => {
+  if (!action) return "No activity"
+  switch (action) {
+    case "TASK_CREATED":
+      return "Task created"
+    case "STATUS_CHANGED":
+      return "Status updated"
+    case "TASK_UPDATED":
+      return "Task updated"
+    case "ASSIGNEES_UPDATED":
+      return "Assignees updated"
+    case "COLLABORATORS_UPDATED":
+      return "Collaborators updated"
+    case "SUBSCRIBERS_UPDATED":
+      return "Subscribers updated"
+    case "SUBTASK_CREATED":
+      return "Subtask added"
+    case "SUBTASK_TOGGLED":
+      return "Subtask toggled"
+    case "ATTACHMENT_ADDED":
+      return "File attached"
+    case "ATTACHMENT_DELETED":
+      return "File deleted"
+    case "COMMENT_ADDED":
+      return "Comment added"
+    default:
+      return action
+        .toLowerCase()
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+}
 
-      {/* Sheet for displaying task details */}
-      <TaskDetailsSheet
-        taskId={selectedTaskId}
-        isOpen={!!selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
-      />
-    </div>
-  )
+const formatTimeAgo = (timestamp?: number) => {
+  if (!timestamp) return ""
+  const seconds = Math.floor((Date.now() - timestamp) / 1000)
+  if (seconds < 5) return "Just now"
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 1) return `${seconds}s ago`
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}d ago`
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  })
 }

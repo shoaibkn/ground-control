@@ -134,18 +134,158 @@ export const getTasks = query({
 
     const tasks = await tasksQuery.collect()
 
-    if (canReadAll) {
-      return tasks
+    const filteredTasks = canReadAll
+      ? tasks
+      : tasks.filter(
+          (task) =>
+            task.creatorId === user._id ||
+            task.assigneeIds.includes(user._id) ||
+            task.collaboratorIds?.includes(user._id) ||
+            task.subscriberIds?.includes(user._id)
+        )
+
+    const enrichedTasks = []
+    for (const task of filteredTasks) {
+      // 1. Documents count
+      const attachments = await ctx.db
+        .query("taskAttachments")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .collect()
+      const documentCount = attachments.length
+
+      // 2. Comments count (non-deleted)
+      const comments = await ctx.db
+        .query("taskComments")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .collect()
+      
+      const activeComments = comments.filter((c) => !c.isDeleted)
+      const commentCount = activeComments.length
+
+      // Unread comments count
+      const readReceipt = await ctx.db
+        .query("taskReadReceipts")
+        .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
+        .first()
+
+      const lastReadTime = readReceipt?.lastReadTime ?? 0
+      const unreadCommentCount = activeComments.filter(
+        (c) => c.userId !== user._id && c._creationTime > lastReadTime
+      ).length
+
+      // 3. Last activity
+      const latestAuditLog = await ctx.db
+        .query("taskAuditLogs")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .order("desc")
+        .first()
+
+      const latestComment = await ctx.db
+        .query("taskComments")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .order("desc")
+        .first()
+
+      let lastActivity = null
+      
+      // Determine if the latest comment is newer than the latest audit log
+      if (latestComment && latestComment._creationTime > (latestAuditLog?.timestamp ?? 0)) {
+        // Resolve comment author profile
+        let actor = null
+        if (latestComment.userId && latestComment.userId.length >= 15) {
+          try {
+            const userRecord = (await ctx.runQuery(
+              components.betterAuth.adapter.findOne,
+              {
+                model: "user",
+                where: [{ field: "_id", value: latestComment.userId }],
+              }
+            )) as any
+            if (userRecord) {
+              actor = {
+                name: userRecord.name,
+                email: userRecord.email,
+                image: userRecord.image,
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to find user profile for comment author: ${latestComment.userId}`, e)
+          }
+        }
+        lastActivity = {
+          action: "COMMENT_ADDED",
+          timestamp: latestComment._creationTime,
+          actor: actor || { name: "Unknown Member" },
+        }
+      } else if (latestAuditLog) {
+        // Resolve audit log actor profile
+        const isSystemActor = latestAuditLog.actorId.toUpperCase() === "SYSTEM"
+        let actor = null
+        if (!isSystemActor && latestAuditLog.actorId && latestAuditLog.actorId.length >= 15) {
+          try {
+            const userRecord = (await ctx.runQuery(
+              components.betterAuth.adapter.findOne,
+              {
+                model: "user",
+                where: [{ field: "_id", value: latestAuditLog.actorId }],
+              }
+            )) as any
+            if (userRecord) {
+              actor = {
+                name: userRecord.name,
+                email: userRecord.email,
+                image: userRecord.image,
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to find user profile for audit log actor: ${latestAuditLog.actorId}`, e)
+          }
+        }
+        lastActivity = {
+          action: latestAuditLog.action,
+          timestamp: latestAuditLog.timestamp,
+          actor: actor || (isSystemActor ? { name: "System" } : { name: "Unknown Member" }),
+        }
+      } else {
+        // Fallback to task creation
+        let actor = null
+        if (task.creatorId && task.creatorId.length >= 15) {
+          try {
+            const userRecord = (await ctx.runQuery(
+              components.betterAuth.adapter.findOne,
+              {
+                model: "user",
+                where: [{ field: "_id", value: task.creatorId }],
+              }
+            )) as any
+            if (userRecord) {
+              actor = {
+                name: userRecord.name,
+                email: userRecord.email,
+                image: userRecord.image,
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to find user profile for task creator: ${task.creatorId}`, e)
+          }
+        }
+        lastActivity = {
+          action: "TASK_CREATED",
+          timestamp: task._creationTime,
+          actor: actor || { name: "Unknown Creator" },
+        }
+      }
+
+      enrichedTasks.push({
+        ...task,
+        documentCount,
+        commentCount,
+        unreadCommentCount,
+        lastActivity,
+      })
     }
 
-    // Only read own (creator, assignee, collaborator, or subscriber)
-    return tasks.filter(
-      (task) =>
-        task.creatorId === user._id ||
-        task.assigneeIds.includes(user._id) ||
-        task.collaboratorIds?.includes(user._id) ||
-        task.subscriberIds?.includes(user._id)
-    )
+    return enrichedTasks
   },
 })
 
@@ -402,14 +542,15 @@ export const createSubtask = mutation({
     const task = await ctx.db.get(args.taskId)
     if (!task) throw new Error("Task not found")
 
-    await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
 
-    // Verify user is assignee, creator, or collaborator
+    // Verify user is assignee, creator, collaborator, or org admin/owner
     const isAssignee = task.assigneeIds.includes(user._id)
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
-    if (!isAssignee && !isCollaborator && !isCreator) {
-      throw new Error("Only the creator, assignees, or collaborators can add subtasks")
+    if (!isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
+      throw new Error("Only the creator, assignees, collaborators, or organization admins can add subtasks")
     }
 
     const subtaskId = await ctx.db.insert("subtasks", {
@@ -445,14 +586,15 @@ export const toggleSubtask = mutation({
     const task = await ctx.db.get(subtask.taskId)
     if (!task) throw new Error("Parent task not found")
 
-    await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
 
-    // Verify user is assignee, creator, or collaborator
+    // Verify user is assignee, creator, collaborator, or org admin/owner
     const isAssignee = task.assigneeIds.includes(user._id)
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
-    if (!isAssignee && !isCollaborator && !isCreator) {
-      throw new Error("Only the creator, assignees, or collaborators can toggle subtasks")
+    if (!isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
+      throw new Error("Only the creator, assignees, collaborators, or organization admins can toggle subtasks")
     }
 
     await ctx.db.patch(args.subtaskId, {
@@ -542,5 +684,51 @@ export const getTaskAuditLogs = query({
     }
 
     return logsWithActors
+  },
+})
+
+export const toggleReaction = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    emoji: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    // Verify workspace membership
+    const member = await requireMember(ctx, user._id, task.organizationId)
+
+    // Verify access (Creator, Assignee, Collaborator, Subscriber, or Admin/Owner)
+    const isCreator = task.creatorId === user._id
+    const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
+    const isSubscriber = task.subscriberIds?.includes(user._id) || false
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+
+    if (!isCreator && !isAssignee && !isCollaborator && !isSubscriber && !isAdminOrOwner) {
+      throw new Error("Permission denied to react to this task")
+    }
+
+    const currentReactions = task.reactions || []
+    const existingIndex = currentReactions.findIndex(
+      (r) => r.userId === user._id && r.emoji === args.emoji
+    )
+
+    let newReactions = [...currentReactions]
+    if (existingIndex > -1) {
+      // Remove reaction
+      newReactions.splice(existingIndex, 1)
+    } else {
+      // Add reaction
+      newReactions.push({ userId: user._id, emoji: args.emoji })
+    }
+
+    await ctx.db.patch(args.taskId, {
+      reactions: newReactions,
+    })
+
+    return { success: true }
   },
 })

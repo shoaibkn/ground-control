@@ -158,3 +158,58 @@ export const deleteComment = mutation({
     return { success: true }
   },
 })
+
+export const markCommentsAsRead = mutation({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    const existing = await ctx.db
+      .query("taskReadReceipts")
+      .withIndex("by_task_user", (q: any) =>
+        q.eq("taskId", args.taskId).eq("userId", user._id)
+      )
+      .first()
+
+    const now = Date.now()
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        lastReadTime: now,
+      })
+    } else {
+      await ctx.db.insert("taskReadReceipts", {
+        taskId: args.taskId,
+        userId: user._id,
+        lastReadTime: now,
+      })
+    }
+
+    return { success: true }
+  },
+})
+
+export const getTaskReadReceipts = query({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) return []
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    const receipts = await ctx.db
+      .query("taskReadReceipts")
+      .withIndex("by_task", (q: any) => q.eq("taskId", args.taskId))
+      .collect()
+
+    return receipts
+  },
+})

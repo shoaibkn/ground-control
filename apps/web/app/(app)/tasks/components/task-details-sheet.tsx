@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../../../../packages/backend/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
@@ -56,9 +56,13 @@ import {
   Calendar,
   MessageSquare,
   Check,
+  Send,
+  Trash2,
+  Smile,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
+import { UserAvatar } from "@/components/user-avatar"
 
 interface TaskDetailsSheetProps {
   taskId: any
@@ -96,6 +100,15 @@ export default function TaskDetailsSheet({
   const registerAttach = useMutation(api.taskAttachments.registerAttachment)
   const deleteAttach = useMutation(api.taskAttachments.deleteAttachment)
 
+  // Reactions & Comments Mutations/Queries
+  const toggleReaction = useMutation(api.tasks.toggleReaction)
+  const comments = useQuery(api.taskComments.getComments, taskId ? { taskId } : "skip")
+  const addComment = useMutation(api.taskComments.addComment)
+  const editComment = useMutation(api.taskComments.editComment)
+  const deleteComment = useMutation(api.taskComments.deleteComment)
+  const readReceipts = useQuery(api.taskComments.getTaskReadReceipts, taskId ? { taskId } : "skip")
+  const markAsRead = useMutation(api.taskComments.markCommentsAsRead)
+
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [newSubtask, setNewSubtask] = useState("")
@@ -108,6 +121,14 @@ export default function TaskDetailsSheet({
   const [assigneeSearch, setAssigneeSearch] = useState("")
   const [collabSearch, setCollabSearch] = useState("")
   const [subSearch, setSubSearch] = useState("")
+
+  // Reactions & Comments State
+  const [newComment, setNewComment] = useState("")
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState("")
+  const [isCommentSending, setIsCommentSending] = useState(false)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddNewOpen, setIsAddNewOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<
@@ -123,21 +144,28 @@ export default function TaskDetailsSheet({
     }
   }, [task])
 
+  // Mark comments as read when comments tab becomes active or a new comment arrives
+  useEffect(() => {
+    if (activeTab === "comments" && taskId) {
+      markAsRead({ taskId }).catch((err) => console.error("Failed to mark comments as read", err))
+    }
+  }, [activeTab, taskId, comments, markAsRead])
+
   if (!isOpen) return null
 
   const currentUserId = session?.user?.id
-  const currentUserMember = activeOrg?.members?.find(
-    (m: any) => m.userId === currentUserId
-  )
+  const currentUserMember = currentUserId
+    ? activeOrg?.members?.find((m: any) => m.userId === currentUserId)
+    : undefined
   const isAdminOrOwner =
     activeMember?.role === "admin" ||
     activeMember?.role === "owner" ||
     currentUserMember?.role === "admin" ||
     currentUserMember?.role === "owner"
-  const isCreator = task?.creatorId === currentUserId
-  const isAssignee = currentUserId ? (task?.assigneeIds?.includes(currentUserId) || false) : false
-  const isCollaborator = currentUserId ? (task?.collaboratorIds?.includes(currentUserId) || false) : false
-  const isSubscriber = currentUserId ? (task?.subscriberIds?.includes(currentUserId) || false) : false
+  const isCreator = !!currentUserId && !!task?.creatorId && task.creatorId === currentUserId
+  const isAssignee = !!currentUserId && !!task?.assigneeIds && task.assigneeIds.includes(currentUserId)
+  const isCollaborator = !!currentUserId && !!task?.collaboratorIds && task.collaboratorIds.includes(currentUserId)
+  const isSubscriber = !!currentUserId && !!task?.subscriberIds && task.subscriberIds.includes(currentUserId)
 
   const canEditTaskDetails = isAdminOrOwner || isCreator
   const canUpdateStatus = isAdminOrOwner || isCreator || isAssignee || isCollaborator
@@ -146,6 +174,12 @@ export default function TaskDetailsSheet({
   const canManageCollaborators = isAdminOrOwner || isCreator || isAssignee
   const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee || isCollaborator
   const canAddAttachments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
+  const canAddComments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
+
+  const getUserDetails = (userId: string): { name: string; email: string; image?: string } => {
+    const member = activeOrg?.members?.find((m: any) => m.userId === userId)
+    return member?.user || { name: "Unknown User", email: "", image: undefined }
+  }
 
   console.log("Task details permission check:", {
     currentUserId,
@@ -164,6 +198,14 @@ export default function TaskDetailsSheet({
     totalSubtasks > 0
       ? Math.round((completedSubtasks / totalSubtasks) * 100)
       : 0
+
+  const reactions = task?.reactions || []
+  const groupedReactions = reactions.reduce((acc: Record<string, string[]>, curr) => {
+    const list = acc[curr.emoji] || []
+    list.push(curr.userId)
+    acc[curr.emoji] = list
+    return acc
+  }, {})
 
   const handleUpdate = async (fields: {
     title?: string
@@ -237,6 +279,66 @@ export default function TaskDetailsSheet({
     } catch (error: any) {
       console.error(error)
       toast.error(error.message || "Failed to update subtask")
+    }
+  }
+
+  const handleToggleReaction = async (emoji: string) => {
+    try {
+      await toggleReaction({
+        taskId,
+        emoji,
+      })
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to update reaction")
+    }
+  }
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim() || !taskId || isCommentSending) return
+    setIsCommentSending(true)
+    try {
+      await addComment({
+        taskId,
+        content: newComment.trim(),
+      })
+      setNewComment("")
+      toast.success("Comment posted")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to post comment")
+    } finally {
+      setIsCommentSending(false)
+    }
+  }
+
+  const handleEditComment = async (commentId: any) => {
+    if (!editingContent.trim()) return
+    try {
+      await editComment({
+        commentId,
+        newContent: editingContent.trim(),
+      })
+      setEditingCommentId(null)
+      setEditingContent("")
+      toast.success("Comment updated")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to update comment")
+    }
+  }
+
+  const handleDeleteComment = async (commentId: any) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return
+    try {
+      await deleteComment({
+        commentId,
+      })
+      toast.success("Comment deleted")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to delete comment")
     }
   }
 
@@ -647,6 +749,74 @@ export default function TaskDetailsSheet({
                   )}
                 </div>
 
+                {/* Task Reactions Bar */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {Object.entries(groupedReactions).map(([emoji, userIds]: any) => {
+                    const hasReacted = currentUserId ? userIds.includes(currentUserId) : false
+                    const reactorNames = userIds
+                      .map((id: string) => getUserDetails(id).name)
+                      .join(", ")
+                    return (
+                      <Tooltip key={emoji}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleReaction(emoji)}
+                            className={`h-7 gap-1.5 rounded-full px-2.5 text-xs border transition-all ${
+                              hasReacted
+                                ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/15"
+                                : "bg-muted/10 border-border/10 hover:border-border/30 hover:bg-muted/15"
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            <span className="font-semibold text-[10px]">{userIds.length}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-popover text-popover-foreground border shadow-md p-1.5 px-2 text-[10px] z-50">
+                          <span className="font-medium">{reactorNames}</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  })}
+
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
+                      className="h-7 w-7 rounded-full border border-border/10 bg-muted/5 hover:bg-muted/15 flex items-center justify-center"
+                    >
+                      <Smile className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                    {emojiPickerOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setEmojiPickerOpen(false)}
+                        />
+                        <div className="absolute top-8 left-0 z-20 flex gap-1 rounded-full border border-border/80 bg-popover p-1.5 shadow-xl backdrop-blur-md">
+                          {["👍", "❤️", "🎉", "👀", "🚀"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                handleToggleReaction(emoji)
+                                setEmojiPickerOpen(false)
+                              }}
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-sm hover:bg-muted/20 active:scale-95 transition-all"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {/* Metadata Properties Table */}
                 <div className="grid grid-cols-[130px_1fr] items-center gap-y-4 border-b border-border/10 pb-6 text-xs">
                   {/* Created Time */}
@@ -843,30 +1013,11 @@ export default function TaskDetailsSheet({
                   </div>
                   <div className="flex items-center gap-2">
                     {task.creatorId ? (
-                      (() => {
-                        const userObj = getMemberUser(task.creatorId)
-                        return (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1.5 cursor-pointer">
-                                <Avatar className="h-6 w-6 border border-card shadow-xs">
-                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
-                                  <AvatarFallback className="text-[9px] font-semibold">
-                                    {userObj?.name?.charAt(0) || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-xs font-medium text-foreground/80">
-                                  {userObj?.name || "Unknown User"}
-                                </span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
-                              <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
-                              {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
-                            </TooltipContent>
-                          </Tooltip>
-                        )
-                      })()
+                      <UserAvatar
+                        userId={task.creatorId}
+                        showName={true}
+                        avatarClassName="h-6 w-6 border border-card shadow-xs"
+                      />
                     ) : (
                       <span className="text-xs text-muted-foreground italic">None</span>
                     )}
@@ -880,27 +1031,13 @@ export default function TaskDetailsSheet({
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1.5 overflow-hidden">
                       {task.assigneeIds && task.assigneeIds.length > 0 ? (
-                        task.assigneeIds.map((userId: string) => {
-                          const userObj = getMemberUser(userId)
-                          return (
-                            <Tooltip key={userId}>
-                              <TooltipTrigger asChild>
-                                <Avatar
-                                  className="h-6 w-6 border border-card shadow-xs cursor-pointer"
-                                >
-                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
-                                  <AvatarFallback className="text-[9px] font-semibold">
-                                    {userObj?.name?.charAt(0) || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </TooltipTrigger>
-                              <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
-                                <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
-                                {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        })
+                        task.assigneeIds.map((userId: string) => (
+                          <UserAvatar
+                            key={userId}
+                            userId={userId}
+                            avatarClassName="h-6 w-6 border border-card shadow-xs"
+                          />
+                        ))
                       ) : (
                         <span className="text-xs text-muted-foreground italic">
                           Unassigned
@@ -991,27 +1128,13 @@ export default function TaskDetailsSheet({
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1.5 overflow-hidden">
                       {task.collaboratorIds && task.collaboratorIds.length > 0 ? (
-                        task.collaboratorIds.map((userId: string) => {
-                          const userObj = getMemberUser(userId)
-                          return (
-                            <Tooltip key={userId}>
-                              <TooltipTrigger asChild>
-                                <Avatar
-                                  className="h-6 w-6 border border-card shadow-xs cursor-pointer"
-                                >
-                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
-                                  <AvatarFallback className="text-[9px] font-semibold">
-                                    {userObj?.name?.charAt(0) || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </TooltipTrigger>
-                              <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
-                                <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
-                                {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        })
+                        task.collaboratorIds.map((userId: string) => (
+                          <UserAvatar
+                            key={userId}
+                            userId={userId}
+                            avatarClassName="h-6 w-6 border border-card shadow-xs"
+                          />
+                        ))
                       ) : (
                         <span className="text-xs text-muted-foreground italic">
                           No collaborators
@@ -1102,27 +1225,13 @@ export default function TaskDetailsSheet({
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1.5 overflow-hidden">
                       {task.subscriberIds && task.subscriberIds.length > 0 ? (
-                        task.subscriberIds.map((userId: string) => {
-                          const userObj = getMemberUser(userId)
-                          return (
-                            <Tooltip key={userId}>
-                              <TooltipTrigger asChild>
-                                <Avatar
-                                  className="h-6 w-6 border border-card shadow-xs cursor-pointer"
-                                >
-                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
-                                  <AvatarFallback className="text-[9px] font-semibold">
-                                    {userObj?.name?.charAt(0) || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </TooltipTrigger>
-                              <TooltipContent className="flex flex-col gap-0.5 p-2 bg-popover text-popover-foreground border shadow-md">
-                                <span className="font-semibold text-xs">{userObj?.name || "Unknown User"}</span>
-                                {userObj?.email && <span className="text-[10px] text-muted-foreground">{userObj?.email}</span>}
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        })
+                        task.subscriberIds.map((userId: string) => (
+                          <UserAvatar
+                            key={userId}
+                            userId={userId}
+                            avatarClassName="h-6 w-6 border border-card shadow-xs"
+                          />
+                        ))
                       ) : (
                         <span className="text-xs text-muted-foreground italic">
                           No subscribers
@@ -1887,21 +1996,229 @@ export default function TaskDetailsSheet({
                     })()}
                   </TabsContent>
 
-                  <TabsContent value="comments" className="mt-0 outline-none">
-                    <div className="space-y-4">
-                      <h5 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                        Task Comments
-                      </h5>
-                      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/30 py-12 text-center">
-                        <MessageSquare className="mb-3 size-10 animate-pulse text-muted-foreground/30" />
-                        <span className="text-xs font-semibold text-foreground">
-                          Task Discussions
-                        </span>
-                        <span className="mt-1 max-w-xs text-[10px] text-muted-foreground">
-                          Comments and discussion history for this task will be
-                          loaded here.
+                  <TabsContent value="comments" className="mt-0 outline-none flex flex-col min-h-0 flex-1">
+                    <div className="flex flex-col flex-1 min-h-[400px] max-h-[500px] border border-border/20 rounded-xl bg-card overflow-hidden">
+                      {/* Chat Header */}
+                      <div className="border-b border-border/20 bg-muted/20 px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-semibold text-foreground">Task Discussions</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {comments ? `${comments.length} messages` : "Loading..."}
                         </span>
                       </div>
+
+                      {/* Messages Stream */}
+                      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                        {comments === undefined ? (
+                          <div className="flex h-full items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        ) : comments.length === 0 ? (
+                          <div className="flex h-full flex-col items-center justify-center text-center p-6">
+                            <MessageSquare className="mb-2 size-8 text-muted-foreground/30 animate-bounce" />
+                            <span className="text-xs font-semibold text-foreground">No messages yet</span>
+                            <span className="text-[10px] text-muted-foreground max-w-xs mt-1">
+                              Be the first to say something or ask a question about this task.
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-3.5">
+                            {comments.map((comm, idx) => {
+                              const isOwn = comm.userId === currentUserId
+                              const details = getUserDetails(comm.userId)
+                              const formattedTime = new Date(comm._creationTime).toLocaleTimeString(undefined, {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+
+                              // Compute read receipts for this message
+                              const readers = (readReceipts || [])
+                                .filter((receipt) => {
+                                  // Don't show the logged-in user's own avatar as a read receipt to themselves
+                                  if (receipt.userId === currentUserId) return false
+                                  
+                                  // Has read this comment?
+                                  const hasReadThis = receipt.lastReadTime >= comm._creationTime
+                                  if (!hasReadThis) return false
+
+                                  // Is this the latest comment they have read?
+                                  const isLastComment = idx === comments.length - 1
+                                  const nextComment = !isLastComment ? comments[idx + 1] : null
+                                  const hasReadNext = nextComment ? receipt.lastReadTime >= nextComment._creationTime : false
+
+                                  return !hasReadNext
+                                })
+                                .map((receipt) => getUserDetails(receipt.userId))
+
+                              return (
+                                <div
+                                  key={comm._id}
+                                  className={`group flex items-start gap-2.5 max-w-[85%] ${
+                                    isOwn ? "self-end flex-row-reverse" : "self-start"
+                                  }`}
+                                >
+                                  {/* Avatar */}
+                                  {!isOwn && (
+                                    <Avatar className="h-7 w-7 mt-0.5 shrink-0">
+                                      <AvatarImage src={getAvatarUrl(details.image, details.name)} />
+                                      <AvatarFallback className="text-[9px] font-bold">
+                                        {details.name?.charAt(0) || "U"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  )}
+
+                                  {/* Message Body */}
+                                  <div className="flex flex-col gap-1 min-w-0">
+                                    {/* Author Info */}
+                                    {!isOwn && (
+                                      <span className="text-[10px] font-semibold text-muted-foreground px-1">
+                                        {details.name}
+                                      </span>
+                                    )}
+
+                                    {/* Bubble */}
+                                    <div className="relative">
+                                      <div
+                                        className={`rounded-2xl px-3.5 py-2 text-xs relative ${
+                                          isOwn
+                                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                                            : "bg-muted/40 border border-border/10 text-foreground rounded-tl-none"
+                                        } ${comm.isDeleted ? "italic text-muted-foreground/60" : ""}`}
+                                      >
+                                        {editingCommentId === comm._id ? (
+                                          <div className="flex flex-col gap-2 min-w-[200px] py-1">
+                                            <Input
+                                              value={editingContent}
+                                              onChange={(e) => setEditingContent(e.target.value)}
+                                              className="h-7 text-xs bg-background/50 border-border/40 text-foreground focus-visible:ring-1 focus-visible:ring-primary"
+                                              autoFocus
+                                            />
+                                            <div className="flex justify-end gap-1.5">
+                                              <Button
+                                                size="sm"
+                                                className="h-6 px-2.5 text-[10px] font-semibold"
+                                                onClick={() => handleEditComment(comm._id)}
+                                              >
+                                                Save
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 px-2 text-[10px] text-muted-foreground hover:bg-muted/10"
+                                                onClick={() => {
+                                                  setEditingCommentId(null)
+                                                  setEditingContent("")
+                                                }}
+                                              >
+                                                Cancel
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <p className="whitespace-pre-wrap leading-relaxed select-text">
+                                              {comm.content}
+                                            </p>
+                                            <span className="text-[9px] text-muted-foreground/60 mt-1 block text-right">
+                                              {formattedTime}
+                                              {comm.isEdited && !comm.isDeleted && " (edited)"}
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+
+                                      {/* Message Hover Actions */}
+                                      {!comm.isDeleted && isOwn && editingCommentId !== comm._id && (
+                                        <div
+                                          className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-popover border border-border/60 rounded-md p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
+                                            isOwn ? "-left-16" : "-right-16"
+                                          }`}
+                                        >
+                                          <Button
+                                            size="icon-xs"
+                                            variant="ghost"
+                                            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                                            onClick={() => {
+                                              setEditingCommentId(comm._id)
+                                              setEditingContent(comm.content)
+                                            }}
+                                            title="Edit Message"
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="icon-xs"
+                                            variant="ghost"
+                                            className="h-5 w-5 rounded text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={() => handleDeleteComment(comm._id)}
+                                            title="Delete Message"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Read Receipts Avatars */}
+                                    {readers.length > 0 && (
+                                      <div className={`flex items-center gap-1 mt-1 ${isOwn ? "justify-end" : "justify-start px-1"}`}>
+                                        <div className="flex -space-x-1 overflow-hidden">
+                                          {readers.map((reader, rIdx) => (
+                                            <Tooltip key={rIdx}>
+                                              <TooltipTrigger asChild>
+                                                <Avatar className="h-4.5 w-4.5 border border-background shrink-0 select-none">
+                                                  <AvatarImage src={getAvatarUrl(reader.image, reader.name)} />
+                                                  <AvatarFallback className="text-[6px] font-bold">
+                                                    {reader.name?.charAt(0) || "U"}
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                              </TooltipTrigger>
+                                              <TooltipContent className="bg-popover text-popover-foreground border shadow-md p-1 px-1.5 text-[9px] z-50">
+                                                <span>Seen by {reader.name}</span>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                            <div ref={chatEndRef} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Chat Input Bar */}
+                      {canAddComments && (
+                        <form
+                          onSubmit={handleAddComment}
+                          className="border-t border-border/20 bg-muted/20 p-3 flex gap-2 items-center"
+                        >
+                          <Input
+                            placeholder="Write a message..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            disabled={isCommentSending}
+                            className="flex-1 h-9 text-xs bg-background/50 border-border/40 focus-visible:border-primary"
+                          />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            disabled={isCommentSending || !newComment.trim()}
+                            className="h-9 w-9 p-0 flex items-center justify-center shrink-0 rounded-md bg-primary hover:bg-primary/95 text-primary-foreground"
+                          >
+                            {isCommentSending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </form>
+                      )}
                     </div>
                   </TabsContent>
                 </div>

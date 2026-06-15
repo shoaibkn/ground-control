@@ -8,6 +8,7 @@ import {
   TextInput,
   Pressable,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery, useMutation } from "convex/react";
@@ -92,9 +93,9 @@ export default function TaskDetails() {
 
   // Permissions & Roles
   const currentUserId = session?.user?.id;
-  const currentUserMember = activeOrg?.members?.find(
-    (m: any) => m.userId === currentUserId
-  );
+  const currentUserMember = currentUserId
+    ? activeOrg?.members?.find((m: any) => m.userId === currentUserId)
+    : undefined;
   
   const isAdminOrOwner =
     activeMember?.role === "admin" ||
@@ -102,10 +103,10 @@ export default function TaskDetails() {
     currentUserMember?.role === "admin" ||
     currentUserMember?.role === "owner";
     
-  const isCreator = task.creatorId === currentUserId;
-  const isAssignee = currentUserId ? (task.assigneeIds?.includes(currentUserId) || false) : false;
-  const isCollaborator = currentUserId ? (task.collaboratorIds?.includes(currentUserId) || false) : false;
-  const isSubscriber = currentUserId ? (task.subscriberIds?.includes(currentUserId) || false) : false;
+  const isCreator = !!currentUserId && !!task.creatorId && task.creatorId === currentUserId;
+  const isAssignee = !!currentUserId && !!task.assigneeIds && task.assigneeIds.includes(currentUserId);
+  const isCollaborator = !!currentUserId && !!task.collaboratorIds && task.collaboratorIds.includes(currentUserId);
+  const isSubscriber = !!currentUserId && !!task.subscriberIds && task.subscriberIds.includes(currentUserId);
 
   const canUpdateStatus = isAdminOrOwner || isCreator || isAssignee || isCollaborator;
   const canManageSubtasks = isAdminOrOwner || isCreator || isAssignee || isCollaborator;
@@ -121,8 +122,9 @@ export default function TaskDetails() {
         status: newStatus,
       });
       setStatusDropdownOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update status", err);
+      Alert.alert("Failed to update status", err?.message || String(err));
     }
   };
 
@@ -135,22 +137,27 @@ export default function TaskDetails() {
         title: newSubtaskTitle.trim(),
       });
       setNewSubtaskTitle("");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add subtask", err);
+      Alert.alert("Failed to add subtask", err?.message || String(err));
     } finally {
       setSubmittingSubtask(false);
     }
   };
 
   const handleToggleSubtask = async (subtaskId: any, isCompleted: boolean) => {
-    if (!canManageSubtasks) return;
+    if (!canManageSubtasks) {
+      Alert.alert("Permission Denied", "You do not have permission to manage checklist items.");
+      return;
+    }
     try {
       await toggleSubtask({
         subtaskId,
         isCompleted: !isCompleted,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to toggle subtask", err);
+      Alert.alert("Failed to update subtask", err?.message || String(err));
     }
   };
 
@@ -163,8 +170,9 @@ export default function TaskDetails() {
         content: newCommentContent.trim(),
       });
       setNewCommentContent("");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add comment", err);
+      Alert.alert("Failed to add comment", err?.message || String(err));
     } finally {
       setSubmittingComment(false);
     }
@@ -185,8 +193,9 @@ export default function TaskDetails() {
         mimeType: fileName.endsWith(".pdf") ? "application/pdf" : "image/png",
         r2Key: `mock-r2-key-${Date.now()}-${fileName}`,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to upload attachment", err);
+      Alert.alert("Failed to upload attachment", err?.message || String(err));
     } finally {
       setUploadingFile(false);
     }
@@ -195,30 +204,36 @@ export default function TaskDetails() {
   const handleDeleteAttachment = async (attachmentId: any) => {
     try {
       await deleteAttachment({ attachmentId });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete attachment", err);
+      Alert.alert("Failed to delete attachment", err?.message || String(err));
     }
   };
 
   const handleToggleMember = async (memberUserId: string) => {
-    if (memberModalType === "collaborators") {
-      const currentList = task.collaboratorIds || [];
-      const newList = currentList.includes(memberUserId)
-        ? currentList.filter((id) => id !== memberUserId)
-        : [...currentList, memberUserId];
-      await updateCollabs({
-        taskId: task._id,
-        collaboratorIds: newList,
-      });
-    } else {
-      const currentList = task.subscriberIds || [];
-      const newList = currentList.includes(memberUserId)
-        ? currentList.filter((id) => id !== memberUserId)
-        : [...currentList, memberUserId];
-      await updateSubs({
-        taskId: task._id,
-        subscriberIds: newList,
-      });
+    try {
+      if (memberModalType === "collaborators") {
+        const currentList = task.collaboratorIds || [];
+        const newList = currentList.includes(memberUserId)
+          ? currentList.filter((id) => id !== memberUserId)
+          : [...currentList, memberUserId];
+        await updateCollabs({
+          taskId: task._id,
+          collaboratorIds: newList,
+        });
+      } else {
+        const currentList = task.subscriberIds || [];
+        const newList = currentList.includes(memberUserId)
+          ? currentList.filter((id) => id !== memberUserId)
+          : [...currentList, memberUserId];
+        await updateSubs({
+          taskId: task._id,
+          subscriberIds: newList,
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to toggle member", err);
+      Alert.alert("Failed to toggle member", err?.message || String(err));
     }
   };
 
