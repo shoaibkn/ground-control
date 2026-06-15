@@ -51,10 +51,11 @@ import {
   SheetFooter,
 } from "@workspace/ui/components/sheet"
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
+import { cn, getAvatarUrl } from "@workspace/ui/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
+import Link from "next/link"
 
 const dummyNotifications = [
   {
@@ -116,7 +117,7 @@ export function NavUser({
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.image ?? user.avatar} alt={user.name} />
+                  <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
                   <AvatarFallback className="rounded-lg">
                     {user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U"}
                   </AvatarFallback>
@@ -137,7 +138,7 @@ export function NavUser({
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user.image ?? user.avatar} alt={user.name} />
+                    <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
                     <AvatarFallback className="rounded-lg">
                       {user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U"}
                     </AvatarFallback>
@@ -157,9 +158,11 @@ export function NavUser({
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem className="cursor-pointer">
-                  <BadgeCheck className="size-4" />
-                  Account
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link href="/profile">
+                    <BadgeCheck className="size-4" />
+                    Account
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer">
                   <CreditCard className="size-4" />

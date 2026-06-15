@@ -59,6 +59,7 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { MemberProfileDialog } from "./member-profile-dialog"
+import { getAvatarUrl } from "@workspace/ui/lib/utils"
 
 export default function MemberSettings() {
   const {
@@ -586,7 +587,7 @@ export default function MemberSettings() {
                           <TableCell className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
                               <AvatarImage
-                                src={member.user?.image || undefined}
+                                src={getAvatarUrl(member.user?.image, member.user?.name)}
                               />
                               <AvatarFallback>
                                 {member.user?.name?.charAt(0) || "U"}

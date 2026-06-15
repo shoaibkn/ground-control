@@ -365,10 +365,11 @@ export const updateSubscribers = mutation({
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
     const isCreator = task.creatorId === user._id
     const isAssignee = task.assigneeIds.includes(user._id)
+    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
 
-    // Only assigner and assignees can add/remove subscribers
-    if (!isCreator && !isAssignee && !isAdminOrOwner) {
-      throw new Error("Only the creator or assignees can manage subscribers")
+    // Only assigner, assignees, and collaborators can add/remove subscribers
+    if (!isCreator && !isAssignee && !isCollaborator && !isAdminOrOwner) {
+      throw new Error("Only the creator, assignees, or collaborators can manage subscribers")
     }
 
     const cleanSubscribers = (Array.from(new Set(args.subscriberIds)) as string[]).filter(id => !task.assigneeIds.includes(id))

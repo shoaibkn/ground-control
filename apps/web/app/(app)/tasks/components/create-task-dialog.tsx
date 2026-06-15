@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/av
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@workspace/ui/components/tabs"
 import { toast } from "sonner"
 import { Loader2, Plus, Calendar, AlertTriangle } from "lucide-react"
+import { getAvatarUrl } from "@workspace/ui/lib/utils"
 
 interface CreateTaskDialogProps {
   isOpen: boolean
@@ -244,7 +245,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
                         >
                           <div className="flex items-center gap-2">
                             <Avatar className="h-5 w-5">
-                              <AvatarImage src={member.user?.image || undefined} />
+                              <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
                               <AvatarFallback className="text-[10px]">
                                 {member.user?.name?.charAt(0) || "U"}
                               </AvatarFallback>
@@ -293,7 +294,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
                         >
                           <div className="flex items-center gap-2">
                             <Avatar className="h-5 w-5">
-                              <AvatarImage src={member.user?.image || undefined} />
+                              <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
                               <AvatarFallback className="text-[10px]">
                                 {member.user?.name?.charAt(0) || "U"}
                               </AvatarFallback>
@@ -342,7 +343,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
                         >
                           <div className="flex items-center gap-2">
                             <Avatar className="h-5 w-5">
-                              <AvatarImage src={member.user?.image || undefined} />
+                              <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
                               <AvatarFallback className="text-[10px]">
                                 {member.user?.name?.charAt(0) || "U"}
                               </AvatarFallback>

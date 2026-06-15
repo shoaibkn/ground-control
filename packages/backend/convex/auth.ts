@@ -17,6 +17,7 @@ import { ResetPasswordEmail } from "./emails/ResetPasswordEmail"
 import { createAuthMiddleware, APIError } from "better-auth/api"
 
 const siteUrl = process.env.SITE_URL!
+const emailFrom = process.env.EMAIL_FROM || "Ground Control <onboarding@resend.dev>"
 
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
@@ -118,7 +119,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       requireEmailVerification: true,
       sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
         await resend.sendEmail(ctx as any, {
-          from: "Ground Control <onboarding@resend.dev>",
+          from: emailFrom,
           to: user.email,
           subject: "Reset your Ground Control password",
           html: await render(ResetPasswordEmail({ url })),
@@ -130,7 +131,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       testMode: false,
       sendVerificationEmail: async ({ user, url }: { user: any; url: string }) => {
         await resend.sendEmail(ctx as any, {
-          from: "Ground Control <onboarding@resend.dev>",
+          from: emailFrom,
           to: user.email,
           subject: "Verify your email address",
           html: await render(VerificationEmail({ url })),
@@ -170,7 +171,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
           const inviterEmail = inviter?.email || "Someone"
 
           await resend.sendEmail(ctx as any, {
-            from: "Ground Control <onboarding@resend.dev>",
+            from: emailFrom,
             to: email,
             subject: "You have been invited to join an organization",
             html: await render(

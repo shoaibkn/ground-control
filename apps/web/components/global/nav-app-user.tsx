@@ -45,7 +45,7 @@ import {
   DialogDescription,
 } from "@workspace/ui/components/dialog"
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
+import { cn, getAvatarUrl } from "@workspace/ui/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
@@ -106,7 +106,7 @@ export function NavAppUser({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Avatar className="h-8 w-8 cursor-pointer rounded-lg">
-            <AvatarImage src={user.image ?? user.avatar} alt={user.name} />
+            <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
             <AvatarFallback className="rounded-lg">
               {user.name
                 ?.split(" ")
@@ -125,7 +125,7 @@ export function NavAppUser({
           <DropdownMenuLabel className="p-0 font-normal">
             <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.image ?? user.avatar} alt={user.name} />
+                <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
                 <AvatarFallback className="rounded-lg">
                   {user.name
                     ?.split(" ")
@@ -149,9 +149,11 @@ export function NavAppUser({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <BadgeCheck className="size-4" />
-              Account
+            <DropdownMenuItem asChild>
+              <Link href={"/profile"}>
+                <BadgeCheck className="size-4" />
+                Account
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <CreditCard className="size-4" />

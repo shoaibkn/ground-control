@@ -42,6 +42,7 @@ import { CreateTaskDialog } from "./components/create-task-dialog"
 import TaskDetailsSheet from "./components/task-details-sheet"
 import { toast } from "sonner"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
+import { getAvatarUrl } from "@workspace/ui/lib/utils"
 
 export default function TasksPage() {
   const isMobile = useIsMobile()
@@ -281,7 +282,7 @@ export default function TasksPage() {
                                 <Tooltip key={userId}>
                                   <TooltipTrigger asChild>
                                     <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs cursor-pointer">
-                                      <AvatarImage src={user?.image || undefined} />
+                                      <AvatarImage src={getAvatarUrl(user?.image, user?.name)} />
                                       <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
                                         {user?.name?.charAt(0) || "U"}
                                       </AvatarFallback>
@@ -391,7 +392,7 @@ export default function TasksPage() {
                                     <Tooltip key={userId}>
                                       <TooltipTrigger asChild>
                                         <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-xs transition-transform hover:translate-y-[-2px] cursor-pointer">
-                                          <AvatarImage src={user?.image || undefined} />
+                                          <AvatarImage src={getAvatarUrl(user?.image, user?.name)} />
                                           <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
                                             {user?.name?.charAt(0) || "U"}
                                           </AvatarFallback>

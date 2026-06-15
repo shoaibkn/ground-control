@@ -58,6 +58,7 @@ import {
   Check,
 } from "lucide-react"
 import { toast } from "sonner"
+import { getAvatarUrl } from "@workspace/ui/lib/utils"
 
 interface TaskDetailsSheetProps {
   taskId: any
@@ -104,6 +105,11 @@ export default function TaskDetailsSheet({
   const [inviteOpen, setInviteOpen] = useState(false)
   const [collabInviteOpen, setCollabInviteOpen] = useState(false)
   const [subInviteOpen, setSubInviteOpen] = useState(false)
+  const [assigneeSearch, setAssigneeSearch] = useState("")
+  const [collabSearch, setCollabSearch] = useState("")
+  const [subSearch, setSubSearch] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isAddNewOpen, setIsAddNewOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<
     "activity" | "my-work" | "assigned" | "comments"
   >("activity")
@@ -138,7 +144,7 @@ export default function TaskDetailsSheet({
   const canManageSubtasks = isAdminOrOwner || isCreator || isAssignee || isCollaborator
   const canManageAssignees = isAdminOrOwner || isCreator
   const canManageCollaborators = isAdminOrOwner || isCreator || isAssignee
-  const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee
+  const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee || isCollaborator
   const canAddAttachments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
 
   console.log("Task details permission check:", {
@@ -285,6 +291,48 @@ export default function TaskDetailsSheet({
     } catch (error: any) {
       console.error(error)
       toast.error(error.message || "Failed to update subscribers")
+    }
+  }
+
+  const handleRoleChange = async (
+    targetUserId: string,
+    newRole: "Assignee" | "Collaborator" | "Subscriber" | "remove"
+  ) => {
+    if (!taskId || !task) return
+    const currentAssignees = task.assigneeIds || []
+    const currentCollabs = task.collaboratorIds || []
+    const currentSubs = task.subscriberIds || []
+
+    let nextAssignees = currentAssignees.filter((id: string) => id !== targetUserId)
+    let nextCollabs = currentCollabs.filter((id: string) => id !== targetUserId)
+    let nextSubs = currentSubs.filter((id: string) => id !== targetUserId)
+
+    if (newRole === "Assignee") {
+      nextAssignees.push(targetUserId)
+    } else if (newRole === "Collaborator") {
+      nextCollabs.push(targetUserId)
+    } else if (newRole === "Subscriber") {
+      nextSubs.push(targetUserId)
+    }
+
+    try {
+      if (JSON.stringify(currentAssignees) !== JSON.stringify(nextAssignees)) {
+        await invite({ taskId, assigneeIds: nextAssignees })
+      }
+      if (JSON.stringify(currentCollabs) !== JSON.stringify(nextCollabs)) {
+        await updateCollabs({ taskId, collaboratorIds: nextCollabs })
+      }
+      if (JSON.stringify(currentSubs) !== JSON.stringify(nextSubs)) {
+        await updateSubs({ taskId, subscriberIds: nextSubs })
+      }
+      toast.success(
+        newRole === "remove"
+          ? "Member removed from task"
+          : `Role updated to ${newRole}`
+      )
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to update role")
     }
   }
 
@@ -802,7 +850,7 @@ export default function TaskDetailsSheet({
                             <TooltipTrigger asChild>
                               <div className="flex items-center gap-1.5 cursor-pointer">
                                 <Avatar className="h-6 w-6 border border-card shadow-xs">
-                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
                                   <AvatarFallback className="text-[9px] font-semibold">
                                     {userObj?.name?.charAt(0) || "U"}
                                   </AvatarFallback>
@@ -840,7 +888,7 @@ export default function TaskDetailsSheet({
                                 <Avatar
                                   className="h-6 w-6 border border-card shadow-xs cursor-pointer"
                                 >
-                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
                                   <AvatarFallback className="text-[9px] font-semibold">
                                     {userObj?.name?.charAt(0) || "U"}
                                   </AvatarFallback>
@@ -877,14 +925,32 @@ export default function TaskDetailsSheet({
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => setInviteOpen(false)}
+                                  onClick={() => {
+                                    setInviteOpen(false)
+                                    setAssigneeSearch("")
+                                  }}
                                   className="text-muted-foreground hover:text-foreground"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
                               </div>
+                              <div className="p-2 border-b border-border/40 bg-muted/5">
+                                <Input
+                                  placeholder="Search members..."
+                                  value={assigneeSearch}
+                                  onChange={(e) => setAssigneeSearch(e.target.value)}
+                                  className="h-7 text-[10px] bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                                />
+                              </div>
                               <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {(activeOrg?.members || []).map((member: any) => {
+                                {(activeOrg?.members || [])
+                                  .filter((member: any) => {
+                                    const name = member.user?.name || ""
+                                    const email = member.user?.email || ""
+                                    const q = assigneeSearch.toLowerCase()
+                                    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
+                                  })
+                                  .map((member: any) => {
                                   const isChecked = task.assigneeIds?.includes(member.userId)
                                   return (
                                     <button
@@ -895,7 +961,7 @@ export default function TaskDetailsSheet({
                                     >
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-5 w-5 shrink-0">
-                                          <AvatarImage src={member.user?.image} />
+                                          <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
                                           <AvatarFallback className="text-[9px]">
                                             {member.user?.name?.charAt(0)}
                                           </AvatarFallback>
@@ -933,7 +999,7 @@ export default function TaskDetailsSheet({
                                 <Avatar
                                   className="h-6 w-6 border border-card shadow-xs cursor-pointer"
                                 >
-                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
                                   <AvatarFallback className="text-[9px] font-semibold">
                                     {userObj?.name?.charAt(0) || "U"}
                                   </AvatarFallback>
@@ -970,14 +1036,32 @@ export default function TaskDetailsSheet({
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => setCollabInviteOpen(false)}
+                                  onClick={() => {
+                                    setCollabInviteOpen(false)
+                                    setCollabSearch("")
+                                  }}
                                   className="text-muted-foreground hover:text-foreground"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
                               </div>
+                              <div className="p-2 border-b border-border/40 bg-muted/5">
+                                <Input
+                                  placeholder="Search members..."
+                                  value={collabSearch}
+                                  onChange={(e) => setCollabSearch(e.target.value)}
+                                  className="h-7 text-[10px] bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                                />
+                              </div>
                               <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {(activeOrg?.members || []).map((member: any) => {
+                                {(activeOrg?.members || [])
+                                  .filter((member: any) => {
+                                    const name = member.user?.name || ""
+                                    const email = member.user?.email || ""
+                                    const q = collabSearch.toLowerCase()
+                                    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
+                                  })
+                                  .map((member: any) => {
                                   const isChecked = task.collaboratorIds?.includes(member.userId)
                                   return (
                                     <button
@@ -988,7 +1072,7 @@ export default function TaskDetailsSheet({
                                     >
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-5 w-5 shrink-0">
-                                          <AvatarImage src={member.user?.image} />
+                                          <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
                                           <AvatarFallback className="text-[9px]">
                                             {member.user?.name?.charAt(0)}
                                           </AvatarFallback>
@@ -1026,7 +1110,7 @@ export default function TaskDetailsSheet({
                                 <Avatar
                                   className="h-6 w-6 border border-card shadow-xs cursor-pointer"
                                 >
-                                  <AvatarImage src={userObj?.image || undefined} />
+                                  <AvatarImage src={getAvatarUrl(userObj?.image, userObj?.name)} />
                                   <AvatarFallback className="text-[9px] font-semibold">
                                     {userObj?.name?.charAt(0) || "U"}
                                   </AvatarFallback>
@@ -1063,14 +1147,32 @@ export default function TaskDetailsSheet({
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => setSubInviteOpen(false)}
+                                  onClick={() => {
+                                    setSubInviteOpen(false)
+                                    setSubSearch("")
+                                  }}
                                   className="text-muted-foreground hover:text-foreground"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
                               </div>
+                              <div className="p-2 border-b border-border/40 bg-muted/5">
+                                <Input
+                                  placeholder="Search members..."
+                                  value={subSearch}
+                                  onChange={(e) => setSubSearch(e.target.value)}
+                                  className="h-7 text-[10px] bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                                />
+                              </div>
                               <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {(activeOrg?.members || []).map((member: any) => {
+                                {(activeOrg?.members || [])
+                                  .filter((member: any) => {
+                                    const name = member.user?.name || ""
+                                    const email = member.user?.email || ""
+                                    const q = subSearch.toLowerCase()
+                                    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
+                                  })
+                                  .map((member: any) => {
                                   const isChecked = task.subscriberIds?.includes(member.userId)
                                   return (
                                     <button
@@ -1081,7 +1183,7 @@ export default function TaskDetailsSheet({
                                     >
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-5 w-5 shrink-0">
-                                          <AvatarImage src={member.user?.image} />
+                                          <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
                                           <AvatarFallback className="text-[9px]">
                                             {member.user?.name?.charAt(0)}
                                           </AvatarFallback>
@@ -1245,7 +1347,7 @@ export default function TaskDetailsSheet({
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="activity">Activity</TabsTrigger>
                     <TabsTrigger value="my-work">My Work</TabsTrigger>
-                    <TabsTrigger value="assigned">Assigned</TabsTrigger>
+                    <TabsTrigger value="assigned">People</TabsTrigger>
                     <TabsTrigger value="comments">Comments</TabsTrigger>
                   </TabsList>
                 </div>
@@ -1280,7 +1382,7 @@ export default function TaskDetailsSheet({
                                     <div className="absolute top-0 left-0">
                                       <Avatar className="h-6 w-6 border border-background">
                                         <AvatarImage
-                                          src={item.actor?.image || undefined}
+                                          src={getAvatarUrl(item.actor?.image, item.actor?.name)}
                                         />
                                         <AvatarFallback className="bg-accent text-[8px] font-semibold text-accent-foreground">
                                           {(item.actor?.name || "U").charAt(0)}
@@ -1467,47 +1569,322 @@ export default function TaskDetailsSheet({
                   </TabsContent>
 
                   <TabsContent value="assigned" className="mt-0 outline-none">
-                    <div className="space-y-3">
-                      <h5 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                        Assigned Members
-                      </h5>
-                      <div className="grid grid-cols-2 gap-2">
-                        {task.assigneeIds && task.assigneeIds.length > 0 ? (
-                          task.assigneeIds.map((userId: string) => {
-                            const userObj = getMemberUser(userId)
+                    {(() => {
+                      const participants: any[] = []
+                      if (task.creatorId) {
+                        participants.push({
+                          userId: task.creatorId,
+                          role: "Assigner",
+                          user: getMemberUser(task.creatorId),
+                        })
+                      }
+                      if (task.assigneeIds) {
+                        task.assigneeIds.forEach((id: string) => {
+                          if (id !== task.creatorId) {
+                            participants.push({
+                              userId: id,
+                              role: "Assignee",
+                              user: getMemberUser(id),
+                            })
+                          }
+                        })
+                      }
+                      if (task.collaboratorIds) {
+                        task.collaboratorIds.forEach((id: string) => {
+                          if (id !== task.creatorId) {
+                            participants.push({
+                              userId: id,
+                              role: "Collaborator",
+                              user: getMemberUser(id),
+                            })
+                          }
+                        })
+                      }
+                      if (task.subscriberIds) {
+                        task.subscriberIds.forEach((id: string) => {
+                          if (id !== task.creatorId) {
+                            participants.push({
+                              userId: id,
+                              role: "Subscriber",
+                              user: getMemberUser(id),
+                            })
+                          }
+                        })
+                      }
+
+                      const connectedUserIds = new Set([
+                        task.creatorId,
+                        ...(task.assigneeIds || []),
+                        ...(task.collaboratorIds || []),
+                        ...(task.subscriberIds || []),
+                      ].filter(Boolean))
+
+                      const filteredOrgMembers = (activeOrg?.members || []).filter(
+                        (member: any) => {
+                          if (!member.userId || connectedUserIds.has(member.userId)) return false
+                          const name = member.user?.name || ""
+                          const email = member.user?.email || ""
+                          const q = searchQuery.toLowerCase()
+                          return (
+                            name.toLowerCase().includes(q) ||
+                            email.toLowerCase().includes(q)
+                          )
+                        }
+                      )
+
+                      const canAddNewPerson =
+                        isCreator || isAssignee || isCollaborator || isAdminOrOwner
+
+                      const getRoleBadgeStyle = (role: string) => {
+                        switch (role) {
+                          case "Assigner":
+                            return "bg-secondary text-secondary-foreground border-transparent rounded-full px-2.5 py-0.5 text-[9px] font-semibold"
+                          case "Assignee":
+                            return "bg-blue-50 text-blue-700 border-blue-200/30 dark:bg-blue-950/40 dark:text-blue-300 rounded-full px-2.5 py-0.5 text-[9px] font-semibold"
+                          case "Collaborator":
+                            return "bg-amber-50 text-amber-700 border-amber-200/30 dark:bg-amber-950/40 dark:text-amber-300 rounded-full px-2.5 py-0.5 text-[9px] font-semibold"
+                          case "Subscriber":
+                            return "bg-slate-100 text-slate-700 border-slate-200/50 dark:bg-slate-800 dark:text-slate-300 rounded-full px-2.5 py-0.5 text-[9px] font-semibold"
+                          default:
+                            return "rounded-full px-2.5 py-0.5 text-[9px] font-semibold"
+                        }
+                      }
+
+                      const renderRoleSelector = (p: any) => {
+                        if (p.userId === task.creatorId) return null
+
+                        const isCallerAssigner = isCreator || isAdminOrOwner
+                        const isCallerAssignee = isAssignee
+
+                        if (isCallerAssigner) {
+                          return (
+                            <Select
+                              value={p.role}
+                              onValueChange={(val) =>
+                                handleRoleChange(p.userId, val as any)
+                              }
+                            >
+                              <SelectTrigger className="h-6 w-[100px] text-[10px] ml-auto">
+                                <SelectValue placeholder={p.role} />
+                              </SelectTrigger>
+                              <SelectContent className="text-[10px]">
+                                <SelectItem value="Assignee">Assignee</SelectItem>
+                                <SelectItem value="Collaborator">Collaborator</SelectItem>
+                                <SelectItem value="Subscriber">Subscriber</SelectItem>
+                                <SelectItem
+                                  value="remove"
+                                  className="text-rose-600 dark:text-rose-400 font-semibold"
+                                >
+                                  Remove
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )
+                        }
+
+                        if (isCallerAssignee) {
+                          if (p.role === "Collaborator" || p.role === "Subscriber") {
                             return (
-                              <div
-                                key={userId}
-                                className="flex items-center gap-2 rounded-xl border border-border/10 bg-muted/15 p-2.5 transition-colors hover:border-border/30"
+                              <Select
+                                value={p.role}
+                                onValueChange={(val) =>
+                                  handleRoleChange(p.userId, val as any)
+                                }
                               >
-                                <Avatar className="h-7 w-7">
-                                  <AvatarImage
-                                    src={userObj?.image || undefined}
-                                  />
-                                  <AvatarFallback className="text-[10px] font-semibold">
-                                    {userObj?.name?.charAt(0) || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex min-w-0 flex-col">
-                                  <span className="truncate text-[11px] font-medium text-foreground">
-                                    {userObj?.name || "Unknown User"}
-                                  </span>
-                                  <span className="truncate text-[9px] text-muted-foreground">
-                                    {userObj?.email || ""}
-                                  </span>
-                                </div>
-                              </div>
+                                <SelectTrigger className="h-6 w-[100px] text-[10px] ml-auto">
+                                  <SelectValue placeholder={p.role} />
+                                </SelectTrigger>
+                                <SelectContent className="text-[10px]">
+                                  <SelectItem value="Collaborator">Collaborator</SelectItem>
+                                  <SelectItem value="Subscriber">Subscriber</SelectItem>
+                                  <SelectItem
+                                    value="remove"
+                                    className="text-rose-600 dark:text-rose-400 font-semibold"
+                                  >
+                                    Remove
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             )
-                          })
-                        ) : (
-                          <div className="col-span-2 rounded-lg border border-dashed border-border/40 py-4 text-center">
-                            <p className="text-[10px] text-muted-foreground italic">
-                              No members assigned.
-                            </p>
+                          }
+                        }
+
+                        return null
+                      }
+
+                      return (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                              Task Participants
+                            </h5>
+                            {canAddNewPerson && (
+                              <div className="relative">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setIsAddNewOpen(!isAddNewOpen)}
+                                  className="flex h-7 items-center gap-1.5 px-3 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                                >
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                  <span>Add New</span>
+                                </Button>
+                                {isAddNewOpen && (
+                                  <div className="absolute top-8 right-0 z-30 w-72 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-2xl backdrop-blur-md">
+                                    <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2.5">
+                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                                        Add Person to Task
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setIsAddNewOpen(false)
+                                          setSearchQuery("")
+                                        }}
+                                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                    <div className="p-2 border-b border-border/40 bg-muted/5">
+                                      <Input
+                                        placeholder="Search by name or email..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="h-8 text-xs bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                                      />
+                                    </div>
+                                    <div className="max-h-[220px] space-y-0.5 overflow-y-auto p-1.5">
+                                      {filteredOrgMembers.length > 0 ? (
+                                        filteredOrgMembers.map((member: any) => (
+                                          <div
+                                            key={member.id}
+                                            className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-accent/50"
+                                          >
+                                            <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
+                                              <Avatar className="h-6 w-6 shrink-0">
+                                                <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
+                                                <AvatarFallback className="text-[10px]">
+                                                  {member.user?.name?.charAt(0)}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="flex min-w-0 flex-col">
+                                                <span className="truncate text-left text-[11px] font-medium text-foreground">
+                                                  {member.user?.name}
+                                                </span>
+                                                <span className="truncate text-left text-[9px] text-muted-foreground">
+                                                  {member.user?.email}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                              {(isCreator || isAdminOrOwner) && (
+                                                <Button
+                                                  size="icon-xs"
+                                                  variant="ghost"
+                                                  onClick={() => {
+                                                    handleRoleChange(member.userId, "Assignee")
+                                                    setIsAddNewOpen(false)
+                                                    setSearchQuery("")
+                                                  }}
+                                                  className="h-6 px-1.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                                  title="Add as Assignee"
+                                                >
+                                                  Assignee
+                                                </Button>
+                                              )}
+                                              {(isCreator || isAssignee || isAdminOrOwner) && (
+                                                <Button
+                                                  size="icon-xs"
+                                                  variant="ghost"
+                                                  onClick={() => {
+                                                    handleRoleChange(
+                                                      member.userId,
+                                                      "Collaborator"
+                                                    )
+                                                    setIsAddNewOpen(false)
+                                                    setSearchQuery("")
+                                                  }}
+                                                  className="h-6 px-1.5 text-[9px] font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                                  title="Add as Collaborator"
+                                                >
+                                                  Collab
+                                                </Button>
+                                              )}
+                                              <Button
+                                                size="icon-xs"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                  handleRoleChange(member.userId, "Subscriber")
+                                                  setIsAddNewOpen(false)
+                                                  setSearchQuery("")
+                                                }}
+                                                className="h-6 px-1.5 text-[9px] font-semibold text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-950/30"
+                                                title="Add as Subscriber"
+                                              >
+                                                Sub
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <p className="text-[10px] text-muted-foreground text-center py-4 italic">
+                                          No members found
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
+
+                          <div className="space-y-2">
+                            {participants.length > 0 ? (
+                              participants.map((p) => (
+                                <div
+                                  key={p.userId}
+                                  className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-border/40 bg-background/50 p-3 gap-2 sm:gap-3 transition-colors hover:bg-muted/5"
+                                >
+                                  {/* Left: Member details */}
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <Avatar className="h-7 w-7 shrink-0">
+                                      <AvatarImage src={getAvatarUrl(p.user?.image, p.user?.name)} />
+                                      <AvatarFallback className="text-[10px] font-semibold">
+                                        {p.user?.name?.charAt(0) || "U"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex min-w-0 flex-col">
+                                      <span className="truncate font-semibold text-foreground text-xs">
+                                        {p.user?.name || "Unknown User"}
+                                      </span>
+                                      <span className="truncate text-[10px] text-muted-foreground">
+                                        {p.user?.email || ""}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Role & Actions */}
+                                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/10">
+                                    <Badge
+                                      className={`${getRoleBadgeStyle(p.role)} shrink-0`}
+                                      variant="outline"
+                                    >
+                                      {p.role}
+                                    </Badge>
+                                    {renderRoleSelector(p)}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-xl border border-dashed border-border/40 py-6 text-center text-muted-foreground italic text-[11px]">
+                                No participants connected.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </TabsContent>
 
                   <TabsContent value="comments" className="mt-0 outline-none">
