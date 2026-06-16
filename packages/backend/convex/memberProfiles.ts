@@ -149,10 +149,10 @@ export const getOrganizationProfiles = query({
     
     const profiles = []
     for (const member of members) {
-      if (member && member.id) {
+      if (member && member.userId) {
         const profile = await ctx.db
           .query("memberProfiles")
-          .withIndex("by_memberId", (q) => q.eq("memberId", member.id))
+          .withIndex("by_memberId", (q) => q.eq("memberId", member.userId))
           .first()
         if (profile) {
           profiles.push(profile)

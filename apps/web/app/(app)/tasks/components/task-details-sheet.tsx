@@ -63,6 +63,7 @@ import {
 import { toast } from "sonner"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
 import { UserAvatar } from "@/components/user-avatar"
+import { AvatarHoverCard } from "@/components/avatar-hover-card"
 
 interface TaskDetailsSheetProps {
   taskId: any
@@ -90,22 +91,301 @@ export default function TaskDetailsSheet({
     taskId ? { taskId } : "skip"
   )
 
-  const updateDetails = useMutation(api.tasks.updateTaskDetails)
-  const updateStatus = useMutation(api.tasks.updateTaskStatus)
-  const invite = useMutation(api.tasks.inviteAssignees)
-  const updateCollabs = useMutation(api.tasks.updateCollaborators)
-  const updateSubs = useMutation(api.tasks.updateSubscribers)
-  const addSubtask = useMutation(api.tasks.createSubtask)
-  const toggleSub = useMutation(api.tasks.toggleSubtask)
+  const updateDetails = useMutation(api.tasks.updateTaskDetails).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, title: newTitle, description: newDescription, priority, dueDate } = args
+
+      // 1. Update task details query
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          {
+            ...currentTask,
+            ...(newTitle !== undefined && { title: newTitle }),
+            ...(newDescription !== undefined && { description: newDescription }),
+            ...(priority !== undefined && { priority }),
+            ...(dueDate !== undefined && { dueDate }),
+          }
+        )
+      }
+
+      // 2. Update task list query
+      if (activeOrg?.id) {
+        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
+        if (tasksList) {
+          const updatedTasks = tasksList.map((t: any) => {
+            if (t._id === targetId) {
+              return {
+                ...t,
+                ...(newTitle !== undefined && { title: newTitle }),
+                ...(newDescription !== undefined && { description: newDescription }),
+                ...(priority !== undefined && { priority }),
+                ...(dueDate !== undefined && { dueDate }),
+              }
+            }
+            return t
+          })
+          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+        }
+      }
+    }
+  )
+
+  const updateStatus = useMutation(api.tasks.updateTaskStatus).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, status } = args
+
+      // 1. Update task details query
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          { ...currentTask, status }
+        )
+      }
+
+      // 2. Update task list query
+      if (activeOrg?.id) {
+        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
+        if (tasksList) {
+          const updatedTasks = tasksList.map((t: any) => {
+            if (t._id === targetId) {
+              return { ...t, status }
+            }
+            return t
+          })
+          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+        }
+      }
+    }
+  )
+
+  const invite = useMutation(api.tasks.inviteAssignees).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, assigneeIds } = args
+
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          { ...currentTask, assigneeIds }
+        )
+      }
+
+      if (activeOrg?.id) {
+        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
+        if (tasksList) {
+          const updatedTasks = tasksList.map((t: any) => {
+            if (t._id === targetId) {
+              return { ...t, assigneeIds }
+            }
+            return t
+          })
+          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+        }
+      }
+    }
+  )
+
+  const updateCollabs = useMutation(api.tasks.updateCollaborators).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, collaboratorIds } = args
+
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          { ...currentTask, collaboratorIds }
+        )
+      }
+    }
+  )
+
+  const updateSubs = useMutation(api.tasks.updateSubscribers).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, subscriberIds } = args
+
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          { ...currentTask, subscriberIds }
+        )
+      }
+    }
+  )
+  const addSubtask = useMutation(api.tasks.createSubtask).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, title } = args
+      if (!targetId || !currentUserId) return
+
+      const currentSubtasks = localStore.getQuery(api.tasks.getSubtasks, { taskId: targetId })
+      if (currentSubtasks) {
+        const optimisticSubtask = {
+          _id: `temp-subtask-${Date.now()}` as any,
+          _creationTime: Date.now(),
+          taskId: targetId,
+          title,
+          isCompleted: false,
+          creatorId: currentUserId,
+          createdAt: Date.now(),
+        }
+        localStore.setQuery(
+          api.tasks.getSubtasks,
+          { taskId: targetId },
+          [...currentSubtasks, optimisticSubtask]
+        )
+      }
+    }
+  )
+
+  const toggleSub = useMutation(api.tasks.toggleSubtask).withOptimisticUpdate(
+    (localStore, args) => {
+      const { subtaskId, isCompleted } = args
+      if (!taskId) return
+
+      const currentSubtasks = localStore.getQuery(api.tasks.getSubtasks, { taskId })
+      if (currentSubtasks) {
+        const updated = currentSubtasks.map((s: any) => {
+          if (s._id === subtaskId) {
+            return { ...s, isCompleted }
+          }
+          return s
+        })
+        localStore.setQuery(api.tasks.getSubtasks, { taskId }, updated)
+      }
+    }
+  )
   const registerAttach = useMutation(api.taskAttachments.registerAttachment)
   const deleteAttach = useMutation(api.taskAttachments.deleteAttachment)
 
   // Reactions & Comments Mutations/Queries
-  const toggleReaction = useMutation(api.tasks.toggleReaction)
+  const toggleReaction = useMutation(api.tasks.toggleReaction).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, emoji } = args
+      if (!currentUserId) return
+
+      // 1. Update task details query
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        const reactions = currentTask.reactions || []
+        const existingIndex = reactions.findIndex(
+          (r: any) => r.userId === currentUserId && r.emoji === emoji
+        )
+        let newReactions = [...reactions]
+        if (existingIndex > -1) {
+          newReactions.splice(existingIndex, 1)
+        } else {
+          newReactions.push({ userId: currentUserId, emoji })
+        }
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          { ...currentTask, reactions: newReactions }
+        )
+      }
+
+      // 2. Update task list query
+      if (activeOrg?.id) {
+        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
+        if (tasksList) {
+          const updatedTasks = tasksList.map((t: any) => {
+            if (t._id === targetId) {
+              const reactions = t.reactions || []
+              const existingIndex = reactions.findIndex(
+                (r: any) => r.userId === currentUserId && r.emoji === emoji
+              )
+              let newReactions = [...reactions]
+              if (existingIndex > -1) {
+                newReactions.splice(existingIndex, 1)
+              } else {
+                newReactions.push({ userId: currentUserId, emoji })
+              }
+              return { ...t, reactions: newReactions }
+            }
+            return t
+          })
+          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+        }
+      }
+    }
+  )
   const comments = useQuery(api.taskComments.getComments, taskId ? { taskId } : "skip")
-  const addComment = useMutation(api.taskComments.addComment)
-  const editComment = useMutation(api.taskComments.editComment)
-  const deleteComment = useMutation(api.taskComments.deleteComment)
+  const addComment = useMutation(api.taskComments.addComment).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, content, attachmentIds } = args
+      if (!targetId || !currentUserId) return
+
+      const currentComments = localStore.getQuery(api.taskComments.getComments, { taskId: targetId })
+      if (currentComments) {
+        const optimisticComment = {
+          _id: `temp-comment-${Date.now()}` as any,
+          _creationTime: Date.now(),
+          taskId: targetId,
+          userId: currentUserId,
+          content,
+          isEdited: false,
+          isDeleted: false,
+          attachmentIds: attachmentIds || [],
+        }
+        localStore.setQuery(
+          api.taskComments.getComments,
+          { taskId: targetId },
+          [...currentComments, optimisticComment]
+        )
+      }
+    }
+  )
+
+  const editComment = useMutation(api.taskComments.editComment).withOptimisticUpdate(
+    (localStore, args) => {
+      const { commentId, newContent } = args
+      if (!taskId) return
+
+      const currentComments = localStore.getQuery(api.taskComments.getComments, { taskId })
+      if (currentComments) {
+        const updated = currentComments.map((c: any) => {
+          if (c._id === commentId) {
+            return {
+              ...c,
+              content: newContent,
+              isEdited: true,
+            }
+          }
+          return c
+        })
+        localStore.setQuery(api.taskComments.getComments, { taskId }, updated)
+      }
+    }
+  )
+
+  const deleteComment = useMutation(api.taskComments.deleteComment).withOptimisticUpdate(
+    (localStore, args) => {
+      const { commentId } = args
+      if (!taskId) return
+
+      const currentComments = localStore.getQuery(api.taskComments.getComments, { taskId })
+      if (currentComments) {
+        const updated = currentComments.map((c: any) => {
+          if (c._id === commentId) {
+            return {
+              ...c,
+              isDeleted: true,
+              content: "This message was deleted",
+            }
+          }
+          return c
+        })
+        localStore.setQuery(api.taskComments.getComments, { taskId }, updated)
+      }
+    }
+  )
   const readReceipts = useQuery(api.taskComments.getTaskReadReceipts, taskId ? { taskId } : "skip")
   const markAsRead = useMutation(api.taskComments.markCommentsAsRead)
 
@@ -1489,14 +1769,16 @@ export default function TaskDetailsSheet({
 
                                     {/* Actor Avatar */}
                                     <div className="absolute top-0 left-0">
-                                      <Avatar className="h-6 w-6 border border-background">
-                                        <AvatarImage
-                                          src={getAvatarUrl(item.actor?.image, item.actor?.name)}
-                                        />
-                                        <AvatarFallback className="bg-accent text-[8px] font-semibold text-accent-foreground">
-                                          {(item.actor?.name || "U").charAt(0)}
-                                        </AvatarFallback>
-                                      </Avatar>
+                                      <AvatarHoverCard user={item.actor} userId={item.actorId}>
+                                        <Avatar className="h-6 w-6 border border-background">
+                                          <AvatarImage
+                                            src={getAvatarUrl(item.actor?.image, item.actor?.name)}
+                                          />
+                                          <AvatarFallback className="bg-accent text-[8px] font-semibold text-accent-foreground">
+                                            {(item.actor?.name || "U").charAt(0)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      </AvatarHoverCard>
                                     </div>
 
                                     {/* Action text & Details */}
@@ -2061,12 +2343,14 @@ export default function TaskDetailsSheet({
                                 >
                                   {/* Avatar */}
                                   {!isOwn && (
-                                    <Avatar className="h-7 w-7 mt-0.5 shrink-0">
-                                      <AvatarImage src={getAvatarUrl(details.image, details.name)} />
-                                      <AvatarFallback className="text-[9px] font-bold">
-                                        {details.name?.charAt(0) || "U"}
-                                      </AvatarFallback>
-                                    </Avatar>
+                                    <AvatarHoverCard user={details} userId={comm.userId}>
+                                      <Avatar className="h-7 w-7 mt-0.5 shrink-0">
+                                        <AvatarImage src={getAvatarUrl(details.image, details.name)} />
+                                        <AvatarFallback className="text-[9px] font-bold">
+                                          {details.name?.charAt(0) || "U"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    </AvatarHoverCard>
                                   )}
 
                                   {/* Message Body */}

@@ -203,6 +203,7 @@ export const getTasks = query({
             )) as any
             if (userRecord) {
               actor = {
+                id: userRecord._id,
                 name: userRecord.name,
                 email: userRecord.email,
                 image: userRecord.image,
@@ -232,6 +233,7 @@ export const getTasks = query({
             )) as any
             if (userRecord) {
               actor = {
+                id: userRecord._id,
                 name: userRecord.name,
                 email: userRecord.email,
                 image: userRecord.image,
@@ -260,6 +262,7 @@ export const getTasks = query({
             )) as any
             if (userRecord) {
               actor = {
+                id: userRecord._id,
                 name: userRecord.name,
                 email: userRecord.email,
                 image: userRecord.image,

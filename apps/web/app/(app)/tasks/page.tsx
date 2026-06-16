@@ -46,6 +46,7 @@ import { toast } from "sonner"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
 import { UserAvatar } from "@/components/user-avatar"
+import { AvatarHoverCard } from "@/components/avatar-hover-card"
 
 export default function TasksPage() {
   const isMobile = useIsMobile()
@@ -309,12 +310,14 @@ export default function TasksPage() {
 
                         {/* Last Activity */}
                         <div className="flex items-center gap-1.5 text-[10px]">
-                          <Avatar className="h-4 w-4 shrink-0">
-                            <AvatarImage src={getAvatarUrl(task.lastActivity?.actor?.image, task.lastActivity?.actor?.name)} />
-                            <AvatarFallback className="text-[7px] bg-accent text-accent-foreground font-semibold">
-                              {task.lastActivity?.actor?.name?.charAt(0) || "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <AvatarHoverCard user={task.lastActivity?.actor} userId={task.lastActivity?.actorId}>
+                            <Avatar className="h-4 w-4 shrink-0">
+                              <AvatarImage src={getAvatarUrl(task.lastActivity?.actor?.image, task.lastActivity?.actor?.name)} />
+                              <AvatarFallback className="text-[7px] bg-accent text-accent-foreground font-semibold">
+                                {task.lastActivity?.actor?.name?.charAt(0) || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </AvatarHoverCard>
                           <span className="text-[9px] text-muted-foreground max-w-[150px] truncate">
                             {formatAction(task.lastActivity?.action)} • {formatTimeAgo(task.lastActivity?.timestamp)}
                           </span>
@@ -477,12 +480,14 @@ export default function TasksPage() {
                           </TableCell>                           {/* Last Activity */}
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Avatar className="h-4.5 w-4.5 shrink-0">
-                                <AvatarImage src={getAvatarUrl(task.lastActivity?.actor?.image, task.lastActivity?.actor?.name)} />
-                                <AvatarFallback className="text-[8px] bg-accent text-accent-foreground font-semibold">
-                                  {task.lastActivity?.actor?.name?.charAt(0) || "?"}
-                                </AvatarFallback>
-                              </Avatar>
+                              <AvatarHoverCard user={task.lastActivity?.actor} userId={task.lastActivity?.actorId}>
+                                <Avatar className="h-4.5 w-4.5 shrink-0">
+                                  <AvatarImage src={getAvatarUrl(task.lastActivity?.actor?.image, task.lastActivity?.actor?.name)} />
+                                  <AvatarFallback className="text-[8px] bg-accent text-accent-foreground font-semibold">
+                                    {task.lastActivity?.actor?.name?.charAt(0) || "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </AvatarHoverCard>
                               <div className="flex flex-col min-w-0 select-none">
                                 <span className="text-[10px] text-foreground font-medium truncate max-w-[110px]" title={formatAction(task.lastActivity?.action)}>
                                   {formatAction(task.lastActivity?.action)}
