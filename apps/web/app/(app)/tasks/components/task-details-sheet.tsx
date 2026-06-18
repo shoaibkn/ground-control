@@ -950,14 +950,26 @@ export default function TaskDetailsSheet({
           <>
             {/* Top Bar */}
             <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-card p-4 px-6">
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                onClick={onClose}
-                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={onClose}
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigator.clipboard.writeText(`#${task._id.slice(-4)}`)
+                    toast.success(`Copied Task ID #${task._id.slice(-4)} to clipboard!`)
+                  }}
+                  className="text-[11px] font-medium font-mono text-muted-foreground/50 hover:text-foreground transition-colors select-all cursor-pointer"
+                >
+                  #{task._id.slice(-4)}
+                </span>
+              </div>
 
               <div className="flex items-center gap-1.5">
                 {/* Edit Icon (only accessible to admins and task creator) */}
@@ -1008,22 +1020,44 @@ export default function TaskDetailsSheet({
                 {/* Title */}
                 <div>
                   {isEditingDetails && canEditTaskDetails ? (
-                    <Input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      onBlur={() =>
-                        title.trim() !== task.title &&
-                        handleUpdate({ title: title.trim() })
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.currentTarget.blur()
+                    <div className="flex items-center gap-2">
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigator.clipboard.writeText(`#${task._id.slice(-4)}`)
+                          toast.success(`Copied Task ID #${task._id.slice(-4)} to clipboard!`)
+                        }}
+                        className="text-muted-foreground/50 font-mono text-xl font-medium select-all shrink-0 select-none cursor-pointer hover:text-foreground transition-colors"
+                      >
+                        #{task._id.slice(-4)}
+                      </span>
+                      <Input
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        onBlur={() =>
+                          title.trim() !== task.title &&
+                          handleUpdate({ title: title.trim() })
                         }
-                      }}
-                      className="-ml-1.5 h-auto border-transparent bg-transparent p-1 px-1.5 text-2xl font-bold transition-colors hover:border-input/40 focus-visible:border-input focus-visible:bg-background/50"
-                    />
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.currentTarget.blur()
+                          }
+                        }}
+                        className="-ml-1.5 h-auto flex-1 border-transparent bg-transparent p-1 px-1.5 text-2xl font-bold transition-colors hover:border-input/40 focus-visible:border-input focus-visible:bg-background/50"
+                      />
+                    </div>
                   ) : (
                     <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigator.clipboard.writeText(`#${task._id.slice(-4)}`)
+                          toast.success(`Copied Task ID #${task._id.slice(-4)} to clipboard!`)
+                        }}
+                        className="font-mono text-muted-foreground/60 hover:text-foreground transition-colors mr-2 text-xl font-medium select-all cursor-pointer"
+                      >
+                        #{task._id.slice(-4)}
+                      </span>
                       {task.title}
                     </h2>
                   )}
@@ -1247,14 +1281,14 @@ export default function TaskDetailsSheet({
                     ) : (
                       <span className="font-medium text-foreground/80">
                         {task.dueDate
-                          ? new Date(task.dueDate).toLocaleDateString(
+                          ? `${new Date(task.dueDate).toLocaleDateString(
                               undefined,
                               {
                                 month: "long",
                                 day: "numeric",
                                 year: "numeric",
                               }
-                            )
+                            )}${task.timeOfDay ? ` (${task.timeOfDay})` : ""}`
                           : "No due date"}
                       </span>
                     )}

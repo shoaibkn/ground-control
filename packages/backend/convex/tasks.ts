@@ -49,6 +49,15 @@ export const createTask = mutation({
     assigneeIds: v.array(v.string()),
     collaboratorIds: v.optional(v.array(v.string())),
     subscriberIds: v.optional(v.array(v.string())),
+    timeOfDay: v.optional(v.string()),
+    recurrence: v.optional(
+      v.object({
+        frequency: v.string(),
+        startDate: v.number(),
+        endDate: v.optional(v.number()),
+        timeOfDay: v.optional(v.string()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
@@ -85,7 +94,9 @@ export const createTask = mutation({
       description: args.description,
       priority: args.priority || "Normal",
       status: "Pending",
-      dueDate: args.dueDate,
+      dueDate: args.dueDate || args.recurrence?.startDate,
+      timeOfDay: args.timeOfDay || args.recurrence?.timeOfDay,
+      recurrence: args.recurrence,
       creatorId: user._id,
       organizationId: args.organizationId,
       assigneeIds: cleanAssignees,
@@ -130,7 +141,10 @@ export const getTasks = query({
     let tasksQuery = ctx.db
       .query("tasks")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .filter((q) => q.eq(q.field("isArchived"), args.showArchived ?? false))
+
+    if (!args.showArchived) {
+      tasksQuery = tasksQuery.filter((q) => q.eq(q.field("isArchived"), false))
+    }
 
     const tasks = await tasksQuery.collect()
 
@@ -143,6 +157,12 @@ export const getTasks = query({
             task.collaboratorIds?.includes(user._id) ||
             task.subscriberIds?.includes(user._id)
         )
+
+    const userStarredTasks = await ctx.db
+      .query("starredTasks")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+    const starredTaskIdsSet = new Set(userStarredTasks.map((st) => st.taskId))
 
     const enrichedTasks = []
     for (const task of filteredTasks) {
@@ -285,12 +305,122 @@ export const getTasks = query({
         commentCount,
         unreadCommentCount,
         lastActivity,
+        isStarred: starredTaskIdsSet.has(task._id),
       })
     }
 
     return enrichedTasks
   },
 })
+
+export function calculateNextDueDate(currentDueDate: number, frequency: string, endDate?: number): number | null {
+  const date = new Date(currentDueDate)
+  switch (frequency) {
+    case "daily":
+      date.setDate(date.getDate() + 1)
+      break
+    case "weekly":
+      date.setDate(date.getDate() + 7)
+      break
+    case "bi-weekly":
+      date.setDate(date.getDate() + 14)
+      break
+    case "monthly":
+      date.setMonth(date.getMonth() + 1)
+      break
+    case "quarterly":
+      date.setMonth(date.getMonth() + 3)
+      break
+    case "yearly":
+      date.setFullYear(date.getFullYear() + 1)
+      break
+    default:
+      return null
+  }
+  const nextTime = date.getTime()
+  if (endDate && nextTime > endDate) {
+    return null
+  }
+  return nextTime
+}
+
+export async function spawnNextRecurringInstance(ctx: any, task: any) {
+  if (!task.recurrence) return
+
+  const nextDueDate = calculateNextDueDate(
+    task.dueDate || task.recurrence.startDate,
+    task.recurrence.frequency,
+    task.recurrence.endDate
+  )
+
+  if (nextDueDate !== null) {
+    // 1. Insert new task copy
+    const newTaskId = await ctx.db.insert("tasks", {
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      status: "Pending",
+      dueDate: nextDueDate,
+      timeOfDay: task.recurrence.timeOfDay || task.timeOfDay,
+      recurrence: task.recurrence,
+      creatorId: task.creatorId,
+      organizationId: task.organizationId,
+      assigneeIds: task.assigneeIds,
+      collaboratorIds: task.collaboratorIds || [],
+      subscriberIds: task.subscriberIds || [],
+      isArchived: false,
+    })
+
+    // 2. Clone subtasks
+    const subtasks = await ctx.db
+      .query("subtasks")
+      .withIndex("by_task", (q: any) => q.eq("taskId", task._id))
+      .collect()
+
+    for (const sub of subtasks) {
+      await ctx.db.insert("subtasks", {
+        taskId: newTaskId,
+        title: sub.title,
+        isCompleted: false,
+        creatorId: sub.creatorId,
+        createdAt: Date.now(),
+      })
+    }
+
+    // 3. Log audit log for new task
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: newTaskId,
+      actorId: "SYSTEM",
+      action: "TASK_CREATED",
+      details: {
+        title: task.title,
+        assignees: task.assigneeIds,
+        collaborators: task.collaboratorIds || [],
+        subscribers: task.subscriberIds || [],
+        isRecurringInstance: true,
+      },
+      timestamp: Date.now(),
+    })
+
+    // 4. Log audit log for old task
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: task._id,
+      actorId: "SYSTEM",
+      action: "RECURRING_INSTANCE_SPAWNED",
+      details: {
+        newTaskId,
+        nextDueDate,
+      },
+      timestamp: Date.now(),
+    })
+  }
+
+  // 5. Update old task: mark isArchived: true, clear recurrence
+  await ctx.db.patch(task._id, {
+    isArchived: true,
+    recurrence: undefined,
+  })
+}
 
 export const updateTaskStatus = mutation({
   args: {
@@ -345,6 +475,11 @@ export const updateTaskStatus = mutation({
       timestamp: Date.now(),
     })
 
+    // If marked Completed and has recurrence, spawn next instance and archive this one
+    if (args.status === "Completed" && task.recurrence) {
+      await spawnNextRecurringInstance(ctx, task)
+    }
+
     return { success: true, newStatus: args.status }
   },
 })
@@ -367,7 +502,15 @@ export const getTask = query({
       throw new Error("Permission denied to view this task")
     }
 
-    return task
+    const starred = await ctx.db
+      .query("starredTasks")
+      .withIndex("by_user_task", (q) => q.eq("userId", user._id).eq("taskId", task._id))
+      .first()
+
+    return {
+      ...task,
+      isStarred: !!starred,
+    }
   },
 })
 
@@ -733,5 +876,32 @@ export const toggleReaction = mutation({
     })
 
     return { success: true }
+  },
+})
+
+export const toggleStarTask = mutation({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    await requireMember(ctx, user._id, task.organizationId)
+
+    const existing = await ctx.db
+      .query("starredTasks")
+      .withIndex("by_user_task", (q) => q.eq("userId", user._id).eq("taskId", args.taskId))
+      .first()
+
+    if (existing) {
+      await ctx.db.delete(existing._id)
+      return { isStarred: false }
+    } else {
+      await ctx.db.insert("starredTasks", {
+        userId: user._id,
+        taskId: args.taskId,
+      })
+      return { isStarred: true }
+    }
   },
 })

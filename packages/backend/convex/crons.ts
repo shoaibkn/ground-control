@@ -10,4 +10,11 @@ crons.interval(
   internal.taskCron.checkOverdueTasks
 )
 
+// Run recurring task processor every hour
+crons.interval(
+  "Process recurring tasks",
+  { hours: 1 },
+  internal.taskCron.processRecurringTasks
+)
+
 export default crons

@@ -1,4 +1,5 @@
 import { internalMutation } from "./_generated/server"
+import { spawnNextRecurringInstance } from "./tasks"
 
 export const checkOverdueTasks = internalMutation({
   args: {},
@@ -43,6 +44,26 @@ export const checkOverdueTasks = internalMutation({
         details: { dueDate: task.dueDate },
         timestamp: now,
       })
+    }
+  },
+})
+
+export const processRecurringTasks = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now()
+
+    const tasks = await ctx.db
+      .query("tasks")
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect()
+
+    const recurringTasks = tasks.filter(
+      (task) => task.recurrence && task.dueDate && task.dueDate <= now
+    )
+
+    for (const task of recurringTasks) {
+      await spawnNextRecurringInstance(ctx, task)
     }
   },
 })

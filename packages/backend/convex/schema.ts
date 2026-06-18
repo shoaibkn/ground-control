@@ -30,6 +30,15 @@ export default defineSchema({
     subscriberIds: v.optional(v.array(v.string())),
     isArchived: v.boolean(),
     lastOverdueNotifiedAt: v.optional(v.number()),
+    timeOfDay: v.optional(v.string()),
+    recurrence: v.optional(
+      v.object({
+        frequency: v.string(), // "daily" | "weekly" | "bi-weekly" | "monthly" | "quarterly" | "yearly"
+        startDate: v.number(), // timestamp
+        endDate: v.optional(v.number()), // timestamp
+        timeOfDay: v.optional(v.string()),
+      })
+    ),
     reactions: v.optional(
       v.array(
         v.object({
@@ -89,4 +98,11 @@ export default defineSchema({
   })
     .index("by_task", ["taskId"])
     .index("by_task_user", ["taskId", "userId"]),
+
+  starredTasks: defineTable({
+    userId: v.string(),
+    taskId: v.id("tasks"),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_task", ["userId", "taskId"]),
 })

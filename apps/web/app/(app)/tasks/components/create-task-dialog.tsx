@@ -25,8 +25,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@workspace/ui/components/tabs"
 import { toast } from "sonner"
-import { Loader2, Plus, Calendar, AlertTriangle } from "lucide-react"
-import { getAvatarUrl } from "@workspace/ui/lib/utils"
+import { Loader2, Plus, Calendar as CalendarIcon, AlertTriangle } from "lucide-react"
+import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
+import { Switch } from "@workspace/ui/components/switch"
+import { Calendar } from "@workspace/ui/components/calendar"
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@workspace/ui/components/popover"
+import { format } from "date-fns"
 
 interface CreateTaskDialogProps {
   isOpen: boolean
@@ -40,11 +48,19 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [priority, setPriority] = useState<string>("5")
-  const [dueDateStr, setDueDateStr] = useState("")
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([])
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([])
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Recurrence States
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [frequency, setFrequency] = useState("daily")
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  const [timeOfDayPreset, setTimeOfDayPreset] = useState("By EOD")
+  const [timeOfDayCustom, setTimeOfDayCustom] = useState("")
 
   if (!activeOrg) return null
 
@@ -97,15 +113,39 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
       return
     }
 
+    if (isRecurring && !startDate) {
+      toast.error("Start date is required for recurring tasks")
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      const parsedDueDate = dueDateStr ? new Date(dueDateStr).getTime() : undefined
+      const parsedDueDate = dueDate ? dueDate.getTime() : undefined
+      const parsedStartDate = startDate ? startDate.getTime() : undefined
+      const parsedEndDate = endDate ? endDate.getTime() : undefined
+
+      const timeOfDayVal = isRecurring
+        ? timeOfDayPreset === "Custom"
+          ? timeOfDayCustom.trim() || undefined
+          : timeOfDayPreset
+        : undefined
+
+      const recurrencePayload = isRecurring
+        ? {
+            frequency,
+            startDate: parsedStartDate!,
+            endDate: parsedEndDate || undefined,
+            timeOfDay: timeOfDayVal,
+          }
+        : undefined
 
       await createTask({
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
-        dueDate: parsedDueDate,
+        dueDate: isRecurring ? parsedStartDate : parsedDueDate,
+        timeOfDay: timeOfDayVal,
+        recurrence: recurrencePayload,
         organizationId: activeOrg.id,
         assigneeIds: selectedAssignees,
         collaboratorIds: selectedCollaborators,
@@ -118,10 +158,19 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
       setTitle("")
       setDescription("")
       setPriority("5")
-      setDueDateStr("")
+      setDueDate(undefined)
       setSelectedAssignees([])
       setSelectedCollaborators([])
       setSelectedSubscribers([])
+
+      // Reset recurrence fields
+      setIsRecurring(false)
+      setFrequency("daily")
+      setStartDate(undefined)
+      setEndDate(undefined)
+      setTimeOfDayPreset("By EOD")
+      setTimeOfDayCustom("")
+
       setIsOpen(false)
     } catch (error: any) {
       console.error(error)
@@ -176,7 +225,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
 
           <div className="grid grid-cols-2 gap-4">
             {/* Priority */}
-            <div className="space-y-1">
+            <div className={isRecurring ? "col-span-2 space-y-1" : "space-y-1"}>
               <Label htmlFor="task-priority" className="text-xs font-semibold text-foreground">
                 Priority
               </Label>
@@ -199,22 +248,190 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
             </div>
 
             {/* Due Date */}
-            <div className="space-y-1">
-              <Label htmlFor="task-duedate" className="text-xs font-semibold text-foreground">
-                Due Date
+            {!isRecurring && (
+              <div className="space-y-1">
+                <Label htmlFor="task-duedate" className="text-xs font-semibold text-foreground">
+                  Due Date
+                </Label>
+                <div className="relative">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="task-duedate"
+                        variant="outline"
+                        className={cn(
+                          "w-full h-9 justify-start text-left font-normal text-xs bg-input/20 dark:bg-input/30 border-input/40",
+                          !dueDate && "text-muted-foreground"
+                        )}
+                        disabled={isSubmitting}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground/85" />
+                        {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={setDueDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Recurring Task Toggle */}
+          <div className="flex items-center justify-between rounded-lg border border-border/80 bg-input/10 p-3 dark:bg-input/20">
+            <div className="space-y-0.5">
+              <Label htmlFor="recurring-task" className="text-xs font-semibold text-foreground">
+                Recurring Task
               </Label>
-              <div className="relative">
-                <Input
-                  id="task-duedate"
-                  type="date"
-                  value={dueDateStr}
-                  onChange={(e) => setDueDateStr(e.target.value)}
-                  disabled={isSubmitting}
-                  className="h-9 pr-8 text-xs bg-input/20 dark:bg-input/30"
-                />
+              <p className="text-[10px] text-muted-foreground">
+                Automatically schedule a new instance when complete or overdue.
+              </p>
+            </div>
+            <Switch
+              id="recurring-task"
+              checked={isRecurring}
+              onCheckedChange={setIsRecurring}
+              disabled={isSubmitting}
+              className="cursor-pointer"
+            />
+          </div>
+
+          {/* Recurrence Details */}
+          {isRecurring && (
+            <div className="space-y-3 rounded-lg border border-border/80 bg-input/5 p-3 dark:bg-input/10">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Frequency */}
+                <div className="space-y-1">
+                  <Label htmlFor="recurrence-freq" className="text-[10px] font-semibold text-foreground">
+                    Frequency
+                  </Label>
+                  <Select
+                    value={frequency}
+                    onValueChange={setFrequency}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="recurrence-freq" className="h-8 bg-input/20 dark:bg-input/30 text-xs">
+                      <SelectValue placeholder="Frequency" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Time Period */}
+                <div className="space-y-1">
+                  <Label htmlFor="recurrence-timeofday" className="text-[10px] font-semibold text-foreground">
+                    Time Period
+                  </Label>
+                  <Select
+                    value={timeOfDayPreset}
+                    onValueChange={setTimeOfDayPreset}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="recurrence-timeofday" className="h-8 bg-input/20 dark:bg-input/30 text-xs">
+                      <SelectValue placeholder="Time of Day" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      <SelectItem value="In Morning">In Morning</SelectItem>
+                      <SelectItem value="Before Lunch">Before Lunch</SelectItem>
+                      <SelectItem value="After Lunch">After Lunch</SelectItem>
+                      <SelectItem value="By Noon">By Noon</SelectItem>
+                      <SelectItem value="By EOD">By EOD</SelectItem>
+                      <SelectItem value="Custom">Custom Text</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Custom Time Period Field */}
+                {timeOfDayPreset === "Custom" && (
+                  <div className="space-y-1 col-span-2">
+                    <Label htmlFor="recurrence-custom-time" className="text-[10px] font-semibold text-foreground">
+                      Custom Time Period
+                    </Label>
+                    <Input
+                      id="recurrence-custom-time"
+                      placeholder="e.g. Before the standup, By 10:00 AM"
+                      value={timeOfDayCustom}
+                      onChange={(e) => setTimeOfDayCustom(e.target.value)}
+                      disabled={isSubmitting}
+                      className="h-8 text-xs bg-input/20 dark:bg-input/30"
+                    />
+                  </div>
+                )}
+
+                {/* Start Date */}
+                <div className="space-y-1">
+                  <Label htmlFor="recurrence-start" className="text-[10px] font-semibold text-foreground">
+                    Start Date <span className="text-destructive">*</span>
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="recurrence-start"
+                        variant="outline"
+                        className={cn(
+                          "w-full h-8 justify-start text-left font-normal text-xs bg-input/20 dark:bg-input/30 border-input/40",
+                          !startDate && "text-muted-foreground"
+                        )}
+                        disabled={isSubmitting}
+                      >
+                        <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground/85" />
+                        {startDate ? format(startDate, "PP") : <span>Start date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* End Date */}
+                <div className="space-y-1">
+                  <Label htmlFor="recurrence-end" className="text-[10px] font-semibold text-foreground">
+                    End Date
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="recurrence-end"
+                        variant="outline"
+                        className={cn(
+                          "w-full h-8 justify-start text-left font-normal text-xs bg-input/20 dark:bg-input/30 border-input/40",
+                          !endDate && "text-muted-foreground"
+                        )}
+                        disabled={isSubmitting}
+                      >
+                        <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground/85" />
+                        {endDate ? format(endDate, "PP") : <span>End date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Members Tabs */}
           <div className="space-y-2">
