@@ -2,6 +2,8 @@ import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { authComponent } from "./auth"
 import { components } from "./_generated/api"
+import { hasPermission } from "./permissions"
+import { spawnNextRecurringInstance } from "./tasks"
 
 async function requireAuth(ctx: any) {
   const user = await authComponent.getAuthUser(ctx)
@@ -31,9 +33,9 @@ async function requireMember(ctx: any, userId: string, organizationId: string) {
   return member
 }
 
-export const getComments = query({
+export const getChats = query({
   args: { taskId: v.id("tasks") },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     
     const task = await ctx.db.get(args.taskId)
@@ -47,30 +49,32 @@ export const getComments = query({
     const isSubscriber = task.subscriberIds?.includes(user._id) || false
 
     if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
-      throw new Error("Permission denied to read comments for this task")
+      throw new Error("Permission denied to read chats for this task")
     }
     
-    const comments = await ctx.db
-      .query("taskComments")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+    const chats = await ctx.db
+      .query("taskChats")
+      .withIndex("by_task", (q: any) => q.eq("taskId", args.taskId))
       .collect()
 
-    return comments
+    return chats
   },
 })
 
-export const addComment = mutation({
+export const addChat = mutation({
   args: {
     taskId: v.id("tasks"),
     content: v.string(),
     attachmentIds: v.optional(v.array(v.id("taskAttachments"))),
+    statusChange: v.optional(v.string()),
+    completedSubtaskIds: v.optional(v.array(v.id("subtasks"))),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     const task = await ctx.db.get(args.taskId)
     
     if (!task) throw new Error("Task not found")
-    if (task.isArchived) throw new Error("Cannot comment on archived task")
+    if (task.isArchived) throw new Error("Cannot send chat on archived task")
 
     const member = await requireMember(ctx, user._id, task.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -80,45 +84,108 @@ export const addComment = mutation({
     const isSubscriber = task.subscriberIds?.includes(user._id) || false
 
     if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
-      throw new Error("Permission denied to comment on this task")
+      throw new Error("Permission denied to send chat on this task")
     }
 
-    const commentId = await ctx.db.insert("taskComments", {
+    // 1. Process Status Change if requested from chat
+    if (args.statusChange && args.statusChange !== task.status) {
+      let nextStatus = args.statusChange
+      const canComplete = await hasPermission(ctx, task.organizationId, member.role, "tasks", "complete")
+      const canCancel = await hasPermission(ctx, task.organizationId, member.role, "tasks", "cancel")
+
+      if (nextStatus === "Cancelled" && !canCancel) {
+        throw new Error("Only admins/owners can cancel tasks")
+      }
+      
+      if (nextStatus === "Completed" && !canComplete) {
+        if (isAssignee || isCollaborator || isCreator) {
+          nextStatus = "Under Review"
+        } else {
+          throw new Error("Unauthorized to complete task")
+        }
+      }
+
+      if (nextStatus === "In Progress" || nextStatus === "Under Review") {
+        if (!isAssignee && !isCollaborator && !isCreator && !canComplete) {
+          throw new Error("Permission denied to update task status")
+        }
+      }
+
+      const previousStatus = task.status
+      await ctx.db.patch(args.taskId, { status: nextStatus })
+
+      await ctx.db.insert("taskAuditLogs", {
+        taskId: args.taskId,
+        actorId: user._id,
+        action: "STATUS_CHANGED",
+        details: { previous: previousStatus, new: nextStatus },
+        timestamp: Date.now(),
+      })
+
+      if (nextStatus === "Completed" && task.recurrence) {
+        await spawnNextRecurringInstance(ctx, task)
+      }
+    }
+
+    // 2. Process Subtask Completions if requested from chat
+    if (args.completedSubtaskIds && args.completedSubtaskIds.length > 0) {
+      if (!isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
+        throw new Error("Only the creator, assignees, collaborators, or organization admins can toggle subtasks")
+      }
+
+      for (const subtaskId of args.completedSubtaskIds) {
+        const subtask = await ctx.db.get(subtaskId)
+        if (subtask && subtask.taskId === args.taskId && !subtask.isCompleted) {
+          await ctx.db.patch(subtaskId, { isCompleted: true })
+          
+          await ctx.db.insert("taskAuditLogs", {
+            taskId: args.taskId,
+            actorId: user._id,
+            action: "SUBTASK_TOGGLED",
+            details: { subtaskId, title: subtask.title, isCompleted: true },
+            timestamp: Date.now(),
+          })
+        }
+      }
+    }
+
+    // 3. Insert Chat Message
+    const chatId = await ctx.db.insert("taskChats", {
       taskId: args.taskId,
       userId: user._id,
       content: args.content,
       isEdited: false,
       isDeleted: false,
       attachmentIds: args.attachmentIds,
+      statusChange: args.statusChange,
+      completedSubtaskIds: args.completedSubtaskIds,
     })
 
-    // TODO: Send notifications via actions
-
-    return commentId
+    return chatId
   },
 })
 
-export const editComment = mutation({
+export const editChat = mutation({
   args: {
-    commentId: v.id("taskComments"),
+    chatId: v.id("taskChats"),
     newContent: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
-    const comment = await ctx.db.get(args.commentId)
+    const chat = await ctx.db.get(args.chatId)
     
-    if (!comment) throw new Error("Comment not found")
-    if (comment.userId !== user._id) throw new Error("Unauthorized to edit this comment")
+    if (!chat) throw new Error("Chat not found")
+    if (chat.userId !== user._id) throw new Error("Unauthorized to edit this chat")
     
-    const task = await ctx.db.get(comment.taskId)
+    const task = await ctx.db.get(chat.taskId)
     if (!task) throw new Error("Task not found")
-    if (task.isArchived) throw new Error("Cannot edit comment on archived task")
+    if (task.isArchived) throw new Error("Cannot edit chat on archived task")
 
     await requireMember(ctx, user._id, task.organizationId)
 
-    await ctx.db.patch(args.commentId, {
+    await ctx.db.patch(args.chatId, {
       content: args.newContent,
-      originalContent: comment.originalContent || comment.content,
+      originalContent: chat.originalContent || chat.content,
       isEdited: true,
     })
 
@@ -126,31 +193,30 @@ export const editComment = mutation({
   },
 })
 
-export const deleteComment = mutation({
+export const deleteChat = mutation({
   args: {
-    commentId: v.id("taskComments"),
+    chatId: v.id("taskChats"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
-    const comment = await ctx.db.get(args.commentId)
+    const chat = await ctx.db.get(args.chatId)
     
-    if (!comment) throw new Error("Comment not found")
+    if (!chat) throw new Error("Chat not found")
     
-    const task = await ctx.db.get(comment.taskId)
+    const task = await ctx.db.get(chat.taskId)
     if (!task) throw new Error("Task not found")
 
     await requireMember(ctx, user._id, task.organizationId)
 
-    // Only author or admin/owner can delete
     const member = await requireMember(ctx, user._id, task.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
 
-    if (comment.userId !== user._id && !isAdminOrOwner) {
-      throw new Error("Unauthorized to delete this comment")
+    if (chat.userId !== user._id && !isAdminOrOwner) {
+      throw new Error("Unauthorized to delete this chat")
     }
 
     // Soft delete
-    await ctx.db.patch(args.commentId, {
+    await ctx.db.patch(args.chatId, {
       isDeleted: true,
       content: "This message was deleted",
     })
@@ -159,11 +225,11 @@ export const deleteComment = mutation({
   },
 })
 
-export const markCommentsAsRead = mutation({
+export const markChatsAsRead = mutation({
   args: {
     taskId: v.id("tasks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     const task = await ctx.db.get(args.taskId)
     if (!task) throw new Error("Task not found")
@@ -198,7 +264,7 @@ export const getTaskReadReceipts = query({
   args: {
     taskId: v.id("tasks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     const task = await ctx.db.get(args.taskId)
     if (!task) return []

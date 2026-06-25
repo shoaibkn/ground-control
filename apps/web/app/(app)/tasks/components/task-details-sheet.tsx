@@ -27,11 +27,32 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select"
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@workspace/ui/components/popover"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@workspace/ui/components/dropdown-menu"
+import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
 } from "@workspace/ui/components/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@workspace/ui/components/alert-dialog"
 import {
   Plus,
   Loader2,
@@ -59,6 +80,8 @@ import {
   Send,
   Trash2,
   Smile,
+  Paperclip,
+  Repeat,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
@@ -316,16 +339,16 @@ export default function TaskDetailsSheet({
       }
     }
   )
-  const comments = useQuery(api.taskComments.getComments, taskId ? { taskId } : "skip")
-  const addComment = useMutation(api.taskComments.addComment).withOptimisticUpdate(
+  const chats = useQuery(api.taskChats.getChats, taskId ? { taskId } : "skip")
+  const addChat = useMutation(api.taskChats.addChat).withOptimisticUpdate(
     (localStore, args) => {
-      const { taskId: targetId, content, attachmentIds } = args
+      const { taskId: targetId, content, attachmentIds, statusChange, completedSubtaskIds } = args
       if (!targetId || !currentUserId) return
 
-      const currentComments = localStore.getQuery(api.taskComments.getComments, { taskId: targetId })
-      if (currentComments) {
-        const optimisticComment = {
-          _id: `temp-comment-${Date.now()}` as any,
+      const currentChats = localStore.getQuery(api.taskChats.getChats, { taskId: targetId })
+      if (currentChats) {
+        const optimisticChat = {
+          _id: `temp-chat-${Date.now()}` as any,
           _creationTime: Date.now(),
           taskId: targetId,
           userId: currentUserId,
@@ -333,25 +356,27 @@ export default function TaskDetailsSheet({
           isEdited: false,
           isDeleted: false,
           attachmentIds: attachmentIds || [],
+          statusChange,
+          completedSubtaskIds,
         }
         localStore.setQuery(
-          api.taskComments.getComments,
+          api.taskChats.getChats,
           { taskId: targetId },
-          [...currentComments, optimisticComment]
+          [...currentChats, optimisticChat]
         )
       }
     }
   )
 
-  const editComment = useMutation(api.taskComments.editComment).withOptimisticUpdate(
+  const editChat = useMutation(api.taskChats.editChat).withOptimisticUpdate(
     (localStore, args) => {
-      const { commentId, newContent } = args
+      const { chatId, newContent } = args
       if (!taskId) return
 
-      const currentComments = localStore.getQuery(api.taskComments.getComments, { taskId })
-      if (currentComments) {
-        const updated = currentComments.map((c: any) => {
-          if (c._id === commentId) {
+      const currentChats = localStore.getQuery(api.taskChats.getChats, { taskId })
+      if (currentChats) {
+        const updated = currentChats.map((c: any) => {
+          if (c._id === chatId) {
             return {
               ...c,
               content: newContent,
@@ -360,20 +385,20 @@ export default function TaskDetailsSheet({
           }
           return c
         })
-        localStore.setQuery(api.taskComments.getComments, { taskId }, updated)
+        localStore.setQuery(api.taskChats.getChats, { taskId }, updated)
       }
     }
   )
 
-  const deleteComment = useMutation(api.taskComments.deleteComment).withOptimisticUpdate(
+  const deleteChat = useMutation(api.taskChats.deleteChat).withOptimisticUpdate(
     (localStore, args) => {
-      const { commentId } = args
+      const { chatId } = args
       if (!taskId) return
 
-      const currentComments = localStore.getQuery(api.taskComments.getComments, { taskId })
-      if (currentComments) {
-        const updated = currentComments.map((c: any) => {
-          if (c._id === commentId) {
+      const currentChats = localStore.getQuery(api.taskChats.getChats, { taskId })
+      if (currentChats) {
+        const updated = currentChats.map((c: any) => {
+          if (c._id === chatId) {
             return {
               ...c,
               isDeleted: true,
@@ -382,12 +407,12 @@ export default function TaskDetailsSheet({
           }
           return c
         })
-        localStore.setQuery(api.taskComments.getComments, { taskId }, updated)
+        localStore.setQuery(api.taskChats.getChats, { taskId }, updated)
       }
     }
   )
-  const readReceipts = useQuery(api.taskComments.getTaskReadReceipts, taskId ? { taskId } : "skip")
-  const markAsRead = useMutation(api.taskComments.markCommentsAsRead)
+  const readReceipts = useQuery(api.taskChats.getTaskReadReceipts, taskId ? { taskId } : "skip")
+  const markAsRead = useMutation(api.taskChats.markChatsAsRead)
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -402,19 +427,18 @@ export default function TaskDetailsSheet({
   const [collabSearch, setCollabSearch] = useState("")
   const [subSearch, setSubSearch] = useState("")
 
-  // Reactions & Comments State
-  const [newComment, setNewComment] = useState("")
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  // Reactions & Chats State
+  const [editingChatId, setEditingChatId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
-  const [isCommentSending, setIsCommentSending] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddNewOpen, setIsAddNewOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<
-    "activity" | "my-work" | "assigned" | "comments"
+    "activity" | "my-work" | "assigned" | "chats"
   >("activity")
   const [isEditingDetails, setIsEditingDetails] = useState(false)
+  const [chatToDelete, setChatToDelete] = useState<any | null>(null)
 
   // Sync details when task updates
   useEffect(() => {
@@ -424,12 +448,12 @@ export default function TaskDetailsSheet({
     }
   }, [task])
 
-  // Mark comments as read when comments tab becomes active or a new comment arrives
+  // Mark chats as read when chats tab becomes active or a new chat arrives
   useEffect(() => {
-    if (activeTab === "comments" && taskId) {
-      markAsRead({ taskId }).catch((err) => console.error("Failed to mark comments as read", err))
+    if (activeTab === "chats" && taskId) {
+      markAsRead({ taskId }).catch((err) => console.error("Failed to mark chats as read", err))
     }
-  }, [activeTab, taskId, comments, markAsRead])
+  }, [activeTab, taskId, chats, markAsRead])
 
   if (!isOpen) return null
 
@@ -447,6 +471,31 @@ export default function TaskDetailsSheet({
   const isCollaborator = !!currentUserId && !!task?.collaboratorIds && task.collaboratorIds.includes(currentUserId)
   const isSubscriber = !!currentUserId && !!task?.subscriberIds && task.subscriberIds.includes(currentUserId)
 
+  const relation = isCreator
+    ? "Creator"
+    : isAssignee
+    ? "Assignee"
+    : isCollaborator
+    ? "Collaborator"
+    : isSubscriber
+    ? "Subscriber"
+    : "Other"
+
+  const getRelationStyle = (rel: string) => {
+    switch (rel) {
+      case "Creator":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/30"
+      case "Assignee":
+        return "bg-indigo-50 text-indigo-700 border-indigo-200/30 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800/30"
+      case "Collaborator":
+        return "bg-amber-50 text-amber-700 border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/30"
+      case "Subscriber":
+        return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+      default:
+        return "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-900 dark:text-slate-400"
+    }
+  }
+
   const canEditTaskDetails = isAdminOrOwner || isCreator
   const canUpdateStatus = isAdminOrOwner || isCreator || isAssignee || isCollaborator
   const canManageSubtasks = isAdminOrOwner || isCreator || isAssignee || isCollaborator
@@ -454,7 +503,7 @@ export default function TaskDetailsSheet({
   const canManageCollaborators = isAdminOrOwner || isCreator || isAssignee
   const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee || isCollaborator
   const canAddAttachments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
-  const canAddComments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
+  const canAddChats = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
 
   const getUserDetails = (userId: string): { name: string; email: string; image?: string } => {
     const member = activeOrg?.members?.find((m: any) => m.userId === userId)
@@ -574,51 +623,49 @@ export default function TaskDetailsSheet({
     }
   }
 
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newComment.trim() || !taskId || isCommentSending) return
-    setIsCommentSending(true)
-    try {
-      await addComment({
-        taskId,
-        content: newComment.trim(),
-      })
-      setNewComment("")
-      toast.success("Comment posted")
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.message || "Failed to post comment")
-    } finally {
-      setIsCommentSending(false)
-    }
-  }
-
-  const handleEditComment = async (commentId: any) => {
+  const handleEditChat = async (chatId: any) => {
     if (!editingContent.trim()) return
     try {
-      await editComment({
-        commentId,
+      await editChat({
+        chatId,
         newContent: editingContent.trim(),
       })
-      setEditingCommentId(null)
+      setEditingChatId(null)
       setEditingContent("")
-      toast.success("Comment updated")
+      toast.success("Message updated")
     } catch (error: any) {
       console.error(error)
-      toast.error(error.message || "Failed to update comment")
+      toast.error(error.message || "Failed to update message")
     }
   }
 
-  const handleDeleteComment = async (commentId: any) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return
+  const handleDeleteChat = (chat: any) => {
+    setChatToDelete(chat)
+  }
+
+  const handleDeleteChatConfirm = async (deleteAttachments: boolean) => {
+    if (!chatToDelete) return
     try {
-      await deleteComment({
-        commentId,
+      await deleteChat({
+        chatId: chatToDelete._id,
       })
-      toast.success("Comment deleted")
+
+      if (deleteAttachments && chatToDelete.attachmentIds && chatToDelete.attachmentIds.length > 0) {
+        for (const attId of chatToDelete.attachmentIds) {
+          await deleteAttach({ attachmentId: attId })
+        }
+      }
+
+      toast.success(
+        deleteAttachments
+          ? "Message and attachments deleted"
+          : "Message deleted"
+      )
     } catch (error: any) {
       console.error(error)
-      toast.error(error.message || "Failed to delete comment")
+      toast.error(error.message || "Failed to delete message")
+    } finally {
+      setChatToDelete(null)
     }
   }
 
@@ -969,6 +1016,11 @@ export default function TaskDetailsSheet({
                 >
                   #{task._id.slice(-4)}
                 </span>
+                {relation !== "Other" && (
+                  <Badge variant="outline" className={`px-1.5 py-0 h-4 text-[9px] font-medium border ${getRelationStyle(relation)}`}>
+                    Role: {relation}
+                  </Badge>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -1047,7 +1099,7 @@ export default function TaskDetailsSheet({
                       />
                     </div>
                   ) : (
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2 flex-wrap">
                       <span
                         onClick={(e) => {
                           e.stopPropagation()
@@ -1059,6 +1111,11 @@ export default function TaskDetailsSheet({
                         #{task._id.slice(-4)}
                       </span>
                       {task.title}
+                      {relation !== "Other" && (
+                        <Badge variant="outline" className={`px-2 py-0.5 text-xs font-semibold border ${getRelationStyle(relation)}`}>
+                          Role: {relation}
+                        </Badge>
+                      )}
                     </h2>
                   )}
                 </div>
@@ -1648,6 +1705,18 @@ export default function TaskDetailsSheet({
                     />
                   ) : (
                     <p className="text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground/90">
+                      {task.recurrence && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block align-middle mr-1.5">
+                              <Repeat className="size-3 text-blue-500 cursor-help" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-[10px] p-1.5 px-2 bg-popover text-popover-foreground border shadow-md rounded">
+                            <span>Repeats {task.recurrence.frequency}</span>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {task.description ||
                         "No description provided. Click the edit icon above to add a description."}
                     </p>
@@ -1771,7 +1840,7 @@ export default function TaskDetailsSheet({
                     <TabsTrigger value="activity">Activity</TabsTrigger>
                     <TabsTrigger value="my-work">My Work</TabsTrigger>
                     <TabsTrigger value="assigned">People</TabsTrigger>
-                    <TabsTrigger value="comments">Comments</TabsTrigger>
+                    <TabsTrigger value="chats">Chats</TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -2311,9 +2380,8 @@ export default function TaskDetailsSheet({
                       )
                     })()}
                   </TabsContent>
-
-                  <TabsContent value="comments" className="mt-0 outline-none flex flex-col min-h-0 flex-1">
-                    <div className="flex flex-col flex-1 min-h-[400px] max-h-[500px] border border-border/20 rounded-xl bg-card overflow-hidden">
+                  <TabsContent value="chats" className="mt-0 outline-none flex flex-col min-h-0 flex-1">
+                    <div className="flex flex-col flex-1 min-h-[420px] max-h-[550px] border border-border/20 rounded-xl bg-card overflow-hidden">
                       {/* Chat Header */}
                       <div className="border-b border-border/20 bg-muted/20 px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -2321,17 +2389,17 @@ export default function TaskDetailsSheet({
                           <span className="text-xs font-semibold text-foreground">Task Discussions</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground font-medium">
-                          {comments ? `${comments.length} messages` : "Loading..."}
+                          {chats ? `${chats.length} messages` : "Loading..."}
                         </span>
                       </div>
 
                       {/* Messages Stream */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-                        {comments === undefined ? (
+                        {chats === undefined ? (
                           <div className="flex h-full items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           </div>
-                        ) : comments.length === 0 ? (
+                        ) : chats.length === 0 ? (
                           <div className="flex h-full flex-col items-center justify-center text-center p-6">
                             <MessageSquare className="mb-2 size-8 text-muted-foreground/30 animate-bounce" />
                             <span className="text-xs font-semibold text-foreground">No messages yet</span>
@@ -2341,7 +2409,7 @@ export default function TaskDetailsSheet({
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3.5">
-                            {comments.map((comm, idx) => {
+                            {chats.map((comm: any, idx: number) => {
                               const isOwn = comm.userId === currentUserId
                               const details = getUserDetails(comm.userId)
                               const formattedTime = new Date(comm._creationTime).toLocaleTimeString(undefined, {
@@ -2351,23 +2419,67 @@ export default function TaskDetailsSheet({
 
                               // Compute read receipts for this message
                               const readers = (readReceipts || [])
-                                .filter((receipt) => {
-                                  // Don't show the logged-in user's own avatar as a read receipt to themselves
+                                .filter((receipt: any) => {
                                   if (receipt.userId === currentUserId) return false
-                                  
-                                  // Has read this comment?
                                   const hasReadThis = receipt.lastReadTime >= comm._creationTime
                                   if (!hasReadThis) return false
-
-                                  // Is this the latest comment they have read?
-                                  const isLastComment = idx === comments.length - 1
-                                  const nextComment = !isLastComment ? comments[idx + 1] : null
-                                  const hasReadNext = nextComment ? receipt.lastReadTime >= nextComment._creationTime : false
-
+                                  const isLastChat = idx === chats.length - 1
+                                  const nextChat = !isLastChat ? chats[idx + 1] : null
+                                  const hasReadNext = nextChat ? receipt.lastReadTime >= nextChat._creationTime : false
                                   return !hasReadNext
                                 })
-                                .map((receipt) => getUserDetails(receipt.userId))
+                                .map((receipt: any) => getUserDetails(receipt.userId))
 
+                              // 1. Style System Messages
+                              if (comm.isSystem) {
+                                return (
+                                  <div
+                                    key={comm._id}
+                                    className="w-full flex flex-col items-center justify-center py-2 px-4"
+                                  >
+                                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 italic text-center select-text">
+                                      <Avatar className="h-4 w-4 shrink-0">
+                                        <AvatarImage src={getAvatarUrl(details.image, details.name)} />
+                                        <AvatarFallback className="text-[6px] font-bold">
+                                          {details.name?.charAt(0) || "U"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="font-semibold text-muted-foreground">{details.name}</span>
+                                      <span>{comm.content}</span>
+                                      <span className="text-[9px] opacity-60">({formattedTime})</span>
+                                    </div>
+                                    
+                                    {/* System message inline attachments */}
+                                    {comm.attachmentIds && comm.attachmentIds.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-2 justify-center w-full max-w-[85%]">
+                                        {comm.attachmentIds.map((attId: any) => {
+                                          const att = attachments?.find((a: any) => a._id === attId)
+                                          if (!att) return null
+                                          return (
+                                            <div
+                                              key={attId}
+                                              className="flex items-center gap-2 border border-border/40 bg-card rounded-lg p-2 text-xs text-foreground shadow-sm max-w-[240px] truncate"
+                                            >
+                                              <File className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                              <span className="truncate flex-1 font-medium">{att.fileName}</span>
+                                              <Button
+                                                size="icon-xs"
+                                                variant="ghost"
+                                                className="h-6 w-6 shrink-0"
+                                                onClick={() => toast.info(`Downloading ${att.fileName}`)}
+                                              >
+                                                <Download className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              }
+
+                              // 2. Render User Messages
                               return (
                                 <div
                                   key={comm._id}
@@ -2399,13 +2511,13 @@ export default function TaskDetailsSheet({
                                     {/* Bubble */}
                                     <div className="relative">
                                       <div
-                                        className={`rounded-2xl px-3.5 py-2 text-xs relative ${
+                                        className={`rounded-2xl px-3.5 py-2.5 text-xs relative ${
                                           isOwn
                                             ? "bg-primary text-primary-foreground rounded-tr-none"
                                             : "bg-muted/40 border border-border/10 text-foreground rounded-tl-none"
                                         } ${comm.isDeleted ? "italic text-muted-foreground/60" : ""}`}
                                       >
-                                        {editingCommentId === comm._id ? (
+                                        {editingChatId === comm._id ? (
                                           <div className="flex flex-col gap-2 min-w-[200px] py-1">
                                             <Input
                                               value={editingContent}
@@ -2417,7 +2529,7 @@ export default function TaskDetailsSheet({
                                               <Button
                                                 size="sm"
                                                 className="h-6 px-2.5 text-[10px] font-semibold"
-                                                onClick={() => handleEditComment(comm._id)}
+                                                onClick={() => handleEditChat(comm._id)}
                                               >
                                                 Save
                                               </Button>
@@ -2426,7 +2538,7 @@ export default function TaskDetailsSheet({
                                                 variant="ghost"
                                                 className="h-6 px-2 text-[10px] text-muted-foreground hover:bg-muted/10"
                                                 onClick={() => {
-                                                  setEditingCommentId(null)
+                                                  setEditingChatId(null)
                                                   setEditingContent("")
                                                 }}
                                               >
@@ -2436,10 +2548,78 @@ export default function TaskDetailsSheet({
                                           </div>
                                         ) : (
                                           <>
-                                            <p className="whitespace-pre-wrap leading-relaxed select-text">
+                                            <p className="whitespace-pre-wrap leading-relaxed select-text font-normal">
                                               {comm.content}
                                             </p>
-                                            <span className="text-[9px] text-muted-foreground/60 mt-1 block text-right">
+
+                                            {/* Status Change Tag */}
+                                            {comm.statusChange && (
+                                              <div className={`mt-2 flex items-center gap-1 w-fit py-0.5 px-2 rounded-full border text-[9px] ${
+                                                isOwn 
+                                                  ? "bg-primary-foreground/15 border-primary-foreground/10 text-primary-foreground" 
+                                                  : "bg-background/80 border-border/20 text-muted-foreground"
+                                              }`}>
+                                                <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                                                <span>Status: <strong>{comm.statusChange}</strong></span>
+                                              </div>
+                                            )}
+
+                                            {/* Subtask completed tags */}
+                                            {comm.completedSubtaskIds && comm.completedSubtaskIds.length > 0 && (
+                                              <div className="mt-2 space-y-1">
+                                                {comm.completedSubtaskIds.map((subId: any) => {
+                                                  const sub = subtasks?.find((s: any) => s._id === subId)
+                                                  return (
+                                                    <div
+                                                      key={subId}
+                                                      className={`flex items-center gap-1.5 text-[9px] py-0.5 px-2 rounded-md ${
+                                                        isOwn
+                                                          ? "bg-primary-foreground/15 text-primary-foreground"
+                                                          : "bg-background/80 border border-border/20 text-muted-foreground"
+                                                      }`}
+                                                    >
+                                                      <Check className="h-2.5 w-2.5 shrink-0 text-emerald-500" />
+                                                      <span className="truncate">Checklist: {sub?.title || "Completed Item"}</span>
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            )}
+
+                                            {/* Attached Documents in Bubble */}
+                                            {comm.attachmentIds && comm.attachmentIds.length > 0 && (
+                                              <div className="mt-2.5 space-y-1.5 border-t border-border/10 pt-2">
+                                                {comm.attachmentIds.map((attId: any) => {
+                                                  const att = attachments?.find((a: any) => a._id === attId)
+                                                  if (!att) return null
+                                                  return (
+                                                    <div
+                                                      key={attId}
+                                                      className={`flex items-center gap-2 border rounded-lg p-2 text-[10px] ${
+                                                        isOwn 
+                                                          ? "bg-primary-foreground/15 border-primary-foreground/10 text-primary-foreground" 
+                                                          : "bg-muted/80 border-border/20 text-foreground"
+                                                      }`}
+                                                    >
+                                                      <File className="h-3 w-3 shrink-0" />
+                                                      <span className="truncate flex-1 font-medium">{att.fileName}</span>
+                                                      <Button
+                                                        size="icon-xs"
+                                                        variant="ghost"
+                                                        className={`h-5 w-5 shrink-0 ${
+                                                          isOwn ? "hover:bg-primary-foreground/10" : "hover:bg-muted"
+                                                        }`}
+                                                        onClick={() => toast.info(`Downloading ${att.fileName}`)}
+                                                      >
+                                                        <Download className="h-2.5 w-2.5" />
+                                                      </Button>
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            )}
+
+                                            <span className="text-[9px] text-muted-foreground/60 mt-1.5 block text-right select-none">
                                               {formattedTime}
                                               {comm.isEdited && !comm.isDeleted && " (edited)"}
                                             </span>
@@ -2448,7 +2628,7 @@ export default function TaskDetailsSheet({
                                       </div>
 
                                       {/* Message Hover Actions */}
-                                      {!comm.isDeleted && isOwn && editingCommentId !== comm._id && (
+                                      {!comm.isDeleted && isOwn && editingChatId !== comm._id && (
                                         <div
                                           className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-popover border border-border/60 rounded-md p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
                                             isOwn ? "-left-16" : "-right-16"
@@ -2459,7 +2639,7 @@ export default function TaskDetailsSheet({
                                             variant="ghost"
                                             className="h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/20"
                                             onClick={() => {
-                                              setEditingCommentId(comm._id)
+                                              setEditingChatId(comm._id)
                                               setEditingContent(comm.content)
                                             }}
                                             title="Edit Message"
@@ -2470,7 +2650,7 @@ export default function TaskDetailsSheet({
                                             size="icon-xs"
                                             variant="ghost"
                                             className="h-5 w-5 rounded text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={() => handleDeleteComment(comm._id)}
+                                            onClick={() => handleDeleteChat(comm)}
                                             title="Delete Message"
                                           >
                                             <Trash2 className="h-3 w-3" />
@@ -2483,7 +2663,7 @@ export default function TaskDetailsSheet({
                                     {readers.length > 0 && (
                                       <div className={`flex items-center gap-1 mt-1 ${isOwn ? "justify-end" : "justify-start px-1"}`}>
                                         <div className="flex -space-x-1 overflow-hidden">
-                                          {readers.map((reader, rIdx) => (
+                                          {readers.map((reader: any, rIdx: number) => (
                                             <Tooltip key={rIdx}>
                                               <TooltipTrigger asChild>
                                                 <Avatar className="h-4.5 w-4.5 border border-background shrink-0 select-none">
@@ -2511,31 +2691,17 @@ export default function TaskDetailsSheet({
                       </div>
 
                       {/* Chat Input Bar */}
-                      {canAddComments && (
-                        <form
-                          onSubmit={handleAddComment}
-                          className="border-t border-border/20 bg-muted/20 p-3 flex gap-2 items-center"
-                        >
-                          <Input
-                            placeholder="Write a message..."
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            disabled={isCommentSending}
-                            className="flex-1 h-9 text-xs bg-background/50 border-border/40 focus-visible:border-primary"
-                          />
-                          <Button
-                            type="submit"
-                            size="sm"
-                            disabled={isCommentSending || !newComment.trim()}
-                            className="h-9 w-9 p-0 flex items-center justify-center shrink-0 rounded-md bg-primary hover:bg-primary/95 text-primary-foreground"
-                          >
-                            {isCommentSending ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Send className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        </form>
+                      {canAddChats && (
+                        <ChatInputForm
+                          taskId={taskId}
+                          canAddChats={canAddChats}
+                          addChat={addChat}
+                          updateStatus={updateStatus}
+                          toggleSub={toggleSub}
+                          registerAttach={registerAttach}
+                          deleteAttach={deleteAttach}
+                          subtasks={subtasks}
+                        />
                       )}
                     </div>
                   </TabsContent>
@@ -2554,9 +2720,457 @@ export default function TaskDetailsSheet({
                 Close Panel
               </Button>
             </div>
+        <AlertDialog open={!!chatToDelete} onOpenChange={(open) => !open && setChatToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete message?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this message? This action cannot be undone.
+                {chatToDelete?.attachmentIds && chatToDelete.attachmentIds.length > 0 && (
+                  <span className="mt-2 block font-medium text-foreground">
+                    This message has {chatToDelete.attachmentIds.length} file attachment(s). Do you want to delete them from the task as well?
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {chatToDelete?.attachmentIds && chatToDelete.attachmentIds.length > 0 ? (
+                <>
+                  <AlertDialogAction
+                    variant="outline"
+                    onClick={() => handleDeleteChatConfirm(false)}
+                  >
+                    Delete Message Only
+                  </AlertDialogAction>
+                  <AlertDialogAction
+                    variant="destructive"
+                    onClick={() => handleDeleteChatConfirm(true)}
+                  >
+                    Delete Both
+                  </AlertDialogAction>
+                </>
+              ) : (
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => handleDeleteChatConfirm(false)}
+                >
+                  Delete Message
+                </AlertDialogAction>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
           </>
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+interface ChatInputFormProps {
+  taskId: any
+  canAddChats: boolean
+  addChat: any
+  updateStatus: any
+  toggleSub: any
+  registerAttach: any
+  deleteAttach: any
+  subtasks: any[] | undefined
+}
+
+function ChatInputForm({
+  taskId,
+  canAddChats,
+  addChat,
+  updateStatus,
+  toggleSub,
+  registerAttach,
+  deleteAttach,
+  subtasks,
+}: ChatInputFormProps) {
+  const [newChat, setNewChat] = useState("")
+  const [draftAttachmentFiles, setDraftAttachmentFiles] = useState<{ file: File; id?: string }[]>([])
+  const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<string[]>([])
+  const [statusChangeOnSend, setStatusChangeOnSend] = useState<string | null>(null)
+  const [isChatSending, setIsChatSending] = useState(false)
+
+  const draftsRef = useRef<{ file: File; id?: string }[]>([])
+  const isSendingRef = useRef(false)
+
+  // Sync refs with state
+  useEffect(() => {
+    draftsRef.current = draftAttachmentFiles
+  }, [draftAttachmentFiles])
+
+  useEffect(() => {
+    isSendingRef.current = isChatSending
+  }, [isChatSending])
+
+  // Reset/Cleanup on taskId change or unmount
+  useEffect(() => {
+    return () => {
+      if (!isSendingRef.current && draftsRef.current.length > 0) {
+        draftsRef.current.forEach((draft) => {
+          if (draft.id) {
+            deleteAttach({ attachmentId: draft.id as any }).catch((err: any) =>
+              console.error("Cleanup: failed to delete draft attachment", err)
+            )
+          }
+        })
+      }
+    }
+  }, [taskId, deleteAttach])
+
+  // Clear inputs when task changes
+  useEffect(() => {
+    setNewChat("")
+    setDraftAttachmentFiles([])
+    setSelectedSubtaskIds([])
+    setStatusChangeOnSend(null)
+  }, [taskId])
+
+  const handleAddChat = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const content = newChat.trim()
+    const allUploadingFinished = draftAttachmentFiles.every((d) => d.id !== undefined)
+
+    if (!allUploadingFinished) {
+      toast.error("Please wait for all attachments to finish uploading.")
+      return
+    }
+
+    if (!content && draftAttachmentFiles.length === 0 && !statusChangeOnSend && selectedSubtaskIds.length === 0) {
+      return
+    }
+
+    if (!taskId || isChatSending) return
+    setIsChatSending(true)
+
+    try {
+      const attachmentIds = draftAttachmentFiles
+        .map((d) => d.id)
+        .filter((id): id is any => id !== undefined)
+
+      // Call addChat mutation
+      await addChat({
+        taskId,
+        content: content || (
+          statusChangeOnSend 
+            ? `updated task status to ${statusChangeOnSend}` 
+            : selectedSubtaskIds.length > 0 
+              ? `completed ${selectedSubtaskIds.length} checklist item(s)` 
+              : ""
+        ),
+        attachmentIds,
+        statusChange: statusChangeOnSend || undefined,
+        completedSubtaskIds: selectedSubtaskIds.length > 0 ? (selectedSubtaskIds as any) : undefined,
+      })
+
+      // To keep client state in sync optimistically
+      if (statusChangeOnSend) {
+        await updateStatus({
+          taskId,
+          status: statusChangeOnSend,
+          bypassChatNotification: true,
+        })
+      }
+
+      if (selectedSubtaskIds.length > 0) {
+        for (const subId of selectedSubtaskIds) {
+          await toggleSub({
+            subtaskId: subId as any,
+            isCompleted: true,
+            bypassChatNotification: true,
+          })
+        }
+      }
+
+      setNewChat("")
+      setDraftAttachmentFiles([])
+      setSelectedSubtaskIds([])
+      setStatusChangeOnSend(null)
+      toast.success("Message sent")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Failed to send message")
+    } finally {
+      setIsChatSending(false)
+    }
+  }
+
+  const handleChatFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !taskId) return
+
+    // Add files to state with loading status
+    const newDrafts = Array.from(files).map((file) => ({
+      file,
+      id: undefined as string | undefined,
+    }))
+
+    setDraftAttachmentFiles((prev) => [...prev, ...newDrafts])
+
+    // Upload them one by one
+    for (const draft of newDrafts) {
+      try {
+        // Wait 1.2s delay to simulate upload
+        await new Promise((resolve) => setTimeout(resolve, 1200))
+
+        const fileId = await registerAttach({
+          taskId,
+          fileName: draft.file.name,
+          fileSize: draft.file.size,
+          mimeType: draft.file.type || "application/octet-stream",
+          r2Key: "mock-r2-key-" + Date.now() + "-" + draft.file.name,
+          bypassChatNotification: true, // Bypass notification because it's a draft!
+        })
+
+        // Mark as uploaded
+        setDraftAttachmentFiles((prev) =>
+          prev.map((d) => (d.file === draft.file ? { ...d, id: fileId } : d))
+        )
+      } catch (err: any) {
+        console.error(err)
+        toast.error(`Failed to upload ${draft.file.name}`)
+        // Remove from list
+        setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
+      }
+    }
+    e.target.value = ""
+  }
+
+  const handleRemoveDraftAttachment = async (draftToRemove: { file: File; id?: string }) => {
+    setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draftToRemove.file))
+    if (draftToRemove.id) {
+      try {
+        await deleteAttach({ attachmentId: draftToRemove.id as any })
+      } catch (err: any) {
+        console.error("Failed to delete draft attachment", err)
+      }
+    }
+  }
+
+  return (
+    <div className="border-t border-border/20 bg-muted/20 p-3 flex flex-col gap-2">
+      {/* Floating Toolbar above message text input */}
+      <div className="flex flex-wrap items-center gap-1.5 pb-1 select-none">
+        {/* Attach File Button */}
+        <div>
+          <input
+            type="file"
+            id="chat-file-upload"
+            className="hidden"
+            multiple
+            onChange={handleChatFileSelect}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={() => document.getElementById("chat-file-upload")?.click()}
+            title="Attach Document"
+          >
+            <Paperclip className="h-3 w-3 shrink-0" />
+            <span>Add File</span>
+          </Button>
+        </div>
+
+        {/* Mark Checklist Completed Button */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+              title="Mark Checklist Item Completed"
+            >
+              <ListTodo className="h-3 w-3 shrink-0" />
+              <span>Mark Done</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2 bg-popover text-popover-foreground border shadow-md rounded-lg z-50">
+            <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-wider border-b border-border/20 mb-1">
+              Complete Checklist Item
+            </div>
+            <div className="space-y-0.5 max-h-40 overflow-y-auto">
+              {subtasks === undefined ? (
+                <div className="flex justify-center p-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : subtasks.filter((s: any) => !s.isCompleted).length === 0 ? (
+                <div className="text-[10px] text-muted-foreground italic p-2 text-center">
+                  No incomplete items
+                </div>
+              ) : (
+                subtasks
+                  .filter((s: any) => !s.isCompleted)
+                  .map((sub: any) => {
+                    const isChecked = selectedSubtaskIds.includes(sub._id)
+                    return (
+                      <button
+                        key={sub._id}
+                        type="button"
+                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
+                        onClick={() => {
+                          if (isChecked) {
+                            setSelectedSubtaskIds((prev) => prev.filter((id) => id !== sub._id))
+                          } else {
+                            setSelectedSubtaskIds((prev) => [...prev, sub._id])
+                          }
+                        }}
+                      >
+                        {isChecked ? (
+                          <CheckSquare className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        ) : (
+                          <Square className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                        )}
+                        <span className="truncate flex-1">{sub.title}</span>
+                      </button>
+                    )
+                  })
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Change Status Button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+              title="Change Task Status"
+            >
+              <Sparkles className="h-3 w-3 shrink-0" />
+              <span>Change Status</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-40 p-1 bg-popover text-popover-foreground border shadow-md rounded-lg z-50">
+            <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-wider border-b border-border/20 mb-1">
+              Change Status
+            </div>
+            {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => (
+              <DropdownMenuItem
+                key={status}
+                className="text-xs px-2 py-1.5 rounded-md focus:bg-muted cursor-pointer font-medium text-foreground flex items-center justify-between"
+                onClick={() => setStatusChangeOnSend(status)}
+              >
+                <span>{status}</span>
+                {statusChangeOnSend === status && <Check className="h-3.5 w-3.5 text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Draft Previews */}
+      {(draftAttachmentFiles.length > 0 || statusChangeOnSend || selectedSubtaskIds.length > 0) && (
+        <div className="flex flex-wrap gap-1.5 pb-1 select-none">
+          {/* Status Change draft tag */}
+          {statusChangeOnSend && (
+            <Badge
+              variant="outline"
+              className="flex items-center gap-1 bg-primary/10 text-primary border-primary/20 text-[10px] pl-2 pr-1 h-6"
+            >
+              <Sparkles className="h-2.5 w-2.5 shrink-0" />
+              <span>
+                Update Status: <strong>{statusChangeOnSend}</strong>
+              </span>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-4 w-4 p-0 hover:bg-primary/20 rounded-full"
+                onClick={() => setStatusChangeOnSend(null)}
+              >
+                <X className="h-2.5 w-2.5 text-primary" />
+              </Button>
+            </Badge>
+          )}
+
+          {/* Subtasks complete tags */}
+          {selectedSubtaskIds.map((subId) => {
+            const sub = subtasks?.find((s: any) => s._id === subId)
+            return (
+              <Badge
+                key={subId}
+                variant="outline"
+                className="flex items-center gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] pl-2 pr-1 h-6 dark:text-emerald-400"
+              >
+                <Check className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate max-w-[120px]">Checklist: {sub?.title || "Item"}</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-4 w-4 p-0 hover:bg-emerald-500/20 rounded-full"
+                  onClick={() => setSelectedSubtaskIds((prev) => prev.filter((id) => id !== subId))}
+                >
+                  <X className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
+                </Button>
+              </Badge>
+            )
+          })}
+
+          {/* Draft files tags */}
+          {draftAttachmentFiles.map((draft, dIdx) => {
+            const isUploading = draft.id === undefined
+            return (
+              <Badge
+                key={dIdx}
+                variant="outline"
+                className="flex items-center gap-1.5 bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] pl-2 pr-1 h-6 dark:text-blue-400"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                ) : (
+                  <File className="h-2.5 w-2.5 shrink-0" />
+                )}
+                <span className="truncate max-w-[120px]">{draft.file.name}</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-4 w-4 p-0 hover:bg-blue-500/20 rounded-full"
+                  onClick={() => handleRemoveDraftAttachment(draft)}
+                >
+                  <X className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
+                </Button>
+              </Badge>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Text input area */}
+      <form onSubmit={handleAddChat} className="flex gap-2 items-center">
+        <Input
+          placeholder="Write a message..."
+          value={newChat}
+          onChange={(e) => setNewChat(e.target.value)}
+          disabled={isChatSending}
+          className="flex-1 h-9 text-xs bg-background/50 border-border/40 focus-visible:border-primary"
+        />
+
+        <Button
+          type="submit"
+          size="sm"
+          disabled={
+            isChatSending ||
+            (!newChat.trim() &&
+              draftAttachmentFiles.length === 0 &&
+              !statusChangeOnSend &&
+              selectedSubtaskIds.length === 0)
+          }
+          className="h-9 w-9 p-0 flex items-center justify-center shrink-0 rounded-md bg-primary hover:bg-primary/95 text-primary-foreground"
+        >
+          {isChatSending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Send className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      </form>
+    </div>
   )
 }

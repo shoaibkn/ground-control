@@ -173,23 +173,23 @@ export const getTasks = query({
         .collect()
       const documentCount = attachments.length
 
-      // 2. Comments count (non-deleted)
-      const comments = await ctx.db
-        .query("taskComments")
+      // 2. Chats count (non-deleted)
+      const chats = await ctx.db
+        .query("taskChats")
         .withIndex("by_task", (q) => q.eq("taskId", task._id))
         .collect()
       
-      const activeComments = comments.filter((c) => !c.isDeleted)
-      const commentCount = activeComments.length
+      const activeChats = chats.filter((c) => !c.isDeleted)
+      const chatCount = activeChats.length
 
-      // Unread comments count
+      // Unread chats count
       const readReceipt = await ctx.db
         .query("taskReadReceipts")
         .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
         .first()
 
       const lastReadTime = readReceipt?.lastReadTime ?? 0
-      const unreadCommentCount = activeComments.filter(
+      const unreadChatCount = activeChats.filter(
         (c) => c.userId !== user._id && c._creationTime > lastReadTime
       ).length
 
@@ -200,25 +200,25 @@ export const getTasks = query({
         .order("desc")
         .first()
 
-      const latestComment = await ctx.db
-        .query("taskComments")
+      const latestChat = await ctx.db
+        .query("taskChats")
         .withIndex("by_task", (q) => q.eq("taskId", task._id))
         .order("desc")
         .first()
 
       let lastActivity = null
       
-      // Determine if the latest comment is newer than the latest audit log
-      if (latestComment && latestComment._creationTime > (latestAuditLog?.timestamp ?? 0)) {
-        // Resolve comment author profile
+      // Determine if the latest chat is newer than the latest audit log
+      if (latestChat && latestChat._creationTime > (latestAuditLog?.timestamp ?? 0)) {
+        // Resolve chat author profile
         let actor = null
-        if (latestComment.userId && latestComment.userId.length >= 15) {
+        if (latestChat.userId && latestChat.userId.length >= 15) {
           try {
             const userRecord = (await ctx.runQuery(
               components.betterAuth.adapter.findOne,
               {
                 model: "user",
-                where: [{ field: "_id", value: latestComment.userId }],
+                where: [{ field: "_id", value: latestChat.userId }],
               }
             )) as any
             if (userRecord) {
@@ -230,12 +230,12 @@ export const getTasks = query({
               }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for comment author: ${latestComment.userId}`, e)
+            console.error(`Failed to find user profile for chat author: ${latestChat.userId}`, e)
           }
         }
         lastActivity = {
-          action: "COMMENT_ADDED",
-          timestamp: latestComment._creationTime,
+          action: "CHAT_ADDED",
+          timestamp: latestChat._creationTime,
           actor: actor || { name: "Unknown Member" },
         }
       } else if (latestAuditLog) {
@@ -302,8 +302,10 @@ export const getTasks = query({
       enrichedTasks.push({
         ...task,
         documentCount,
-        commentCount,
-        unreadCommentCount,
+        chatCount,
+        unreadChatCount,
+        commentCount: chatCount,
+        unreadCommentCount: unreadChatCount,
         lastActivity,
         isStarred: starredTaskIdsSet.has(task._id),
       })
@@ -426,6 +428,7 @@ export const updateTaskStatus = mutation({
   args: {
     taskId: v.id("tasks"),
     status: v.string(), // "Pending" | "In Progress" | "Under Review" | "Completed" | "Cancelled"
+    bypassChatNotification: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
@@ -474,6 +477,18 @@ export const updateTaskStatus = mutation({
       details: { previous: previousStatus, new: args.status },
       timestamp: Date.now(),
     })
+
+    if (!args.bypassChatNotification) {
+      await ctx.db.insert("taskChats", {
+        taskId: args.taskId,
+        userId: user._id,
+        content: `updated task status to ${args.status}`,
+        isEdited: false,
+        isDeleted: false,
+        isSystem: true,
+        statusChange: args.status,
+      })
+    }
 
     // If marked Completed and has recurrence, spawn next instance and archive this one
     if (args.status === "Completed" && task.recurrence) {
@@ -723,6 +738,7 @@ export const toggleSubtask = mutation({
   args: {
     subtaskId: v.id("subtasks"),
     isCompleted: v.boolean(),
+    bypassChatNotification: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
@@ -754,6 +770,20 @@ export const toggleSubtask = mutation({
       details: { subtaskId: args.subtaskId, title: subtask.title, isCompleted: args.isCompleted },
       timestamp: Date.now(),
     })
+
+    if (!args.bypassChatNotification) {
+      await ctx.db.insert("taskChats", {
+        taskId: subtask.taskId,
+        userId: user._id,
+        content: args.isCompleted 
+          ? `completed subtask: ${subtask.title}` 
+          : `marked subtask "${subtask.title}" as incomplete`,
+        isEdited: false,
+        isDeleted: false,
+        isSystem: true,
+        completedSubtaskIds: args.isCompleted ? [args.subtaskId] : undefined,
+      })
+    }
 
     return { success: true }
   },

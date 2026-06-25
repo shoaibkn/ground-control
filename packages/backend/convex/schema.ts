@@ -49,7 +49,7 @@ export default defineSchema({
     ),
   }).index("by_organization", ["organizationId"]),
 
-  taskComments: defineTable({
+  taskChats: defineTable({
     taskId: v.id("tasks"),
     userId: v.string(),
     content: v.string(),
@@ -57,6 +57,9 @@ export default defineSchema({
     isEdited: v.boolean(),
     isDeleted: v.boolean(),
     attachmentIds: v.optional(v.array(v.id("taskAttachments"))),
+    isSystem: v.optional(v.boolean()),
+    statusChange: v.optional(v.string()),
+    completedSubtaskIds: v.optional(v.array(v.id("subtasks"))),
   }).index("by_task", ["taskId"]),
 
   taskAttachments: defineTable({
@@ -105,4 +108,53 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_task", ["userId", "taskId"]),
+
+  approvals: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.string(), // "Pending" | "Approved" | "Declined" | "Rework"
+    dueDate: v.optional(v.number()),
+    creatorId: v.string(),
+    organizationId: v.string(),
+    approverIds: v.array(v.string()),
+    subscriberIds: v.optional(v.array(v.string())),
+    isArchived: v.boolean(),
+  }).index("by_organization", ["organizationId"]),
+
+  approvalChats: defineTable({
+    approvalId: v.id("approvals"),
+    userId: v.string(),
+    content: v.string(),
+    originalContent: v.optional(v.string()),
+    isEdited: v.boolean(),
+    isDeleted: v.boolean(),
+    attachmentIds: v.optional(v.array(v.id("approvalAttachments"))),
+    isSystem: v.optional(v.boolean()),
+    statusChange: v.optional(v.string()), // "Pending" | "Approved" | "Declined" | "Rework"
+  }).index("by_approval", ["approvalId"]),
+
+  approvalAttachments: defineTable({
+    approvalId: v.id("approvals"),
+    uploaderId: v.string(),
+    fileName: v.string(),
+    fileSize: v.number(),
+    mimeType: v.string(),
+    r2Key: v.string(),
+  }).index("by_approval", ["approvalId"]),
+
+  approvalAuditLogs: defineTable({
+    approvalId: v.id("approvals"),
+    actorId: v.string(),
+    action: v.string(),
+    details: v.any(),
+    timestamp: v.number(),
+  }).index("by_approval", ["approvalId"]),
+
+  approvalReadReceipts: defineTable({
+    approvalId: v.id("approvals"),
+    userId: v.string(),
+    lastReadTime: v.number(),
+  })
+    .index("by_approval", ["approvalId"])
+    .index("by_approval_user", ["approvalId", "userId"]),
 })

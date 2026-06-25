@@ -41,7 +41,7 @@ export default function TaskDetails() {
 
   const task = useQuery(api.tasks.getTask, taskId ? { taskId: taskId as any } : "skip");
   const subtasks = useQuery(api.tasks.getSubtasks, taskId ? { taskId: taskId as any } : "skip");
-  const comments = useQuery(api.taskComments.getComments, taskId ? { taskId: taskId as any } : "skip");
+  const comments = useQuery(api.taskChats.getChats, taskId ? { taskId: taskId as any } : "skip");
   const attachments = useQuery(api.taskAttachments.getAttachments, taskId ? { taskId: taskId as any } : "skip");
 
   // Mutations
@@ -50,7 +50,7 @@ export default function TaskDetails() {
   const updateSubs = useMutation(api.tasks.updateSubscribers);
   const createSubtask = useMutation(api.tasks.createSubtask);
   const toggleSubtask = useMutation(api.tasks.toggleSubtask);
-  const createComment = useMutation(api.taskComments.addComment);
+  const createComment = useMutation(api.taskChats.addChat);
   const registerAttachment = useMutation(api.taskAttachments.registerAttachment);
   const deleteAttachment = useMutation(api.taskAttachments.deleteAttachment);
 
@@ -589,7 +589,7 @@ export default function TaskDetails() {
 
           <View className="gap-3">
             {comments && comments.length > 0 ? (
-              comments.map((comm) => {
+              comments.map((comm: any) => {
                 const u = getMemberUserInitials(comm.userId);
                 const name = getMemberDetails(comm.userId)?.name || "Unknown Member";
                 return (

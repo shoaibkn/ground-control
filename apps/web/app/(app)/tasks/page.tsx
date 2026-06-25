@@ -19,6 +19,14 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@workspace/ui/components/sheet"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,6 +48,10 @@ import {
   Columns,
   ChevronLeft,
   Archive,
+  Repeat,
+  SlidersHorizontal,
+  Filter,
+  X,
 } from "lucide-react"
 import TasksSidebar from "./components/tasks-internal-sidebar"
 import { CreateTaskDialog } from "./components/create-task-dialog"
@@ -59,6 +71,26 @@ import {
   DropdownMenuCheckboxItem,
 } from "@workspace/ui/components/dropdown-menu"
 
+interface TaskFilters {
+  priorities: string[]
+  statuses: string[]
+  relations: string[]
+  dueDates: ("overdue" | "today" | "week" | "none")[]
+  recurrence: "all" | "recurring" | "non-recurring"
+  starred: "all" | "starred" | "unstarred"
+  peopleIds: string[]
+}
+
+const defaultFilters: TaskFilters = {
+  priorities: [],
+  statuses: [],
+  relations: [],
+  dueDates: [],
+  recurrence: "all",
+  starred: "all",
+  peopleIds: [],
+}
+
 export default function TasksPage() {
   const isMobile = useIsMobile()
   const [view, setView] = useState<"kanban" | "list" | "table">("table")
@@ -66,8 +98,11 @@ export default function TasksPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [showArchived, setShowArchived] = useState(false)
+  const [filters, setFilters] = useState<TaskFilters>(defaultFilters)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: session } = authClient.useSession()
   
   // Fetch tasks for the current organization
   const tasks = useQuery(
@@ -122,7 +157,7 @@ export default function TasksPage() {
   )
 
   // Group By states
-  const [groupBy, setGroupBy] = useState<"none" | "priority" | "status" | "dueDate" | "starred">("none")
+  const [groupBy, setGroupBy] = useState<"none" | "priority" | "status" | "dueDate" | "starred" | "relation">("none")
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
 
   // Kanban states
@@ -212,6 +247,21 @@ export default function TasksPage() {
       Object.keys(groups).forEach((key) => {
         if (groups[key]!.length === 0) delete groups[key]
       })
+    } else if (groupBy === "relation") {
+      groups["Creator"] = []
+      groups["Assignee"] = []
+      groups["Collaborator"] = []
+      groups["Subscriber"] = []
+      groups["Other"] = []
+
+      filteredTasks.forEach((task: any) => {
+        const relation = getTaskRelation(task)
+        groups[relation]!.push(task)
+      })
+
+      Object.keys(groups).forEach((key) => {
+        if (groups[key]!.length === 0) delete groups[key]
+      })
     }
 
     return groups
@@ -256,11 +306,115 @@ export default function TasksPage() {
     return position || department
   }
 
-  // Filter tasks by search query
+  const getTaskRelation = (task: any) => {
+    const currentUserId = session?.user?.id
+    if (!currentUserId) return "Other"
+    if (task.creatorId === currentUserId) return "Creator"
+    if (task.assigneeIds?.includes(currentUserId)) return "Assignee"
+    if (task.collaboratorIds?.includes(currentUserId)) return "Collaborator"
+    if (task.subscriberIds?.includes(currentUserId)) return "Subscriber"
+    return "Other"
+  }
+
+  const getRelationStyle = (relation: string) => {
+    switch (relation) {
+      case "Creator":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/30"
+      case "Assignee":
+        return "bg-indigo-50 text-indigo-700 border-indigo-200/30 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800/30"
+      case "Collaborator":
+        return "bg-amber-50 text-amber-700 border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/30"
+      case "Subscriber":
+        return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+      default:
+        return "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-900 dark:text-slate-400"
+    }
+  }
+
+  const activeFiltersCount =
+    filters.priorities.length +
+    filters.statuses.length +
+    filters.relations.length +
+    filters.dueDates.length +
+    filters.peopleIds.length +
+    (filters.recurrence !== "all" ? 1 : 0) +
+    (filters.starred !== "all" ? 1 : 0)
+
+  // Filter tasks by search query & other active filters
   const filteredTasks = tasks?.filter((task: any) => {
+    // 1. Search Query Filter
     const titleMatch = task.title.toLowerCase().includes(searchQuery.toLowerCase())
     const descMatch = task.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false
-    return titleMatch || descMatch
+    if (!titleMatch && !descMatch) return false
+
+    // 2. Priority Filter
+    if (filters.priorities.length > 0 && !filters.priorities.includes(task.priority)) {
+      return false
+    }
+
+    // 3. Status Filter
+    if (filters.statuses.length > 0 && !filters.statuses.includes(task.status)) {
+      return false
+    }
+
+    // 4. Relation Filter
+    if (filters.relations.length > 0) {
+      const taskRelation = getTaskRelation(task)
+      if (!filters.relations.includes(taskRelation)) {
+        return false
+      }
+    }
+
+    // 5. Recurrence Filter
+    if (filters.recurrence === "recurring" && !task.recurrence) return false
+    if (filters.recurrence === "non-recurring" && task.recurrence) return false
+
+    // 6. Starred Filter
+    if (filters.starred === "starred" && !task.isStarred) return false
+    if (filters.starred === "unstarred" && task.isStarred) return false
+
+    // 7. People Filter (Matches if selected people are assignees, collaborators, or subscribers)
+    if (filters.peopleIds.length > 0) {
+      const matchesPeople = filters.peopleIds.some(
+        (id) =>
+          task.assigneeIds?.includes(id) ||
+          task.collaboratorIds?.includes(id) ||
+          task.subscriberIds?.includes(id)
+      )
+      if (!matchesPeople) return false
+    }
+
+    // 8. Due Date Preset Filter
+    if (filters.dueDates.length > 0) {
+      const now = new Date()
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+      const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
+      const dayOfWeek = now.getDay()
+      const startOfWeek = startOfToday - dayOfWeek * 24 * 60 * 60 * 1000
+      const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000 - 1
+
+      const matchesAnyDate = filters.dueDates.some((dateType) => {
+        if (dateType === "none") return !task.dueDate
+        if (dateType === "overdue") {
+          return (
+            task.dueDate &&
+            task.dueDate < startOfToday &&
+            task.status !== "Completed" &&
+            task.status !== "Cancelled"
+          )
+        }
+        if (dateType === "today") {
+          return task.dueDate && task.dueDate >= startOfToday && task.dueDate <= endOfToday
+        }
+        if (dateType === "week") {
+          return task.dueDate && task.dueDate >= startOfWeek && task.dueDate <= endOfWeek
+        }
+        return false
+      })
+      if (!matchesAnyDate) return false
+    }
+
+    return true
   })
 
   // Priority styling helper
@@ -313,141 +467,692 @@ export default function TasksPage() {
     <div className="flex flex-col w-full min-w-0 space-y-4">
         
         {/* Header Section */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4 shrink-0">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Tasks Dashboard</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              Tasks Dashboard
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
               Manage and collaborate on tasks inside {activeOrg.name}.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <TasksSidebar />
+
             {/* Create Task Button */}
             <Button
               onClick={() => setIsCreateDialogOpen(true)}
-              className="flex items-center gap-1.5 h-8 text-xs font-medium shadow-sm hover:scale-[1.02] transition-transform"
+              className="flex items-center gap-1.5 h-8 text-xs font-semibold shadow-xs hover:scale-[1.02] transition-all"
             >
               <Plus className="h-4 w-4" />
               Create Task
             </Button>
-
-            {/* View Switcher */}
-            <ButtonGroup>
-              <Button
-                size={"icon-sm"}
-                variant={view === "kanban" ? "default" : "outline"}
-                onClick={() => setView("kanban")}
-                className="h-8 w-8"
-              >
-                <Kanban className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size={"icon-sm"}
-                variant={view === "list" ? "default" : "outline"}
-                onClick={() => setView("list")}
-                className="h-8 w-8"
-              >
-                <List className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size={"icon-sm"}
-                variant={view === "table" ? "default" : "outline"}
-                onClick={() => setView("table")}
-                className="h-8 w-8"
-              >
-                <TableIcon className="h-3.5 w-3.5" />
-              </Button>
-            </ButtonGroup>
           </div>
         </div>
 
         {/* Toolbar Section */}
-        <div className="mb-4 flex items-center gap-2 w-full">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute top-2 left-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search tasks by title or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-input/10 dark:bg-input/20 border-input/40"
-            />
-          </div>
-
-          {/* Group By selector (only shown in table and list views) */}
-          {(view === "table" || view === "list") && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Group By:</span>
-              <Select value={groupBy} onValueChange={(val: any) => setGroupBy(val)}>
-                <SelectTrigger className="h-8 w-[120px] text-xs bg-input/10 dark:bg-input/20 border-input/40">
-                  <SelectValue placeholder="Group By" />
-                </SelectTrigger>
-                <SelectContent className="text-xs">
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="dueDate">Due Date</SelectItem>
-                  <SelectItem value="starred">Starred</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="flex flex-col gap-3 shrink-0">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-muted/10 border border-border/50 rounded-xl p-3">
+            {/* Search bar */}
+            <div className="relative flex-1 min-w-[200px] md:max-w-md">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" />
+              <Input
+                type="search"
+                placeholder="Search tasks by title or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-8.5 text-xs bg-background/50 border-input/60"
+              />
             </div>
-          )}
 
-          {/* Column Visibility selector (only shown in kanban view) */}
-          {view === "kanban" && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Columns:</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 text-xs bg-input/10 dark:bg-input/20 border-input/40 flex items-center gap-1.5">
-                    <Columns className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>View Columns</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[180px]">
-                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-semibold">Toggle Columns</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+            <div className="flex flex-wrap items-center gap-2">
+              {/* View Switcher */}
+              <ButtonGroup>
+                <Button
+                  variant={view === "table" ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs px-3"
+                  onClick={() => setView("table")}
+                >
+                  <TableIcon className="h-3.5 w-3.5 mr-1" />
+                  <span>Table</span>
+                </Button>
+                <Button
+                  variant={view === "list" ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs px-3"
+                  onClick={() => setView("list")}
+                >
+                  <List className="h-3.5 w-3.5 mr-1" />
+                  <span>Cards</span>
+                </Button>
+                <Button
+                  variant={view === "kanban" ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs px-3"
+                  onClick={() => setView("kanban")}
+                >
+                  <Kanban className="h-3.5 w-3.5 mr-1" />
+                  <span>Kanban</span>
+                </Button>
+              </ButtonGroup>
+
+              {/* Filters Button */}
+              <Button
+                variant={activeFiltersCount > 0 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltersOpen(true)}
+                className={cn(
+                  "h-8 text-xs flex items-center gap-1.5 bg-input/10 dark:bg-input/20 border-input/40 transition-all cursor-pointer",
+                  activeFiltersCount > 0 && "border-primary/50 bg-primary/5 text-primary hover:bg-primary/10"
+                )}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Filters</span>
+                {activeFiltersCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="h-4.5 min-w-4.5 px-1 bg-primary-foreground text-primary rounded-full text-[9px] font-bold flex items-center justify-center shrink-0"
+                  >
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+
+              {/* Group By selector (only shown in table and list views) */}
+              {(view === "table" || view === "list") && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Group By:</span>
+                  <Select value={groupBy} onValueChange={(val: any) => setGroupBy(val)}>
+                    <SelectTrigger className="h-8 w-[120px] text-xs bg-input/10 dark:bg-input/20 border-input/40">
+                      <SelectValue placeholder="Group By" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="priority">Priority</SelectItem>
+                      <SelectItem value="status">Status</SelectItem>
+                      <SelectItem value="dueDate">Due Date</SelectItem>
+                      <SelectItem value="starred">Starred</SelectItem>
+                      <SelectItem value="relation">User Relation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Column Visibility selector (only shown in kanban view) */}
+              {view === "kanban" && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Columns:</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 text-xs bg-input/10 dark:bg-input/20 border-input/40 flex items-center gap-1.5">
+                        <Columns className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>View Columns</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[180px]">
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-semibold">Toggle Columns</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => {
+                        const isVisible = visibleStatuses.includes(status)
+                        return (
+                          <DropdownMenuCheckboxItem
+                            key={status}
+                            checked={isVisible}
+                            onCheckedChange={(checked) => {
+                              setVisibleStatuses((prev) =>
+                                checked
+                                  ? [...prev, status]
+                                  : prev.filter((s) => s !== status)
+                              )
+                            }}
+                          >
+                            {status}
+                          </DropdownMenuCheckboxItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+
+              {/* Archived Toggle */}
+              <Button
+                variant={showArchived ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived((prev) => !prev)}
+                className={cn(
+                  "h-8 text-xs transition-colors flex items-center gap-1.5",
+                  showArchived
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground bg-input/10 dark:bg-input/20 border-input/40"
+                )}
+              >
+                <Archive className="h-3.5 w-3.5" />
+                <span>{showArchived ? "Hide Archived" : "Show Archived"}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Filter Chips */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pb-2">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-1">Active Filters:</span>
+            
+            {/* Statuses */}
+            {filters.statuses.map((status) => (
+              <Badge
+                key={status}
+                variant="outline"
+                className={cn("flex items-center gap-1 h-6 px-2 text-[10px] rounded-full", getStatusStyle(status))}
+              >
+                <span>Status: {status}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      statuses: prev.statuses.filter((s) => s !== status),
+                    }))
+                  }
+                  className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </Badge>
+            ))}
+
+            {/* Priorities */}
+            {filters.priorities.map((priority) => (
+              <Badge
+                key={priority}
+                variant="outline"
+                className={cn("flex items-center gap-1 h-6 px-2 text-[10px] rounded-full", getPriorityStyle(priority))}
+              >
+                <span>Priority: {priority}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      priorities: prev.priorities.filter((p) => p !== priority),
+                    }))
+                  }
+                  className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </Badge>
+            ))}
+
+            {/* Relations */}
+            {filters.relations.map((relation) => (
+              <Badge
+                key={relation}
+                variant="outline"
+                className={cn("flex items-center gap-1 h-6 px-2 text-[10px] rounded-full", getRelationStyle(relation))}
+              >
+                <span>Role: {relation}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      relations: prev.relations.filter((r) => r !== relation),
+                    }))
+                  }
+                  className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </Badge>
+            ))}
+
+            {/* Due Dates */}
+            {filters.dueDates.map((dateKey) => {
+              const label =
+                dateKey === "overdue"
+                  ? "Overdue"
+                  : dateKey === "today"
+                  ? "Due Today"
+                  : dateKey === "week"
+                  ? "Due This Week"
+                  : "No Due Date"
+              return (
+                <Badge
+                  key={dateKey}
+                  variant="outline"
+                  className="flex items-center gap-1 h-6 px-2 text-[10px] rounded-full bg-red-500/10 text-red-500 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/10"
+                >
+                  <span>Due: {label}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        dueDates: prev.dueDates.filter((d) => d !== dateKey),
+                      }))
+                    }
+                    className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                  >
+                    <X className="size-2.5" />
+                  </button>
+                </Badge>
+              )
+            })}
+
+            {/* Recurrence */}
+            {filters.recurrence !== "all" && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 h-6 px-2 text-[10px] rounded-full bg-blue-500/10 text-blue-500 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/10"
+              >
+                <span>Recurrence: {filters.recurrence === "recurring" ? "Recurring" : "One-off"}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      recurrence: "all",
+                    }))
+                  }
+                  className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </Badge>
+            )}
+
+            {/* Starred */}
+            {filters.starred !== "all" && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 h-6 px-2 text-[10px] rounded-full bg-amber-500/10 text-amber-500 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/10"
+              >
+                <span>Starred: {filters.starred === "starred" ? "Starred Only" : "Unstarred Only"}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      starred: "all",
+                    }))
+                  }
+                  className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </Badge>
+            )}
+
+            {/* People */}
+            {filters.peopleIds.map((memberId) => {
+              const member = activeOrg?.members?.find((m: any) => m.id === memberId)
+              const name = member?.user?.name || "Unknown Member"
+              return (
+                <Badge
+                  key={memberId}
+                  variant="outline"
+                  className="flex items-center gap-1 h-6 px-2 text-[10px] rounded-full bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400"
+                >
+                  <span>Person: {name}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        peopleIds: prev.peopleIds.filter((p) => p !== memberId),
+                      }))
+                    }
+                    className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                  >
+                    <X className="size-2.5" />
+                  </button>
+                </Badge>
+              )
+            })}
+
+            {/* Clear All Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilters(defaultFilters)}
+              className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1 hover:bg-transparent"
+            >
+              Clear all
+            </Button>
+          </div>
+        )}
+
+        {/* Filters Sheet - Slide out from the left */}
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="!fixed !top-4 !left-4 !bottom-4 z-50 flex !h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/80 p-0 shadow-2xl backdrop-blur-md bg-background/95 duration-300 outline-none sm:!max-w-md"
+          >
+            <SheetHeader className="p-6 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <SheetTitle className="text-sm font-bold flex items-center gap-2">
+                    <SlidersHorizontal className="size-4 text-primary" />
+                    Advanced Filters
+                  </SheetTitle>
+                  <SheetDescription className="text-[10px] text-muted-foreground mt-1">
+                    Narrow down tasks by specific criteria.
+                  </SheetDescription>
+                </div>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => setFiltersOpen(false)}
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </SheetHeader>
+
+            {/* Scrollable Filters Container */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
+              {/* 1. Status Filter */}
+              <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
+                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  Status
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
                   {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => {
-                    const isVisible = visibleStatuses.includes(status)
+                    const selected = filters.statuses.includes(status)
                     return (
-                      <DropdownMenuCheckboxItem
+                      <button
                         key={status}
-                        checked={isVisible}
-                        onCheckedChange={(checked) => {
-                          setVisibleStatuses((prev) =>
-                            checked
-                              ? [...prev, status]
-                              : prev.filter((s) => s !== status)
-                          )
+                        type="button"
+                        onClick={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            statuses: selected
+                              ? prev.statuses.filter((s) => s !== status)
+                              : [...prev.statuses, status],
+                          }))
                         }}
+                        className={cn(
+                          "px-2.5 py-1 text-[10px] font-medium rounded-full border transition-all hover:scale-[1.02] cursor-pointer",
+                          selected
+                            ? getStatusStyle(status) + " border-primary/20 scale-[1.02]"
+                            : "bg-muted/30 text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground"
+                        )}
                       >
                         {status}
-                      </DropdownMenuCheckboxItem>
+                      </button>
                     )
                   })}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </div>
+              </div>
+
+              {/* 2. Priority Filter */}
+              <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
+                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Priority
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Low", "Normal", "High", "Urgent", "Critical"].map((priority) => {
+                    const selected = filters.priorities.includes(priority)
+                    return (
+                      <button
+                        key={priority}
+                        type="button"
+                        onClick={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            priorities: selected
+                              ? prev.priorities.filter((p) => p !== priority)
+                              : [...prev.priorities, priority],
+                          }))
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 text-[10px] font-medium rounded-full border transition-all hover:scale-[1.02] cursor-pointer",
+                          selected
+                            ? getPriorityStyle(priority) + " border-primary/20 scale-[1.02]"
+                            : "bg-muted/30 text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        {priority}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Due Date Filter */}
+              <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
+                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  Due Date Presets
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { key: "overdue", label: "Overdue" },
+                    { key: "today", label: "Due Today" },
+                    { key: "week", label: "Due This Week" },
+                    { key: "none", label: "No Due Date" },
+                  ].map((item: any) => {
+                    const selected = filters.dueDates.includes(item.key)
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            dueDates: selected
+                              ? prev.dueDates.filter((d) => d !== item.key)
+                              : [...prev.dueDates, item.key],
+                          }))
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 text-[10px] font-medium rounded-full border transition-all hover:scale-[1.02] cursor-pointer",
+                          selected
+                            ? "bg-red-500/10 text-red-500 border-red-500/30 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/20 scale-[1.02]"
+                            : "bg-muted/30 text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 4. Recurrence & Starred Filters */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Recurrence */}
+                <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                  <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                    Recurrence
+                  </h4>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { key: "all", label: "All Tasks" },
+                      { key: "recurring", label: "Recurring Only" },
+                      { key: "non-recurring", label: "One-off Only" },
+                    ].map((opt) => {
+                      const active = filters.recurrence === opt.key
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              recurrence: opt.key as any,
+                            }))
+                          }
+                          className={cn(
+                            "w-full text-left p-1.5 px-2 rounded-lg border text-[10px] font-medium transition-all cursor-pointer",
+                            active
+                              ? "bg-primary/10 text-primary border-primary/20"
+                              : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/40"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Starred */}
+                <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                  <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Starred
+                  </h4>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { key: "all", label: "All Tasks" },
+                      { key: "starred", label: "Starred Only" },
+                      { key: "unstarred", label: "Unstarred Only" },
+                    ].map((opt) => {
+                      const active = filters.starred === opt.key
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              starred: opt.key as any,
+                            }))
+                          }
+                          className={cn(
+                            "w-full text-left p-1.5 px-2 rounded-lg border text-[10px] font-medium transition-all cursor-pointer",
+                            active
+                              ? "bg-primary/10 text-primary border-primary/20"
+                              : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/40"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. User Relation Filter */}
+              <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
+                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  Your Relation (Role)
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Creator", "Assignee", "Collaborator", "Subscriber"].map((relation) => {
+                    const selected = filters.relations.includes(relation)
+                    return (
+                      <button
+                        key={relation}
+                        type="button"
+                        onClick={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            relations: selected
+                              ? prev.relations.filter((r) => r !== relation)
+                              : [...prev.relations, relation],
+                        }))
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 text-[10px] font-medium rounded-full border transition-all hover:scale-[1.02] cursor-pointer",
+                          selected
+                            ? getRelationStyle(relation) + " border-primary/20 scale-[1.02]"
+                            : "bg-muted/30 text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        {relation}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 6. People Filter (Matches Assignees, Collaborators, or Subscribers) */}
+              <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
+                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  People
+                </h4>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                  {activeOrg?.members?.map((member: any) => {
+                    const selected = filters.peopleIds.includes(member.id)
+                    const name = member.user?.name || "Unknown Member"
+                    const email = member.user?.email || ""
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            peopleIds: selected
+                              ? prev.peopleIds.filter((id) => id !== member.id)
+                              : [...prev.peopleIds, member.id],
+                          }))
+                        }}
+                        className={cn(
+                          "flex items-center gap-2.5 w-full text-left p-1.5 rounded-lg border transition-all hover:bg-muted/40 cursor-pointer",
+                          selected
+                            ? "bg-primary/5 border-primary/20 text-foreground"
+                            : "bg-transparent border-transparent text-muted-foreground"
+                        )}
+                      >
+                        <Avatar className="h-5 w-5 shrink-0">
+                          <AvatarImage src={getAvatarUrl(member.user?.image, name)} />
+                          <AvatarFallback className="text-[8px] font-bold">
+                            {name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-semibold truncate text-foreground leading-none">{name}</p>
+                          <p className="text-[9px] text-muted-foreground truncate leading-none mt-0.5">{email}</p>
+                        </div>
+                        {selected && (
+                          <div className="size-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[8px] font-bold shrink-0">
+                            ✓
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Archived Toggle */}
-          <Button
-            variant={showArchived ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowArchived((prev) => !prev)}
-            className={cn(
-              "h-8 text-xs transition-colors flex items-center gap-1.5",
-              showArchived
-                ? "text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground bg-input/10 dark:bg-input/20 border-input/40"
-            )}
-          >
-            <Archive className="h-3.5 w-3.5" />
-            <span>{showArchived ? "Hide Archived" : "Show Archived"}</span>
-          </Button>
-
-          <TasksSidebar />
-        </div>
+            <SheetFooter className="p-6 border-t border-border/40 bg-muted/5 flex flex-row items-center gap-3 mt-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilters(defaultFilters)
+                  setFiltersOpen(false)
+                }}
+                className="flex-1 text-xs"
+              >
+                Reset All
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setFiltersOpen(false)}
+                className="flex-1 text-xs"
+              >
+                Done
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
 
         {/* Main Content Area */}
         <div className="flex-1 rounded-xl border border-border/80 bg-card/45 shadow-xs backdrop-blur-xs overflow-hidden">
@@ -481,8 +1186,20 @@ export default function TasksPage() {
                           </span>{" "}
                           {task.title}
                         </span>
-                        {task.description && (
+                        {(task.description || task.recurrence) && (
                           <span className="text-xs text-muted-foreground line-clamp-3">
+                            {task.recurrence && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-block align-middle mr-1.5">
+                                    <Repeat className="size-3 text-blue-500 cursor-help" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-[10px] p-1.5 px-2 bg-popover text-popover-foreground border shadow-md rounded">
+                                  <span>Repeats {task.recurrence.frequency}</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                             {task.description}
                           </span>
                         )}
@@ -490,9 +1207,16 @@ export default function TasksPage() {
 
                       {/* Badges: Priority & Status */}
                       <div className="flex items-center justify-between gap-2">
-                        <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-medium border ${getPriorityStyle(task.priority)}`}>
-                          Priority: {task.priority}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-medium border ${getPriorityStyle(task.priority)}`}>
+                            Priority: {task.priority}
+                          </Badge>
+                          {getTaskRelation(task) !== "Other" && (
+                            <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] font-medium border rounded-md select-none shrink-0 ${getRelationStyle(getTaskRelation(task))}`}>
+                              {getTaskRelation(task)}
+                            </Badge>
+                          )}
+                        </div>
 
                         <div onClick={(e) => e.stopPropagation()}>
                           <Select
@@ -675,14 +1399,31 @@ export default function TasksPage() {
                                           </span>{" "}
                                           {task.title}
                                         </span>
+                                        {getTaskRelation(task) !== "Other" && (
+                                          <Badge variant="outline" className={`px-1.5 py-0 h-4 text-[9px] font-medium border rounded-md select-none shrink-0 ${getRelationStyle(getTaskRelation(task))}`}>
+                                            {getTaskRelation(task)}
+                                          </Badge>
+                                        )}
                                         {task.isArchived && (
                                           <Badge variant="secondary" className="px-1.5 py-0 h-4 text-[8px] font-normal opacity-85 shrink-0 select-none">
                                             Archived
                                           </Badge>
                                         )}
                                       </div>
-                                      {task.description && (
+                                      {(task.description || task.recurrence) && (
                                         <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                          {task.recurrence && (
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <span className="inline-block align-middle mr-1.5">
+                                                  <Repeat className="size-2.5 text-blue-500 cursor-help" />
+                                                </span>
+                                              </TooltipTrigger>
+                                              <TooltipContent className="text-[10px] p-1.5 px-2 bg-popover text-popover-foreground border shadow-md rounded">
+                                                <span>Repeats {task.recurrence.frequency}</span>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          )}
                                           {task.description}
                                         </span>
                                       )}
@@ -872,6 +1613,11 @@ export default function TasksPage() {
                                   >
                                     #{task._id.slice(-4)}
                                   </span>
+                                  {getTaskRelation(task) !== "Other" && (
+                                    <Badge variant="outline" className={`px-1.5 py-0 h-4 text-[9px] font-medium border rounded-md select-none shrink-0 ${getRelationStyle(getTaskRelation(task))}`}>
+                                      {getTaskRelation(task)}
+                                    </Badge>
+                                  )}
                                 </div>
 
                                 <Badge variant="outline" className={`px-2 py-0 h-5 text-[9px] font-medium border ${getPriorityStyle(task.priority)}`}>
@@ -891,8 +1637,20 @@ export default function TasksPage() {
                                     </Badge>
                                   )}
                                 </div>
-                                {task.description && (
+                                {(task.description || task.recurrence) && (
                                   <span className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                    {task.recurrence && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-block align-middle mr-1.5">
+                                            <Repeat className="size-2.5 text-blue-500 cursor-help" />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="text-[10px] p-1.5 px-2 bg-popover text-popover-foreground border shadow-md rounded">
+                                          <span>Repeats {task.recurrence.frequency}</span>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
                                     {task.description}
                                   </span>
                                 )}
@@ -1136,6 +1894,11 @@ export default function TasksPage() {
                                 >
                                   #{task._id.slice(-4)}
                                 </span>
+                                {getTaskRelation(task) !== "Other" && (
+                                  <Badge variant="outline" className={`px-1.5 py-0 h-4 text-[8px] font-medium border rounded-md select-none shrink-0 ${getRelationStyle(getTaskRelation(task))}`}>
+                                    {getTaskRelation(task)}
+                                  </Badge>
+                                )}
                               </div>
                               <Badge variant="outline" className={`px-1.5 py-0 h-4.5 text-[8px] font-medium border ${getPriorityStyle(task.priority)}`}>
                                 {task.priority}
@@ -1154,8 +1917,20 @@ export default function TasksPage() {
                                   </Badge>
                                 )}
                               </div>
-                              {task.description && (
+                              {(task.description || task.recurrence) && (
                                 <span className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                  {task.recurrence && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-block align-middle mr-1.5">
+                                          <Repeat className="size-2.5 text-blue-500 cursor-help" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="text-[10px] p-1.5 px-2 bg-popover text-popover-foreground border shadow-md rounded">
+                                        <span>Repeats {task.recurrence.frequency}</span>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
                                   {task.description}
                                 </span>
                               )}

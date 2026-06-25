@@ -6,13 +6,16 @@ import { components } from "./_generated/api"
 export const DEFAULT_PERMISSIONS = {
   owner: {
     tasks: ["create", "read_all", "assign", "delete", "archive", "cancel", "complete"],
+    approvals: ["create", "read_all", "delete", "archive"],
   },
   admin: {
     tasks: ["create", "read_all", "assign", "delete", "archive", "cancel", "complete"],
+    approvals: ["create", "read_all", "delete", "archive"],
   },
   member: {
     // Members can create, but only read their own, and cannot complete or cancel.
     tasks: ["create", "read_own"],
+    approvals: ["create", "read_own"],
   },
 }
 

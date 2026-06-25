@@ -32,33 +32,32 @@ async function requireMember(ctx: any, userId: string, organizationId: string) {
 }
 
 export const getAttachments = query({
-  args: { taskId: v.id("tasks") },
+  args: { approvalId: v.id("approvals") },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
-    const task = await ctx.db.get(args.taskId)
-    if (!task) throw new Error("Task not found")
+    const approval = await ctx.db.get(args.approvalId)
+    if (!approval) throw new Error("Approval request not found")
 
-    const member = await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
-    const isCreator = task.creatorId === user._id
-    const isAssignee = task.assigneeIds.includes(user._id)
-    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
-    const isSubscriber = task.subscriberIds?.includes(user._id) || false
+    const isCreator = approval.creatorId === user._id
+    const isApprover = approval.approverIds.includes(user._id)
+    const isSubscriber = approval.subscriberIds?.includes(user._id) || false
 
-    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
-      throw new Error("Permission denied to read attachments for this task")
+    if (!isAdminOrOwner && !isCreator && !isApprover && !isSubscriber) {
+      throw new Error("Permission denied to read attachments for this approval request")
     }
 
     return await ctx.db
-      .query("taskAttachments")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .query("approvalAttachments")
+      .withIndex("by_approval", (q) => q.eq("approvalId", args.approvalId))
       .collect()
   },
 })
 
 export const registerAttachment = mutation({
   args: {
-    taskId: v.id("tasks"),
+    approvalId: v.id("approvals"),
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
@@ -67,24 +66,23 @@ export const registerAttachment = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
-    const task = await ctx.db.get(args.taskId)
+    const approval = await ctx.db.get(args.approvalId)
     
-    if (!task) throw new Error("Task not found")
-    if (task.isArchived) throw new Error("Cannot add attachment to archived task")
+    if (!approval) throw new Error("Approval request not found")
+    if (approval.isArchived) throw new Error("Cannot add attachment to archived approval request")
 
-    const member = await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
-    const isCreator = task.creatorId === user._id
-    const isAssignee = task.assigneeIds.includes(user._id)
-    const isCollaborator = task.collaboratorIds?.includes(user._id) || false
-    const isSubscriber = task.subscriberIds?.includes(user._id) || false
+    const isCreator = approval.creatorId === user._id
+    const isApprover = approval.approverIds.includes(user._id)
+    const isSubscriber = approval.subscriberIds?.includes(user._id) || false
 
-    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
-      throw new Error("Permission denied to register attachment on this task")
+    if (!isAdminOrOwner && !isCreator && !isApprover && !isSubscriber) {
+      throw new Error("Permission denied to register attachment on this approval request")
     }
 
-    const attachmentId = await ctx.db.insert("taskAttachments", {
-      taskId: args.taskId,
+    const attachmentId = await ctx.db.insert("approvalAttachments", {
+      approvalId: args.approvalId,
       uploaderId: user._id,
       fileName: args.fileName,
       fileSize: args.fileSize,
@@ -93,8 +91,8 @@ export const registerAttachment = mutation({
     })
 
     // Log the attachment
-    await ctx.db.insert("taskAuditLogs", {
-      taskId: args.taskId,
+    await ctx.db.insert("approvalAuditLogs", {
+      approvalId: args.approvalId,
       actorId: user._id,
       action: "ATTACHMENT_ADDED",
       details: { fileName: args.fileName, attachmentId },
@@ -102,8 +100,8 @@ export const registerAttachment = mutation({
     })
 
     if (!args.bypassChatNotification) {
-      await ctx.db.insert("taskChats", {
-        taskId: args.taskId,
+      await ctx.db.insert("approvalChats", {
+        approvalId: args.approvalId,
         userId: user._id,
         content: `added an attachment: ${args.fileName}`,
         isEdited: false,
@@ -119,20 +117,20 @@ export const registerAttachment = mutation({
 
 export const deleteAttachment = mutation({
   args: {
-    attachmentId: v.id("taskAttachments"),
+    attachmentId: v.id("approvalAttachments"),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
     const attachment = await ctx.db.get(args.attachmentId)
     if (!attachment) throw new Error("Attachment not found")
 
-    const task = await ctx.db.get(attachment.taskId)
-    if (!task) throw new Error("Task not found")
-    if (task.isArchived) throw new Error("Cannot delete attachment from archived task")
+    const approval = await ctx.db.get(attachment.approvalId)
+    if (!approval) throw new Error("Approval request not found")
+    if (approval.isArchived) throw new Error("Cannot delete attachment from archived approval request")
 
-    const member = await requireMember(ctx, user._id, task.organizationId)
+    const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
-    const isCreator = task.creatorId === user._id
+    const isCreator = approval.creatorId === user._id
 
     if (attachment.uploaderId !== user._id && !isCreator && !isAdminOrOwner) {
       throw new Error("Unauthorized to delete this attachment")
@@ -141,15 +139,13 @@ export const deleteAttachment = mutation({
     await ctx.db.delete(args.attachmentId)
 
     // Log deletion
-    await ctx.db.insert("taskAuditLogs", {
-      taskId: attachment.taskId,
+    await ctx.db.insert("approvalAuditLogs", {
+      approvalId: attachment.approvalId,
       actorId: user._id,
       action: "ATTACHMENT_DELETED",
       details: { fileName: attachment.fileName, attachmentId: args.attachmentId },
       timestamp: Date.now(),
     })
-
-    // Note: Actual deletion from Cloudflare R2 bucket would happen via a background action or HTTP request
 
     return { success: true }
   },

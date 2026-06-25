@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as approvalAttachments from "../approvalAttachments.js";
+import type * as approvalChats from "../approvalChats.js";
+import type * as approvals from "../approvals.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as emails_InvitationEmail from "../emails/InvitationEmail.js";
@@ -17,7 +20,7 @@ import type * as http from "../http.js";
 import type * as memberProfiles from "../memberProfiles.js";
 import type * as permissions from "../permissions.js";
 import type * as taskAttachments from "../taskAttachments.js";
-import type * as taskComments from "../taskComments.js";
+import type * as taskChats from "../taskChats.js";
 import type * as taskCron from "../taskCron.js";
 import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
@@ -29,6 +32,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  approvalAttachments: typeof approvalAttachments;
+  approvalChats: typeof approvalChats;
+  approvals: typeof approvals;
   auth: typeof auth;
   crons: typeof crons;
   "emails/InvitationEmail": typeof emails_InvitationEmail;
@@ -38,7 +44,7 @@ declare const fullApi: ApiFromModules<{
   memberProfiles: typeof memberProfiles;
   permissions: typeof permissions;
   taskAttachments: typeof taskAttachments;
-  taskComments: typeof taskComments;
+  taskChats: typeof taskChats;
   taskCron: typeof taskCron;
   tasks: typeof tasks;
   users: typeof users;
