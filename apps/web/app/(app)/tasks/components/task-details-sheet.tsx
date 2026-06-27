@@ -74,7 +74,7 @@ import {
   Tag,
   File,
   Download,
-  Calendar,
+  Calendar as CalendarIcon,
   MessageSquare,
   Check,
   Send,
@@ -84,9 +84,10 @@ import {
   Repeat,
 } from "lucide-react"
 import { toast } from "sonner"
-import { getAvatarUrl } from "@workspace/ui/lib/utils"
+import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
 import { UserAvatar } from "@/components/user-avatar"
 import { AvatarHoverCard } from "@/components/avatar-hover-card"
+import { Calendar } from "@workspace/ui/components/calendar"
 
 interface TaskDetailsSheetProps {
   taskId: any
@@ -1315,26 +1316,46 @@ export default function TaskDetailsSheet({
 
                   {/* Due Date */}
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="size-3.5 shrink-0 text-muted-foreground/60" />
+                    <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground/60" />
                     <span>Due Date</span>
                   </div>
                   <div>
                     {isEditingDetails && canEditTaskDetails ? (
-                      <Input
-                        type="date"
-                        value={
-                          task.dueDate
-                            ? new Date(task.dueDate).toISOString().split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const dateVal = e.target.value
-                          handleUpdate({
-                            dueDate: dateVal ? new Date(dateVal).getTime() : 0,
-                          })
-                        }}
-                        className="h-8 w-[150px] border-border/80 bg-background/50 text-xs"
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "h-8 justify-start text-left font-normal text-xs bg-background/50 border-border/80 px-3 py-1",
+                              !task.dueDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/80" />
+                            {task.dueDate ? (
+                              <span>
+                                {new Date(task.dueDate).toLocaleDateString(undefined, {
+                                  month: "long",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            ) : (
+                              <span>Pick due date</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                            onSelect={(date) => {
+                              handleUpdate({
+                                dueDate: date ? date.getTime() : 0,
+                              })
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     ) : (
                       <span className="font-medium text-foreground/80">
                         {task.dueDate
