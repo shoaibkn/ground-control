@@ -17,6 +17,7 @@ import type * as emails_InvitationEmail from "../emails/InvitationEmail.js";
 import type * as emails_ResetPasswordEmail from "../emails/ResetPasswordEmail.js";
 import type * as emails_VerificationEmail from "../emails/VerificationEmail.js";
 import type * as http from "../http.js";
+import type * as inbox from "../inbox.js";
 import type * as memberProfiles from "../memberProfiles.js";
 import type * as permissions from "../permissions.js";
 import type * as taskAttachments from "../taskAttachments.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "emails/ResetPasswordEmail": typeof emails_ResetPasswordEmail;
   "emails/VerificationEmail": typeof emails_VerificationEmail;
   http: typeof http;
+  inbox: typeof inbox;
   memberProfiles: typeof memberProfiles;
   permissions: typeof permissions;
   taskAttachments: typeof taskAttachments;
