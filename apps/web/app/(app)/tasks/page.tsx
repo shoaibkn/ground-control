@@ -56,7 +56,10 @@ import {
 import TasksSidebar from "./components/tasks-internal-sidebar"
 import { CreateTaskDialog } from "./components/create-task-dialog"
 import TaskDetailsSheet from "./components/task-details-sheet"
+import { DueDateBadge } from "./components/due-date-badge"
 import { toast } from "sonner"
+import { Switch } from "@workspace/ui/components/switch"
+import { Label } from "@workspace/ui/components/label"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
 import { UserAvatar } from "@/components/user-avatar"
@@ -100,6 +103,9 @@ export default function TasksPage() {
   const [showArchived, setShowArchived] = useState(false)
   const [filters, setFilters] = useState<TaskFilters>(defaultFilters)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [timePreset, setTimePreset] = useState<"all" | "overdue" | "today" | "week" | "later">("all")
+  const [selectedTimelineDate, setSelectedTimelineDate] = useState<number | null>(new Date().setHours(0,0,0,0))
+  const [showAllDates, setShowAllDates] = useState(false)
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: session } = authClient.useSession()
@@ -289,6 +295,30 @@ export default function TasksPage() {
     }
   }
 
+  const getTimelineDays = () => {
+    const list = []
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    for (let i = 0; i < 14; i++) {
+      list.push(startOfToday + i * 24 * 60 * 60 * 1000)
+    }
+    return list
+  }
+
+  const getDayTaskCount = (dayTimestamp: number) => {
+    if (!tasks) return 0
+    const dayStart = new Date(dayTimestamp).setHours(0,0,0,0)
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1
+    return tasks.filter((t: any) => 
+      !t.isArchived && 
+      t.status !== "Completed" && 
+      t.status !== "Cancelled" &&
+      t.dueDate && 
+      t.dueDate >= dayStart && 
+      t.dueDate <= dayEnd
+    ).length
+  }
+
   const getAssigneeDetails = (userId: string) => {
     const member = activeOrg.members?.find((m: any) => m.userId === userId)
     return member?.user
@@ -386,7 +416,7 @@ export default function TasksPage() {
     }
 
     // 8. Due Date Preset Filter
-    if (filters.dueDates.length > 0) {
+    if (filters.dueDates.length > 0 || !showAllDates || timePreset !== "all") {
       const now = new Date()
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
       const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
@@ -394,25 +424,47 @@ export default function TasksPage() {
       const startOfWeek = startOfToday - dayOfWeek * 24 * 60 * 60 * 1000
       const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000 - 1
 
-      const matchesAnyDate = filters.dueDates.some((dateType) => {
-        if (dateType === "none") return !task.dueDate
-        if (dateType === "overdue") {
-          return (
-            task.dueDate &&
-            task.dueDate < startOfToday &&
-            task.status !== "Completed" &&
-            task.status !== "Cancelled"
-          )
+      if (!showAllDates && selectedTimelineDate !== null) {
+        const selStart = new Date(selectedTimelineDate).setHours(0,0,0,0)
+        const selEnd = selStart + 24 * 60 * 60 * 1000 - 1
+        if (!task.dueDate || task.dueDate < selStart || task.dueDate > selEnd) {
+          return false
         }
-        if (dateType === "today") {
-          return task.dueDate && task.dueDate >= startOfToday && task.dueDate <= endOfToday
+      } else if (timePreset !== "all") {
+        if (timePreset === "overdue") {
+          const isOverdue = task.dueDate && task.dueDate < startOfToday && task.status !== "Completed" && task.status !== "Cancelled"
+          if (!isOverdue) return false
+        } else if (timePreset === "today") {
+          const isToday = task.dueDate && task.dueDate >= startOfToday && task.dueDate <= endOfToday
+          if (!isToday) return false
+        } else if (timePreset === "week") {
+          const isThisWeek = task.dueDate && task.dueDate >= startOfWeek && task.dueDate <= endOfWeek
+          if (!isThisWeek) return false
+        } else if (timePreset === "later") {
+          const isLater = task.dueDate && task.dueDate > endOfWeek
+          if (!isLater) return false
         }
-        if (dateType === "week") {
-          return task.dueDate && task.dueDate >= startOfWeek && task.dueDate <= endOfWeek
-        }
-        return false
-      })
-      if (!matchesAnyDate) return false
+      } else if (filters.dueDates.length > 0) {
+        const matchesAnyDate = filters.dueDates.some((dateType) => {
+          if (dateType === "none") return !task.dueDate
+          if (dateType === "overdue") {
+            return (
+              task.dueDate &&
+              task.dueDate < startOfToday &&
+              task.status !== "Completed" &&
+              task.status !== "Cancelled"
+            )
+          }
+          if (dateType === "today") {
+            return task.dueDate && task.dueDate >= startOfToday && task.dueDate <= endOfToday
+          }
+          if (dateType === "week") {
+            return task.dueDate && task.dueDate >= startOfWeek && task.dueDate <= endOfWeek
+          }
+          return false
+        })
+        if (!matchesAnyDate) return false
+      }
     }
 
     return true
@@ -635,6 +687,134 @@ export default function TasksPage() {
                 <Archive className="h-3.5 w-3.5" />
                 <span>{showArchived ? "Hide Archived" : "Show Archived"}</span>
               </Button>
+            </div>
+          </div>
+
+          {/* Quick Time Horizon Filter Bar & Weekly Calendar Strip */}
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card border border-border/40 rounded-xl p-3 shadow-xs shrink-0">
+            {/* Presets */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">Due presets:</span>
+              {[
+                { key: "all", label: "All Tasks", count: tasks?.filter(t => !t.isArchived).length || 0 },
+                { 
+                  key: "overdue", 
+                  label: "Overdue", 
+                  count: tasks?.filter(t => !t.isArchived && t.status !== "Completed" && t.status !== "Cancelled" && t.dueDate && t.dueDate < new Date().setHours(0,0,0,0)).length || 0,
+                  className: "text-red-600 hover:text-red-700 hover:bg-red-500/10 border-red-200 dark:border-red-900/30"
+                },
+                { 
+                  key: "today", 
+                  label: "Today", 
+                  count: tasks?.filter(t => !t.isArchived && t.dueDate && t.dueDate >= new Date().setHours(0,0,0,0) && t.dueDate < new Date().setHours(0,0,0,0) + 24*60*60*1000).length || 0,
+                  className: "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 border-amber-200 dark:border-amber-900/30"
+                },
+                { 
+                  key: "week", 
+                  label: "This Week", 
+                  count: tasks?.filter(t => {
+                    const startOfWeek = new Date().setHours(0,0,0,0) - new Date().getDay() * 24*60*60*1000
+                    const endOfWeek = startOfWeek + 7*24*60*60*1000
+                    return !t.isArchived && t.dueDate && t.dueDate >= startOfWeek && t.dueDate < endOfWeek
+                  }).length || 0,
+                  className: "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 dark:border-emerald-900/30"
+                },
+                { 
+                  key: "later", 
+                  label: "Later", 
+                  count: tasks?.filter(t => {
+                    const startOfWeek = new Date().setHours(0,0,0,0) - new Date().getDay() * 24*60*60*1000
+                    const endOfWeek = startOfWeek + 7*24*60*60*1000
+                    return !t.isArchived && t.dueDate && t.dueDate >= endOfWeek
+                  }).length || 0 
+                }
+              ].map((preset) => {
+                const isActive = timePreset === preset.key && (showAllDates || selectedTimelineDate === null)
+                return (
+                  <Button
+                    key={preset.key}
+                    type="button"
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "h-7 text-[10px] font-semibold px-2.5 rounded-full border transition-all duration-200 cursor-pointer",
+                      !isActive && (preset.className || "bg-muted/10 hover:bg-muted/20 border-border/40")
+                    )}
+                    onClick={() => {
+                      setTimePreset(preset.key as any)
+                      setShowAllDates(true)
+                    }}
+                  >
+                    <span>{preset.label}</span>
+                    <Badge 
+                      variant="secondary" 
+                      className={cn(
+                        "h-4 min-w-4 px-1 rounded-full text-[8px] font-bold flex items-center justify-center ml-1.5",
+                        isActive ? "bg-primary-foreground text-primary" : "bg-muted-foreground/15 text-muted-foreground"
+                      )}
+                    >
+                      {preset.count}
+                    </Badge>
+                  </Button>
+                )
+              })}
+            </div>
+
+            {/* Sliding 14-day strip */}
+            <div className="flex items-center gap-3 overflow-hidden flex-1 lg:max-w-md xl:max-w-lg">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Horizon:</span>
+              <div 
+                className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 max-w-full"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {getTimelineDays().map((dayTimestamp) => {
+                  const date = new Date(dayTimestamp)
+                  const isSelected = selectedTimelineDate !== null && new Date(selectedTimelineDate).setHours(0,0,0,0) === new Date(dayTimestamp).setHours(0,0,0,0)
+                  const dayName = date.toLocaleDateString(undefined, { weekday: "narrow" })
+                  const dayNum = date.getDate()
+                  const dayTaskCount = getDayTaskCount(dayTimestamp)
+                  return (
+                    <button
+                      key={dayTimestamp}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTimelineDate(dayTimestamp)
+                        setShowAllDates(false)
+                      }}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-full text-[9px] font-bold transition-all active:scale-95 cursor-pointer border",
+                        isSelected && !showAllDates
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs scale-105"
+                          : "hover:bg-muted/40 text-muted-foreground hover:text-foreground border-border/20 bg-background"
+                      )}
+                    >
+                      <span className="text-[8px] opacity-75 font-normal">{dayName}</span>
+                      <span className="text-[10px] leading-none mt-0.5">{dayNum}</span>
+                      {dayTaskCount > 0 && (
+                        <span className={cn(
+                          "absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center border",
+                          isSelected && !showAllDates
+                            ? "bg-amber-500 text-white border-primary"
+                            : "bg-primary text-primary-foreground border-card"
+                        )}>
+                          {dayTaskCount}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 border-l border-border/50 pl-3">
+                <Switch
+                  id="show-all-dates"
+                  checked={showAllDates}
+                  onCheckedChange={setShowAllDates}
+                  className="scale-90"
+                />
+                <Label htmlFor="show-all-dates" className="text-[10px] font-medium text-muted-foreground select-none cursor-pointer">
+                  Show All
+                </Label>
+              </div>
             </div>
           </div>
         </div>
@@ -1284,17 +1464,7 @@ export default function TasksPage() {
 
                       {/* Footer: Date and Assignees */}
                       <div className="flex items-center justify-between pt-2.5 text-[10px] text-muted-foreground border-t border-dashed border-border/40">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                          <span>
-                            {task.dueDate
-                              ? `${new Date(task.dueDate).toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                })}${task.timeOfDay ? ` (${task.timeOfDay})` : ""}`
-                              : "No due date"}
-                          </span>
-                        </div>
+                        <DueDateBadge dueDate={task.dueDate} timeOfDay={task.timeOfDay} status={task.status} />
 
                         <div className="flex -space-x-1.5 overflow-hidden">
                           {task.assigneeIds && task.assigneeIds.length > 0 ? (
@@ -1464,18 +1634,7 @@ export default function TasksPage() {
 
                                   {/* Due Date */}
                                   <TableCell className="w-[12%]">
-                                    <div className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
-                                      <Calendar className="h-3 w-3 shrink-0" />
-                                      <span>
-                                        {task.dueDate
-                                          ? `${new Date(task.dueDate).toLocaleDateString(undefined, {
-                                              month: "short",
-                                              day: "numeric",
-                                              year: "numeric",
-                                            })}${task.timeOfDay ? ` (${task.timeOfDay})` : ""}`
-                                          : "No due date"}
-                                      </span>
-                                    </div>
+                                    <DueDateBadge dueDate={task.dueDate} timeOfDay={task.timeOfDay} status={task.status} />
                                   </TableCell>
 
                                   {/* Assignees Avatars */}
@@ -1688,18 +1847,7 @@ export default function TasksPage() {
 
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                   <span className="font-medium">Due Date:</span>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                                    <span>
-                                      {task.dueDate
-                                        ? `${new Date(task.dueDate).toLocaleDateString(undefined, {
-                                            month: "short",
-                                            day: "numeric",
-                                            year: "numeric",
-                                          })}${task.timeOfDay ? ` (${task.timeOfDay})` : ""}`
-                                        : "No due date"}
-                                    </span>
-                                  </div>
+                                  <DueDateBadge dueDate={task.dueDate} timeOfDay={task.timeOfDay} status={task.status} />
                                 </div>
                               </div>
 
@@ -1944,16 +2092,8 @@ export default function TasksPage() {
                             </div>
 
                             {/* Card Due Date */}
-                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-2.5 bg-muted/30 dark:bg-muted/10 rounded-md p-1 px-1.5 border border-border/20">
-                              <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                              <span className="truncate">
-                                {task.dueDate
-                                  ? `${new Date(task.dueDate).toLocaleDateString(undefined, {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}${task.timeOfDay ? ` (${task.timeOfDay})` : ""}`
-                                  : "No due date"}
-                              </span>
+                            <div className="mb-2.5">
+                              <DueDateBadge dueDate={task.dueDate} timeOfDay={task.timeOfDay} status={task.status} className="w-full justify-start h-6 rounded-md p-1 px-1.5" />
                             </div>
 
                             {/* Card Footer */}

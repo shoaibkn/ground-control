@@ -56,6 +56,8 @@ import ApprovalsSidebar from "./components/approvals-internal-sidebar"
 import { CreateApprovalDialog } from "./components/create-approval-dialog"
 import ApprovalDetailsSheet from "./components/approval-details-sheet"
 import { toast } from "sonner"
+import { Switch } from "@workspace/ui/components/switch"
+import { Label } from "@workspace/ui/components/label"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
 import { UserAvatar } from "@/components/user-avatar"
@@ -92,6 +94,9 @@ export default function ApprovalsPage() {
   const [showArchived, setShowArchived] = useState(false)
   const [filters, setFilters] = useState<ApprovalFilters>(defaultFilters)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [timePreset, setTimePreset] = useState<"all" | "overdue" | "today" | "week" | "later">("all")
+  const [selectedTimelineDate, setSelectedTimelineDate] = useState<number | null>(new Date().setHours(0,0,0,0))
+  const [showAllDates, setShowAllDates] = useState(false)
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: session } = authClient.useSession()
@@ -185,6 +190,30 @@ export default function ApprovalsPage() {
     } catch (err: any) {
       toast.error(err.message || "Failed to update status")
     }
+  }
+
+  const getTimelineDays = () => {
+    const list = []
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    for (let i = 0; i < 14; i++) {
+      list.push(startOfToday + i * 24 * 60 * 60 * 1000)
+    }
+    return list
+  }
+
+  const getDayApprovalCount = (dayTimestamp: number) => {
+    if (!approvals) return 0
+    const dayStart = new Date(dayTimestamp).setHours(0,0,0,0)
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1
+    return approvals.filter((a: any) => 
+      !a.isArchived && 
+      a.status !== "Approved" && 
+      a.status !== "Declined" &&
+      a.dueDate && 
+      a.dueDate >= dayStart && 
+      a.dueDate <= dayEnd
+    ).length
   }
 
   const activeFiltersCount =
@@ -487,6 +516,134 @@ export default function ApprovalsPage() {
               <Archive className="h-3.5 w-3.5" />
               <span>{showArchived ? "Hide Archived" : "Show Archived"}</span>
             </Button>
+          </div>
+        </div>
+
+        {/* Quick Time Horizon Filter Bar & Weekly Calendar Strip */}
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card border border-border/40 rounded-xl p-3 shadow-xs shrink-0">
+          {/* Presets */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">Due presets:</span>
+            {[
+              { key: "all", label: "All Requests", count: approvals?.filter(a => !a.isArchived).length || 0 },
+              { 
+                key: "overdue", 
+                label: "Overdue", 
+                count: approvals?.filter(a => !a.isArchived && a.status !== "Approved" && a.status !== "Declined" && a.dueDate && a.dueDate < new Date().setHours(0,0,0,0)).length || 0,
+                className: "text-red-600 hover:text-red-700 hover:bg-red-500/10 border-red-200 dark:border-red-900/30"
+              },
+              { 
+                key: "today", 
+                label: "Today", 
+                count: approvals?.filter(a => !a.isArchived && a.dueDate && a.dueDate >= new Date().setHours(0,0,0,0) && a.dueDate < new Date().setHours(0,0,0,0) + 24*60*60*1000).length || 0,
+                className: "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 border-amber-200 dark:border-amber-900/30"
+              },
+              { 
+                key: "week", 
+                label: "This Week", 
+                count: approvals?.filter(a => {
+                  const startOfWeek = new Date().setHours(0,0,0,0) - new Date().getDay() * 24*60*60*1000
+                  const endOfWeek = startOfWeek + 7*24*60*60*1000
+                  return !a.isArchived && a.dueDate && a.dueDate >= startOfWeek && a.dueDate < endOfWeek
+                }).length || 0,
+                className: "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 dark:border-emerald-900/30"
+              },
+              { 
+                key: "later", 
+                label: "Later", 
+                count: approvals?.filter(a => {
+                  const startOfWeek = new Date().setHours(0,0,0,0) - new Date().getDay() * 24*60*60*1000
+                  const endOfWeek = startOfWeek + 7*24*60*60*1000
+                  return !a.isArchived && a.dueDate && a.dueDate >= endOfWeek
+                }).length || 0 
+              }
+            ].map((preset) => {
+              const isActive = timePreset === preset.key && (showAllDates || selectedTimelineDate === null)
+              return (
+                <Button
+                  key={preset.key}
+                  type="button"
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-7 text-[10px] font-semibold px-2.5 rounded-full border transition-all duration-200 cursor-pointer",
+                    !isActive && (preset.className || "bg-muted/10 hover:bg-muted/20 border-border/40")
+                  )}
+                  onClick={() => {
+                    setTimePreset(preset.key as any)
+                    setShowAllDates(true)
+                  }}
+                >
+                  <span>{preset.label}</span>
+                  <Badge 
+                    variant="secondary" 
+                    className={cn(
+                      "h-4 min-w-4 px-1 rounded-full text-[8px] font-bold flex items-center justify-center ml-1.5",
+                      isActive ? "bg-primary-foreground text-primary" : "bg-muted-foreground/15 text-muted-foreground"
+                    )}
+                  >
+                    {preset.count}
+                  </Badge>
+                </Button>
+              )
+            })}
+          </div>
+
+          {/* Sliding 14-day strip */}
+          <div className="flex items-center gap-3 overflow-hidden flex-1 lg:max-w-md xl:max-w-lg">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Horizon:</span>
+            <div 
+              className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 max-w-full"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {getTimelineDays().map((dayTimestamp) => {
+                const date = new Date(dayTimestamp)
+                const isSelected = selectedTimelineDate !== null && new Date(selectedTimelineDate).setHours(0,0,0,0) === new Date(dayTimestamp).setHours(0,0,0,0)
+                const dayName = date.toLocaleDateString(undefined, { weekday: "narrow" })
+                const dayNum = date.getDate()
+                const dayApprovalCount = getDayApprovalCount(dayTimestamp)
+                return (
+                  <button
+                    key={dayTimestamp}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTimelineDate(dayTimestamp)
+                      setShowAllDates(false)
+                    }}
+                    className={cn(
+                      "relative flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-full text-[9px] font-bold transition-all active:scale-95 cursor-pointer border",
+                      isSelected && !showAllDates
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs scale-105"
+                        : "hover:bg-muted/40 text-muted-foreground hover:text-foreground border-border/20 bg-background"
+                    )}
+                  >
+                    <span className="text-[8px] opacity-75 font-normal">{dayName}</span>
+                    <span className="text-[10px] leading-none mt-0.5">{dayNum}</span>
+                    {dayApprovalCount > 0 && (
+                      <span className={cn(
+                        "absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center border",
+                        isSelected && !showAllDates
+                          ? "bg-amber-500 text-white border-primary"
+                          : "bg-primary text-primary-foreground border-card"
+                      )}>
+                        {dayApprovalCount}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 border-l border-border/50 pl-3">
+              <Switch
+                id="show-all-dates"
+                checked={showAllDates}
+                onCheckedChange={setShowAllDates}
+                className="scale-90"
+              />
+              <Label htmlFor="show-all-dates" className="text-[10px] font-medium text-muted-foreground select-none cursor-pointer">
+                Show All
+              </Label>
+            </div>
           </div>
         </div>
 

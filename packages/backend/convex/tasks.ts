@@ -389,6 +389,7 @@ export async function spawnNextRecurringInstance(ctx: any, task: any) {
       collaboratorIds: task.collaboratorIds || [],
       subscriberIds: task.subscriberIds || [],
       isArchived: false,
+      completedRequiresApproval: task.completedRequiresApproval,
     })
 
     // 2. Clone subtasks

@@ -91,6 +91,7 @@ import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
 import { UserAvatar } from "@/components/user-avatar"
 import { AvatarHoverCard } from "@/components/avatar-hover-card"
 import { Calendar } from "@workspace/ui/components/calendar"
+import { DueDateBadge } from "./due-date-badge"
 
 interface TaskDetailsSheetProps {
   taskId: any
@@ -1514,18 +1515,7 @@ export default function TaskDetailsSheet({
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      <span className="font-medium text-foreground/80">
-                        {task.dueDate
-                          ? `${new Date(task.dueDate).toLocaleDateString(
-                              undefined,
-                              {
-                                month: "long",
-                                day: "numeric",
-                                year: "numeric",
-                              }
-                            )}${task.timeOfDay ? ` (${task.timeOfDay})` : ""}`
-                          : "No due date"}
-                      </span>
+                      <DueDateBadge dueDate={task.dueDate} timeOfDay={task.timeOfDay} status={task.status} />
                     )}
                   </div>
 
