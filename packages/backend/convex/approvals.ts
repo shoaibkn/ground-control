@@ -1,8 +1,9 @@
 import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { authComponent } from "./auth"
-import { components } from "./_generated/api"
+import { components, internal } from "./_generated/api"
 import { hasPermission } from "./permissions"
+import { spawnNextRecurringInstance } from "./tasks"
 
 /**
  * Ensures the caller is authenticated and returns their user record.
@@ -86,6 +87,24 @@ export const createApproval = mutation({
       },
       timestamp: Date.now(),
     })
+
+    // Send notifications to approvers
+    for (const approverId of cleanApprovers) {
+      if (approverId !== user._id) {
+        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+          userId: approverId,
+          organizationId: args.organizationId,
+          templateName: "approval_requested",
+          parameters: {
+            approvalTitle: args.title,
+            requesterName: user.name || user.email || "Someone",
+            dueDate: args.dueDate
+              ? new Date(args.dueDate).toLocaleDateString()
+              : "No due date",
+          },
+        })
+      }
+    }
 
     return approvalId
   },
@@ -303,38 +322,110 @@ export const updateApprovalStatus = mutation({
       timestamp: Date.now(),
     })
 
-    // If Rework is selected, automatically create a task for the creator to rework on the request, due at EOD.
-    if (args.status === "Rework") {
-      const now = new Date()
-      // EOD timestamp
-      const eod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+    // If this approval request is linked to a task completion, update the task status accordingly
+    if (approval.taskId) {
+      const task = await ctx.db.get(approval.taskId)
+      if (task) {
+        const prevTaskStatus = task.status
+        let nextTaskStatus = prevTaskStatus
+        let chatMessage = ""
 
-      const taskId = await ctx.db.insert("tasks", {
-        title: `Rework: ${approval.title}`,
-        description: `Approval request "${approval.title}" needs rework. Comment: ${args.comment || "No comment provided."}`,
-        priority: "High",
-        status: "Pending",
-        dueDate: eod,
-        creatorId: user._id,
-        organizationId: approval.organizationId,
-        assigneeIds: [approval.creatorId],
-        collaboratorIds: [],
-        subscriberIds: [],
-        isArchived: false,
-      })
+        if (args.status === "Approved") {
+          nextTaskStatus = "Completed"
+          chatMessage = `approved the task completion request. Task marked as Completed.`
+          
+          // Spawn next instance if recurring
+          if (task.recurrence) {
+            await spawnNextRecurringInstance(ctx, task)
+          }
+        } else if (args.status === "Declined") {
+          nextTaskStatus = "In Progress"
+          chatMessage = `declined task completion request. Task reverted to In Progress. Comment: ${args.comment || "No comment provided."}`
+        } else if (args.status === "Rework") {
+          nextTaskStatus = "In Progress"
+          chatMessage = `requested rework on the task completion. Task status set back to In Progress. Comment: ${args.comment || "No comment provided."}`
+        }
 
-      // Log the generated task creation
-      await ctx.db.insert("taskAuditLogs", {
-        taskId,
-        actorId: user._id,
-        action: "TASK_CREATED",
-        details: {
+        if (nextTaskStatus !== prevTaskStatus) {
+          await ctx.db.patch(approval.taskId, { status: nextTaskStatus })
+          
+          await ctx.db.insert("taskAuditLogs", {
+            taskId: approval.taskId,
+            actorId: user._id,
+            action: "STATUS_CHANGED",
+            details: { previous: prevTaskStatus, new: nextTaskStatus, approvalId: approval._id, comment: args.comment },
+            timestamp: Date.now(),
+          })
+
+          await ctx.db.insert("taskChats", {
+            taskId: approval.taskId,
+            userId: user._id,
+            content: chatMessage,
+            isEdited: false,
+            isDeleted: false,
+            isSystem: true,
+            statusChange: nextTaskStatus,
+          })
+        }
+      }
+    } else {
+      // If Rework is selected, automatically create a task for the creator to rework on the request, due at EOD.
+      if (args.status === "Rework") {
+        const now = new Date()
+        // EOD timestamp
+        const eod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+
+        const taskId = await ctx.db.insert("tasks", {
           title: `Rework: ${approval.title}`,
-          assignees: [approval.creatorId],
-          collaborators: [],
-          subscribers: [],
+          description: `Approval request "${approval.title}" needs rework. Comment: ${args.comment || "No comment provided."}`,
+          priority: "High",
+          status: "Pending",
+          dueDate: eod,
+          creatorId: user._id,
+          organizationId: approval.organizationId,
+          assigneeIds: [approval.creatorId],
+          collaboratorIds: [],
+          subscriberIds: [],
+          isArchived: false,
+        })
+
+        // Log the generated task creation
+        await ctx.db.insert("taskAuditLogs", {
+          taskId,
+          actorId: user._id,
+          action: "TASK_CREATED",
+          details: {
+            title: `Rework: ${approval.title}`,
+            assignees: [approval.creatorId],
+            collaborators: [],
+            subscribers: [],
+          },
+          timestamp: Date.now(),
+        })
+      }
+    }
+
+    // Send notifications to creator and subscribers
+    const recipients = new Set<string>()
+    recipients.add(approval.creatorId)
+    if (approval.subscriberIds) {
+      for (const subId of approval.subscriberIds) {
+        recipients.add(subId)
+      }
+    }
+    recipients.delete(user._id) // Don't notify the person who triggered the change
+
+    for (const recipientId of recipients) {
+      await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+        userId: recipientId,
+        organizationId: approval.organizationId,
+        templateName: "approval_status_changed",
+        parameters: {
+          approvalTitle: approval.title,
+          updaterName: user.name || user.email || "Someone",
+          newStatus: args.status,
+          comment: args.comment || "No comment provided.",
         },
-        timestamp: Date.now(),
       })
     }
 

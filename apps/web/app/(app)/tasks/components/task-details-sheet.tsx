@@ -12,6 +12,7 @@ import {
 } from "@workspace/ui/components/sheet"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
+import { Switch } from "@workspace/ui/components/switch"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Avatar,
@@ -82,6 +83,8 @@ import {
   Smile,
   Paperclip,
   Repeat,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
@@ -117,7 +120,7 @@ export default function TaskDetailsSheet({
 
   const updateDetails = useMutation(api.tasks.updateTaskDetails).withOptimisticUpdate(
     (localStore, args) => {
-      const { taskId: targetId, title: newTitle, description: newDescription, priority, dueDate } = args
+      const { taskId: targetId, title: newTitle, description: newDescription, priority, dueDate, completedRequiresApproval } = args
 
       // 1. Update task details query
       const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
@@ -131,27 +134,32 @@ export default function TaskDetailsSheet({
             ...(newDescription !== undefined && { description: newDescription }),
             ...(priority !== undefined && { priority }),
             ...(dueDate !== undefined && { dueDate }),
+            ...(completedRequiresApproval !== undefined && { completedRequiresApproval }),
           }
         )
       }
 
-      // 2. Update task list query
+      // 2. Update task list queries (both showArchived options)
       if (activeOrg?.id) {
-        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
-        if (tasksList) {
-          const updatedTasks = tasksList.map((t: any) => {
-            if (t._id === targetId) {
-              return {
-                ...t,
-                ...(newTitle !== undefined && { title: newTitle }),
-                ...(newDescription !== undefined && { description: newDescription }),
-                ...(priority !== undefined && { priority }),
-                ...(dueDate !== undefined && { dueDate }),
+        for (const showArchived of [true, false, undefined]) {
+          const queryArgs = { organizationId: activeOrg.id, showArchived }
+          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
+          if (tasksList) {
+            const updatedTasks = tasksList.map((t: any) => {
+              if (t._id === targetId) {
+                return {
+                  ...t,
+                  ...(newTitle !== undefined && { title: newTitle }),
+                  ...(newDescription !== undefined && { description: newDescription }),
+                  ...(priority !== undefined && { priority }),
+                  ...(dueDate !== undefined && { dueDate }),
+                  ...(completedRequiresApproval !== undefined && { completedRequiresApproval }),
+                }
               }
-            }
-            return t
-          })
-          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+              return t
+            })
+            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
+          }
         }
       }
     }
@@ -414,6 +422,125 @@ export default function TaskDetailsSheet({
   )
   const readReceipts = useQuery(api.taskChats.getTaskReadReceipts, taskId ? { taskId } : "skip")
   const markAsRead = useMutation(api.taskChats.markChatsAsRead)
+  const archiveTask = useMutation(api.tasks.archiveTask).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, isArchived } = args
+
+      // 1. Update task details query
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(
+          api.tasks.getTask,
+          { taskId: targetId },
+          { ...currentTask, isArchived }
+        )
+      }
+
+      // 2. Update task list queries (both showArchived options)
+      if (activeOrg?.id) {
+        for (const showArchived of [true, false, undefined]) {
+          const queryArgs = { organizationId: activeOrg.id, showArchived }
+          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
+          if (tasksList) {
+            const updatedTasks = tasksList.map((t: any) => {
+              if (t._id === targetId) {
+                return { ...t, isArchived }
+              }
+              return t
+            })
+            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
+          }
+        }
+      }
+    }
+  )
+
+  const handleArchiveToggle = async () => {
+    if (!task) return
+    const nextArchivedState = !task.isArchived
+    try {
+      await archiveTask({ taskId: task._id, isArchived: nextArchivedState })
+      toast.success(nextArchivedState ? "Task archived successfully!" : "Task restored successfully!")
+      if (nextArchivedState) {
+        onClose()
+      }
+    } catch (err: any) {
+      console.error("Failed to archive task", err)
+      toast.error(err.message || "Failed to toggle task archive status")
+    }
+  }
+
+  const updateTaskRecurrence = useMutation(api.tasks.updateTaskRecurrence).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId, recurrence } = args
+
+      // 1. Update task details query
+      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      if (currentTask) {
+        localStore.setQuery(api.tasks.getTask, { taskId: targetId }, { ...currentTask, recurrence })
+      }
+
+      // 2. Update task list queries (both showArchived options)
+      if (activeOrg?.id) {
+        for (const showArchived of [true, false, undefined]) {
+          const queryArgs = { organizationId: activeOrg.id, showArchived }
+          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
+          if (tasksList) {
+            const updatedTasks = tasksList.map((t: any) => {
+              if (t._id === targetId) {
+                return { ...t, recurrence }
+              }
+              return t
+            })
+            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
+          }
+        }
+      }
+    }
+  )
+
+  const handleRecurrenceChange = async (frequency: string) => {
+    if (!task) return
+    const currentRec = task.recurrence
+    const nextRec = {
+      startDate: currentRec?.startDate ?? Date.now(),
+      frequency,
+      isPaused: currentRec?.isPaused ?? false,
+      endDate: currentRec?.endDate,
+      timeOfDay: currentRec?.timeOfDay,
+    }
+    try {
+      await updateTaskRecurrence({ taskId: task._id, recurrence: nextRec })
+      toast.success(`Recurrence updated to ${frequency}`)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update recurrence")
+    }
+  }
+
+  const handleTogglePauseRecurrence = async () => {
+    if (!task || !task.recurrence) return
+    const nextPaused = !task.recurrence.isPaused
+    const nextRec = {
+      ...task.recurrence,
+      isPaused: nextPaused,
+    }
+    try {
+      await updateTaskRecurrence({ taskId: task._id, recurrence: nextRec })
+      toast.success(nextPaused ? "Recurrence paused successfully!" : "Recurrence resumed successfully!")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle recurrence pause status")
+    }
+  }
+
+  const handleRemoveRecurrence = async () => {
+    if (!task) return
+    try {
+      await updateTaskRecurrence({ taskId: task._id, recurrence: undefined })
+      toast.success("Recurrence removed from task")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove recurrence")
+    }
+  }
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -497,14 +624,15 @@ export default function TaskDetailsSheet({
     }
   }
 
-  const canEditTaskDetails = isAdminOrOwner || isCreator
-  const canUpdateStatus = isAdminOrOwner || isCreator || isAssignee || isCollaborator
-  const canManageSubtasks = isAdminOrOwner || isCreator || isAssignee || isCollaborator
-  const canManageAssignees = isAdminOrOwner || isCreator
-  const canManageCollaborators = isAdminOrOwner || isCreator || isAssignee
-  const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee || isCollaborator
-  const canAddAttachments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
-  const canAddChats = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber
+  const canArchive = isAdminOrOwner || isCreator
+  const canEditTaskDetails = (isAdminOrOwner || isCreator) && !task?.isArchived
+  const canUpdateStatus = (isAdminOrOwner || isCreator || isAssignee || isCollaborator) && !task?.isArchived && (task?.status !== "Pending Approval" || isCreator || isAdminOrOwner)
+  const canManageSubtasks = (isAdminOrOwner || isCreator || isAssignee || isCollaborator) && !task?.isArchived
+  const canManageAssignees = (isAdminOrOwner || isCreator) && !task?.isArchived
+  const canManageCollaborators = (isAdminOrOwner || isCreator || isAssignee) && !task?.isArchived
+  const canManageSubscribers = (isAdminOrOwner || isCreator || isAssignee || isCollaborator) && !task?.isArchived
+  const canAddAttachments = (isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber) && !task?.isArchived
+  const canAddChats = (isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber) && !task?.isArchived
 
   const getUserDetails = (userId: string): { name: string; email: string; image?: string } => {
     const member = activeOrg?.members?.find((m: any) => m.userId === userId)
@@ -542,6 +670,7 @@ export default function TaskDetailsSheet({
     description?: string
     priority?: string
     dueDate?: number
+    completedRequiresApproval?: boolean
   }) => {
     if (!taskId || !canEditTaskDetails) return
     setIsSaving(true)
@@ -841,9 +970,11 @@ export default function TaskDetailsSheet({
       case "In Progress":
         return "bg-sky-50 text-sky-700 border-sky-200/30 dark:bg-sky-950/40 dark:text-sky-300"
       case "Under Review":
-        return "bg-purple-50 text-purple-700 border-purple-200/30 dark:bg-purple-950/40 dark:text-purple-300"
+        return "bg-purple-50 text-purple-700 border-purple-200/30 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800/30"
+      case "Pending Approval":
+        return "bg-amber-50 text-amber-700 border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/30"
       case "Completed":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/40 dark:text-emerald-300"
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/30"
       case "Cancelled":
         return "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400"
       default:
@@ -1042,6 +1173,22 @@ export default function TaskDetailsSheet({
                   </Button>
                 )}
 
+                {canArchive && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={handleArchiveToggle}
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                    title={task.isArchived ? "Restore Task" : "Archive Task"}
+                  >
+                    {task.isArchived ? (
+                      <ArchiveRestore className="h-4 w-4" />
+                    ) : (
+                      <Archive className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+
                 <Button
                   size="icon-sm"
                   variant="ghost"
@@ -1068,6 +1215,13 @@ export default function TaskDetailsSheet({
 
             {/* Scrollable details view */}
             <div className="flex-1 overflow-y-auto">
+              {task.isArchived && (
+                <div className="m-6 mb-0 flex items-center gap-2.5 rounded-xl border border-amber-200/50 bg-amber-500/10 p-4 text-xs text-amber-700 dark:border-amber-800/30 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+                  <span>This task is archived. Unarchive it to allow edits, comments, or attachments.</span>
+                </div>
+              )}
+
               {/* Task Title & Details */}
               <div className="space-y-6 p-6 pb-4">
                 {/* Title */}
@@ -1230,6 +1384,9 @@ export default function TaskDetailsSheet({
                           </SelectItem>
                           <SelectItem value="Under Review">
                             Under Review
+                          </SelectItem>
+                          <SelectItem value="Pending Approval">
+                            Pending Approval
                           </SelectItem>
                           <SelectItem value="Completed">Completed</SelectItem>
                           <SelectItem value="Cancelled">Cancelled</SelectItem>
@@ -1705,7 +1862,109 @@ export default function TaskDetailsSheet({
                         </div>
                       )}
                   </div>
-                </div>
+                    {/* Completion Sign-off */}
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Sparkles className="size-3.5 shrink-0 text-muted-foreground/60" />
+                      <span>Completion Sign-off</span>
+                    </div>
+                    <div>
+                      {isEditingDetails && canEditTaskDetails ? (
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="details-completed-requires-approval"
+                            checked={task.completedRequiresApproval ?? false}
+                            onCheckedChange={(checked: boolean) =>
+                              handleUpdate({ completedRequiresApproval: checked })
+                            }
+                            className="cursor-pointer scale-75 origin-left"
+                          />
+                          <span className="text-[10px] text-muted-foreground">
+                            {task.completedRequiresApproval ? "Creator sign-off required" : "Mark done directly"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-medium text-foreground/80">
+                          {task.completedRequiresApproval ? "Requires creator approval" : "No approval required"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Recurrence */}
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Repeat className="size-3.5 shrink-0 text-muted-foreground/60" />
+                      <span>Recurrence</span>
+                    </div>
+                    <div>
+                      {isEditingDetails && canEditTaskDetails ? (
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <Select
+                            value={task.recurrence?.frequency || "none"}
+                            onValueChange={(val) => {
+                              if (val === "none") {
+                                handleRemoveRecurrence()
+                              } else {
+                                handleRecurrenceChange(val)
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-[130px] text-xs">
+                              <SelectValue placeholder="No Recurrence" />
+                            </SelectTrigger>
+                            <SelectContent className="text-xs">
+                              <SelectItem value="none">No Recurrence</SelectItem>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="yearly">Yearly</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {task.recurrence && (
+                            <>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs font-semibold px-2.5 rounded-md border-border/80"
+                                onClick={handleTogglePauseRecurrence}
+                              >
+                                {task.recurrence.isPaused ? "Resume" : "Pause"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs font-semibold px-2.5 rounded-md border-destructive/30 hover:bg-destructive/10 text-destructive"
+                                onClick={handleRemoveRecurrence}
+                              >
+                                Remove
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      ) : task.recurrence ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground/80 capitalize">
+                            Repeats {task.recurrence.frequency}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`h-5 text-[9px] font-semibold px-2 rounded-full border ${
+                              task.recurrence.isPaused
+                                ? "bg-red-50 text-red-700 border-red-200/30 dark:bg-red-950/30 dark:text-red-300"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/30 dark:text-emerald-300"
+                            }`}
+                          >
+                            {task.recurrence.isPaused ? "Paused" : "Active"}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/80 italic">One-off task</span>
+                      )}
+                    </div>
+                  </div>
 
                 {/* Project Description Card */}
                 <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-4">
@@ -2712,7 +2971,7 @@ export default function TaskDetailsSheet({
                       </div>
 
                       {/* Chat Input Bar */}
-                      {canAddChats && (
+                      {canAddChats ? (
                         <ChatInputForm
                           taskId={taskId}
                           canAddChats={canAddChats}
@@ -2723,7 +2982,11 @@ export default function TaskDetailsSheet({
                           deleteAttach={deleteAttach}
                           subtasks={subtasks}
                         />
-                      )}
+                      ) : task.isArchived ? (
+                        <div className="border-t border-border/40 p-4 bg-muted/5 text-center text-xs text-muted-foreground italic">
+                          New messages cannot be added to archived tasks.
+                        </div>
+                      ) : null}
                     </div>
                   </TabsContent>
                 </div>

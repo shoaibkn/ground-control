@@ -10,6 +10,7 @@ export default defineSchema({
     phoneNumber: v.optional(v.string()),
     integrations: v.optional(
       v.object({
+        email: v.optional(v.boolean()),
         sms: v.boolean(),
         rcs: v.boolean(),
         whatsapp: v.boolean(),
@@ -37,6 +38,7 @@ export default defineSchema({
         startDate: v.number(), // timestamp
         endDate: v.optional(v.number()), // timestamp
         timeOfDay: v.optional(v.string()),
+        isPaused: v.optional(v.boolean()),
       })
     ),
     reactions: v.optional(
@@ -47,6 +49,7 @@ export default defineSchema({
         })
       )
     ),
+    completedRequiresApproval: v.optional(v.boolean()),
   }).index("by_organization", ["organizationId"]),
 
   taskChats: defineTable({
@@ -119,6 +122,7 @@ export default defineSchema({
     approverIds: v.array(v.string()),
     subscriberIds: v.optional(v.array(v.string())),
     isArchived: v.boolean(),
+    taskId: v.optional(v.id("tasks")),
   }).index("by_organization", ["organizationId"]),
 
   approvalChats: defineTable({

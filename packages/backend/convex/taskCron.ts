@@ -1,5 +1,6 @@
 import { internalMutation } from "./_generated/server"
 import { spawnNextRecurringInstance } from "./tasks"
+import { internal } from "./_generated/api"
 
 export const checkOverdueTasks = internalMutation({
   args: {},
@@ -29,9 +30,6 @@ export const checkOverdueTasks = internalMutation({
     })
 
     for (const task of overdueTasks) {
-      // In a real implementation we would call an internal Action to send the Resend email here
-      // For now we just update the notification timestamp
-      
       await ctx.db.patch(task._id, {
         lastOverdueNotifiedAt: now
       })
@@ -44,6 +42,21 @@ export const checkOverdueTasks = internalMutation({
         details: { dueDate: task.dueDate },
         timestamp: now,
       })
+
+      // Send overdue notifications to assignees
+      for (const assigneeId of task.assigneeIds) {
+        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+          userId: assigneeId,
+          organizationId: task.organizationId,
+          templateName: "task_overdue",
+          parameters: {
+            taskTitle: task.title,
+            dueDate: task.dueDate
+              ? new Date(task.dueDate).toLocaleDateString()
+              : "No due date",
+          },
+        })
+      }
     }
   },
 })

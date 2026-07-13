@@ -52,6 +52,7 @@ export function MemberProfileDialog({
     phoneNumber: "",
   })
   const [integrations, setIntegrations] = useState({
+    email: true,
     sms: false,
     rcs: false,
     whatsapp: false,
@@ -67,6 +68,7 @@ export function MemberProfileDialog({
         phoneNumber: profile.phoneNumber || "",
       })
       setIntegrations({
+        email: profile.integrations?.email !== undefined ? profile.integrations.email : true,
         sms: profile.integrations?.sms || false,
         rcs: profile.integrations?.rcs || false,
         whatsapp: profile.integrations?.whatsapp || false,
@@ -78,7 +80,7 @@ export function MemberProfileDialog({
         department: "",
         phoneNumber: "",
       })
-      setIntegrations({ sms: false, rcs: false, whatsapp: false })
+      setIntegrations({ email: true, sms: false, rcs: false, whatsapp: false })
     }
   }, [profile])
 
@@ -167,6 +169,24 @@ export function MemberProfileDialog({
         <div className="border-t pt-4">
           <h4 className="mb-4 text-sm font-semibold">Integrations</h4>
           <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label
+                htmlFor="email-integration"
+                className="flex flex-col items-start gap-1"
+              >
+                <span>Email</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  Enable Email notifications
+                </span>
+              </Label>
+              <Switch
+                id="email-integration"
+                checked={integrations.email}
+                onCheckedChange={(checked) =>
+                  handleIntegrationChange("email", checked)
+                }
+              />
+            </div>
             <div className="flex items-center justify-between">
               <Label
                 htmlFor="sms-integration"

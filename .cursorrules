@@ -1,0 +1,9 @@
+# Ground Control AI Coding Guidelines
+
+## Optimistic UI Updates
+- **Mandatory Requirement**: Always implement Convex optimistic UI updates (`withOptimisticUpdate`) for any mutations that modify task or approval states (e.g., archiving/restoring, completion sign-off toggles, recurrence configuration, priority/due date adjustments, status changes).
+- **Cache Synchronization**: Ensure that both:
+  1. The detailed item query cache (e.g., `api.tasks.getTask`)
+  2. The dashboard grid/list/board queries (e.g., `api.tasks.getTasks` across all `showArchived` filter states: `true`, `false`, `undefined`)
+  are synchronized optimistically so the UI reacts instantly.
+- **Rollback and Error Handling**: Provide toast notices or rollback mechanisms if the server response fails, so the client state stays reliable.

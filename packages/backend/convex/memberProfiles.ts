@@ -50,6 +50,7 @@ export const upsertProfile = mutation({
     phoneNumber: v.optional(v.string()),
     integrations: v.optional(
       v.object({
+        email: v.optional(v.boolean()),
         sms: v.boolean(),
         rcs: v.boolean(),
         whatsapp: v.boolean(),
@@ -101,7 +102,7 @@ export const upsertProfile = mutation({
         position: args.position,
         department: args.department,
         phoneNumber: args.phoneNumber,
-        integrations: args.integrations ?? { sms: false, rcs: false, whatsapp: false },
+        integrations: args.integrations ?? { email: true, sms: false, rcs: false, whatsapp: false },
       })
     }
 

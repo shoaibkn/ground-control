@@ -53,6 +53,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([])
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [completedRequiresApproval, setCompletedRequiresApproval] = useState(false)
 
   // Recurrence States
   const [isRecurring, setIsRecurring] = useState(false)
@@ -150,6 +151,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
         assigneeIds: selectedAssignees,
         collaboratorIds: selectedCollaborators,
         subscriberIds: selectedSubscribers,
+        completedRequiresApproval,
       })
 
       toast.success("Task created successfully")
@@ -162,6 +164,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
       setSelectedAssignees([])
       setSelectedCollaborators([])
       setSelectedSubscribers([])
+      setCompletedRequiresApproval(false)
 
       // Reset recurrence fields
       setIsRecurring(false)
@@ -280,6 +283,25 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Completed Only After Approval Toggle */}
+          <div className="flex items-center justify-between rounded-lg border border-border/80 bg-input/10 p-3 dark:bg-input/20">
+            <div className="space-y-0.5">
+              <Label htmlFor="completed-requires-approval" className="text-xs font-semibold text-foreground">
+                Completed Only After Approval
+              </Label>
+              <p className="text-[10px] text-muted-foreground">
+                Requires the task creator's approval before task is marked completed.
+              </p>
+            </div>
+            <Switch
+              id="completed-requires-approval"
+              checked={completedRequiresApproval}
+              onCheckedChange={setCompletedRequiresApproval}
+              disabled={isSubmitting}
+              className="cursor-pointer"
+            />
           </div>
 
           {/* Recurring Task Toggle */}

@@ -165,6 +165,7 @@ export default function TasksPage() {
     "Pending",
     "In Progress",
     "Under Review",
+    "Pending Approval",
     "Completed",
     "Cancelled",
   ])
@@ -454,6 +455,8 @@ export default function TasksPage() {
         return "bg-sky-50 text-sky-700 border-sky-200/30 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/30"
       case "Under Review":
         return "bg-purple-50 text-purple-700 border-purple-200/30 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/30"
+      case "Pending Approval":
+        return "bg-amber-50 text-amber-700 border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/30"
       case "Completed":
         return "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/30"
       case "Cancelled":
@@ -594,7 +597,7 @@ export default function TasksPage() {
                     <DropdownMenuContent align="end" className="w-[180px]">
                       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-semibold">Toggle Columns</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => {
+                      {["Pending", "In Progress", "Under Review", "Pending Approval", "Completed", "Cancelled"].map((status) => {
                         const isVisible = visibleStatuses.includes(status)
                         return (
                           <DropdownMenuCheckboxItem
@@ -864,7 +867,7 @@ export default function TasksPage() {
                   Status
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => {
+                  {["Pending", "In Progress", "Under Review", "Pending Approval", "Completed", "Cancelled"].map((status) => {
                     const selected = filters.statuses.includes(status)
                     return (
                       <button
@@ -1230,6 +1233,7 @@ export default function TasksPage() {
                               <SelectItem value="Pending">Pending</SelectItem>
                               <SelectItem value="In Progress">In Progress</SelectItem>
                               <SelectItem value="Under Review">Under Review</SelectItem>
+                              <SelectItem value="Pending Approval">Pending Approval</SelectItem>
                               <SelectItem value="Completed">Completed</SelectItem>
                               <SelectItem value="Cancelled">Cancelled</SelectItem>
                             </SelectContent>
@@ -1451,6 +1455,7 @@ export default function TasksPage() {
                                         <SelectItem value="Pending">Pending</SelectItem>
                                         <SelectItem value="In Progress">In Progress</SelectItem>
                                         <SelectItem value="Under Review">Under Review</SelectItem>
+                                        <SelectItem value="Pending Approval">Pending Approval</SelectItem>
                                         <SelectItem value="Completed">Completed</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                       </SelectContent>
@@ -1673,6 +1678,7 @@ export default function TasksPage() {
                                         <SelectItem value="Pending">Pending</SelectItem>
                                         <SelectItem value="In Progress">In Progress</SelectItem>
                                         <SelectItem value="Under Review">Under Review</SelectItem>
+                                        <SelectItem value="Pending Approval">Pending Approval</SelectItem>
                                         <SelectItem value="Completed">Completed</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                       </SelectContent>
@@ -1830,6 +1836,7 @@ export default function TasksPage() {
                           status === "Pending" ? "bg-yellow-400" :
                           status === "In Progress" ? "bg-sky-400" :
                           status === "Under Review" ? "bg-purple-400" :
+                          status === "Pending Approval" ? "bg-amber-400" :
                           status === "Completed" ? "bg-emerald-400" :
                           "bg-slate-400"
                         }`} />

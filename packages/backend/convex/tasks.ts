@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { authComponent } from "./auth"
-import { components } from "./_generated/api"
+import { components, internal } from "./_generated/api"
 import { hasPermission } from "./permissions"
 
 /**
@@ -50,6 +50,7 @@ export const createTask = mutation({
     collaboratorIds: v.optional(v.array(v.string())),
     subscriberIds: v.optional(v.array(v.string())),
     timeOfDay: v.optional(v.string()),
+    completedRequiresApproval: v.optional(v.boolean()),
     recurrence: v.optional(
       v.object({
         frequency: v.string(),
@@ -103,6 +104,7 @@ export const createTask = mutation({
       collaboratorIds: cleanCollaborators,
       subscriberIds: cleanSubscribers,
       isArchived: false,
+      completedRequiresApproval: args.completedRequiresApproval ?? false,
     })
 
     // Log the creation
@@ -119,7 +121,23 @@ export const createTask = mutation({
       timestamp: Date.now(),
     })
 
-    // TODO: Send emails to assignees via Resend/Cron/Actions
+    // Send notifications to assignees
+    for (const assigneeId of cleanAssignees) {
+      if (assigneeId !== user._id) {
+        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+          userId: assigneeId,
+          organizationId: args.organizationId,
+          templateName: "task_assigned",
+          parameters: {
+            taskTitle: args.title,
+            assignerName: user.name || user.email || "Someone",
+            dueDate: args.dueDate
+              ? new Date(args.dueDate).toLocaleDateString()
+              : "No due date",
+          },
+        })
+      }
+    }
 
     return taskId
   },
@@ -347,7 +365,7 @@ export function calculateNextDueDate(currentDueDate: number, frequency: string, 
 }
 
 export async function spawnNextRecurringInstance(ctx: any, task: any) {
-  if (!task.recurrence) return
+  if (!task.recurrence || task.recurrence.isPaused) return
 
   const nextDueDate = calculateNextDueDate(
     task.dueDate || task.recurrence.startDate,
@@ -444,37 +462,65 @@ export const updateTaskStatus = mutation({
     const isCreator = task.creatorId === user._id
     const canComplete = await hasPermission(ctx, task.organizationId, member.role, "tasks", "complete")
     const canCancel = await hasPermission(ctx, task.organizationId, member.role, "tasks", "cancel")
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
 
     // State machine logic
-    if (args.status === "Cancelled" && !canCancel) {
-      throw new Error("Only admins/owners can cancel tasks")
-    }
-    
-    if (args.status === "Completed" && !canComplete) {
-      // If a member marks it as completed, it should actually go to "Under Review"
-      // But let's allow them to request "Completed" and we intercept it
-      if (isAssignee || isCollaborator || isCreator) {
-        args.status = "Under Review"
-      } else {
-        throw new Error("Unauthorized to complete task")
+    let targetStatus = args.status
+    if (args.status === "Completed" && task.completedRequiresApproval && user._id !== task.creatorId) {
+      targetStatus = "Pending Approval"
+
+      // Check for existing pending approval request for this task
+      const existingApproval = await ctx.db
+        .query("approvals")
+        .filter(q => q.and(
+          q.eq(q.field("taskId"), task._id),
+          q.eq(q.field("status"), "Pending"),
+          q.eq(q.field("isArchived"), false)
+        ))
+        .first()
+
+      if (!existingApproval) {
+        await ctx.db.insert("approvals", {
+          title: `Task Completion: ${task.title}`,
+          description: `Please review and approve completion for task: "${task.title}".`,
+          status: "Pending",
+          creatorId: user._id,
+          organizationId: task.organizationId,
+          approverIds: [task.creatorId],
+          subscriberIds: task.assigneeIds.filter(id => id !== user._id),
+          isArchived: false,
+          taskId: task._id,
+        })
       }
     }
 
+    if (targetStatus === "Cancelled" && !canCancel) {
+      throw new Error("Only admins/owners can cancel tasks")
+    }
+    
+    if (targetStatus === "Completed" && !isAssignee && !isCollaborator && !isCreator && !canComplete) {
+      throw new Error("Unauthorized to complete task")
+    }
+
+    if (targetStatus === "Pending Approval" && !isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
+      throw new Error("Unauthorized to request completion for this task")
+    }
+
     // Member moving forward
-    if (args.status === "In Progress" || args.status === "Under Review") {
+    if (targetStatus === "In Progress" || targetStatus === "Under Review" || targetStatus === "Pending Approval") {
       if (!isAssignee && !isCollaborator && !isCreator && !canComplete) {
         throw new Error("Permission denied to update task status")
       }
     }
 
     const previousStatus = task.status
-    await ctx.db.patch(args.taskId, { status: args.status })
+    await ctx.db.patch(args.taskId, { status: targetStatus })
 
     await ctx.db.insert("taskAuditLogs", {
       taskId: args.taskId,
       actorId: user._id,
       action: "STATUS_CHANGED",
-      details: { previous: previousStatus, new: args.status },
+      details: { previous: previousStatus, new: targetStatus },
       timestamp: Date.now(),
     })
 
@@ -482,20 +528,20 @@ export const updateTaskStatus = mutation({
       await ctx.db.insert("taskChats", {
         taskId: args.taskId,
         userId: user._id,
-        content: `updated task status to ${args.status}`,
+        content: `updated task status to ${targetStatus}`,
         isEdited: false,
         isDeleted: false,
         isSystem: true,
-        statusChange: args.status,
+        statusChange: targetStatus,
       })
     }
 
     // If marked Completed and has recurrence, spawn next instance and archive this one
-    if (args.status === "Completed" && task.recurrence) {
+    if (targetStatus === "Completed" && task.recurrence) {
       await spawnNextRecurringInstance(ctx, task)
     }
 
-    return { success: true, newStatus: args.status }
+    return { success: true, newStatus: targetStatus }
   },
 })
 
@@ -536,6 +582,7 @@ export const updateTaskDetails = mutation({
     description: v.optional(v.string()),
     priority: v.optional(v.string()),
     dueDate: v.optional(v.number()),
+    completedRequiresApproval: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
@@ -556,6 +603,7 @@ export const updateTaskDetails = mutation({
     if (args.description !== undefined) patch.description = args.description
     if (args.priority !== undefined) patch.priority = args.priority
     if (args.dueDate !== undefined) patch.dueDate = args.dueDate
+    if (args.completedRequiresApproval !== undefined) patch.completedRequiresApproval = args.completedRequiresApproval
 
     await ctx.db.patch(args.taskId, patch)
 
@@ -607,6 +655,25 @@ export const inviteAssignees = mutation({
       details: { previous: task.assigneeIds, new: cleanAssignees },
       timestamp: Date.now(),
     })
+
+    // Send notifications to newly added assignees
+    const newAssignees = cleanAssignees.filter((id) => !task.assigneeIds.includes(id))
+    for (const assigneeId of newAssignees) {
+      if (assigneeId !== user._id) {
+        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+          userId: assigneeId,
+          organizationId: task.organizationId,
+          templateName: "task_assigned",
+          parameters: {
+            taskTitle: task.title,
+            assignerName: user.name || user.email || "Someone",
+            dueDate: task.dueDate
+              ? new Date(task.dueDate).toLocaleDateString()
+              : "No due date",
+          },
+        })
+      }
+    }
 
     return { success: true, assigneeIds: cleanAssignees }
   },
@@ -933,5 +1000,80 @@ export const toggleStarTask = mutation({
       })
       return { isStarred: true }
     }
+  },
+})
+
+export const archiveTask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    isArchived: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+
+    if (!isAdminOrOwner && !isCreator) {
+      throw new Error("Unauthorized to archive task")
+    }
+
+    await ctx.db.patch(args.taskId, { isArchived: args.isArchived })
+
+    // Log archive state
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: args.isArchived ? "TASK_ARCHIVED" : "TASK_UNARCHIVED",
+      details: {},
+      timestamp: Date.now(),
+    })
+
+    return { success: true }
+  },
+})
+
+export const updateTaskRecurrence = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    recurrence: v.optional(
+      v.object({
+        frequency: v.string(),
+        startDate: v.number(),
+        endDate: v.optional(v.number()),
+        timeOfDay: v.optional(v.string()),
+        isPaused: v.optional(v.boolean()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+
+    if (!isCreator && !isAdminOrOwner) {
+      throw new Error("Only the creator or admins can modify task recurrence settings")
+    }
+
+    await ctx.db.patch(args.taskId, {
+      recurrence: args.recurrence,
+    })
+
+    await ctx.db.insert("taskAuditLogs", {
+      taskId: args.taskId,
+      actorId: user._id,
+      action: "TASK_UPDATED",
+      details: { recurrence: args.recurrence },
+      timestamp: Date.now(),
+    })
+
+    return { success: true }
   },
 })

@@ -73,6 +73,8 @@ import {
   Trash2,
   Paperclip,
   Sparkles,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
@@ -110,6 +112,53 @@ export default function ApprovalDetailsSheet({
   const deleteChatMsg = useMutation(api.approvalChats.deleteChat)
   const editChatMsg = useMutation(api.approvalChats.editChat)
   const markAsRead = useMutation(api.approvalChats.markChatsAsRead)
+  const archiveApproval = useMutation(api.approvals.archiveApproval).withOptimisticUpdate(
+    (localStore, args) => {
+      const { approvalId: targetId, isArchived } = args
+
+      // 1. Update approval details query
+      const currentApproval = localStore.getQuery(api.approvals.getApproval, { approvalId: targetId })
+      if (currentApproval) {
+        localStore.setQuery(
+          api.approvals.getApproval,
+          { approvalId: targetId },
+          { ...currentApproval, isArchived }
+        )
+      }
+
+      // 2. Update approvals list queries
+      if (activeOrg?.id) {
+        for (const showArchived of [true, false, undefined]) {
+          const queryArgs = { organizationId: activeOrg.id, showArchived }
+          const approvalsList = localStore.getQuery(api.approvals.getApprovals, queryArgs)
+          if (approvalsList) {
+            const updatedApprovals = approvalsList.map((a: any) => {
+              if (a._id === targetId) {
+                return { ...a, isArchived }
+              }
+              return a
+            })
+            localStore.setQuery(api.approvals.getApprovals, queryArgs, updatedApprovals)
+          }
+        }
+      }
+    }
+  )
+
+  const handleArchiveToggle = async () => {
+    if (!approval) return
+    const nextArchivedState = !approval.isArchived
+    try {
+      await archiveApproval({ approvalId: approval._id, isArchived: nextArchivedState })
+      toast.success(nextArchivedState ? "Approval request archived successfully!" : "Approval request restored successfully!")
+      if (nextArchivedState) {
+        onClose()
+      }
+    } catch (err: any) {
+      console.error("Failed to archive approval", err)
+      toast.error(err.message || "Failed to toggle approval archive status")
+    }
+  }
 
   const [activeTab, setActiveTab] = useState<"discussion" | "activity">("discussion")
   const [newChat, setNewChat] = useState("")
@@ -137,8 +186,9 @@ export default function ApprovalDetailsSheet({
     activeMember?.role === "admin" ||
     activeMember?.role === "owner"
   const isCreator = !!currentUserId && !!approval?.creatorId && approval.creatorId === currentUserId
-  const canEditApprovalDetails = isAdminOrOwner || isCreator
-  const canUpdateStatus = !!currentUserId && !!approval && (approval.approverIds.includes(currentUserId) || approval.creatorId === currentUserId || isAdminOrOwner)
+  const canArchive = isAdminOrOwner || isCreator
+  const canEditApprovalDetails = (isAdminOrOwner || isCreator) && !approval?.isArchived
+  const canUpdateStatus = !!currentUserId && !!approval && !approval.isArchived && (approval.approverIds.includes(currentUserId) || approval.creatorId === currentUserId || isAdminOrOwner)
 
   // Sync title and description when approval changes
   useEffect(() => {
@@ -421,11 +471,33 @@ export default function ApprovalDetailsSheet({
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
+
+                {canArchive && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={handleArchiveToggle}
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                    title={approval.isArchived ? "Restore Request" : "Archive Request"}
+                  >
+                    {approval.isArchived ? (
+                      <ArchiveRestore className="h-4 w-4" />
+                    ) : (
+                      <Archive className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
             {/* Scrollable Container */}
             <div className="flex-1 overflow-y-auto min-h-0">
+              {approval.isArchived && (
+                <div className="m-6 mb-0 flex items-center gap-2.5 rounded-xl border border-amber-200/50 bg-amber-500/10 p-4 text-xs text-amber-700 dark:border-amber-800/30 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+                  <span>This approval request is archived. Unarchive it to allow status changes, comments, or attachments.</span>
+                </div>
+              )}
               <div className="p-6 space-y-6">
                 {/* Title Section */}
                 <div>
@@ -869,94 +941,100 @@ export default function ApprovalDetailsSheet({
                       </div>
 
                       {/* Chat Input Bar & Toolbar */}
-                      <div className="border-t border-border/20 bg-muted/20 p-3 flex flex-col gap-2 shrink-0">
-                        {/* File drafts */}
-                        {draftAttachmentFiles.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto pb-1">
-                            {draftAttachmentFiles.map((draft, idx) => (
-                              <div key={idx} className="flex items-center gap-1 px-2 py-1 bg-background border rounded-md text-[10px]">
-                                <span className="max-w-[100px] truncate">{draft.file.name}</span>
-                                {!draft.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      handleDeleteAttachment(draft.id)
-                                      setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
-                                    }}
-                                    className="text-destructive hover:scale-110 ml-0.5"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Toolbar buttons */}
-                        <div className="flex flex-wrap items-center gap-1.5 pb-1 select-none">
-                          {/* File Upload Input */}
-                          <div>
-                            <input
-                              type="file"
-                              id="approval-file-upload"
-                              className="hidden"
-                              multiple
-                              onChange={handleFileSelect}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                              onClick={() => document.getElementById("approval-file-upload")?.click()}
-                            >
-                              <Paperclip className="h-3 w-3 shrink-0" />
-                              <span>Add File</span>
-                            </Button>
-                          </div>
-
-                          {/* Status update selector triggers */}
-                          {(approval.approverIds.includes(currentUserId!) || approval.creatorId === currentUserId || activeMember?.role === "admin") && (
-                            <div className="flex items-center gap-1">
-                              {["Approved", "Declined", "Rework"].map((st) => {
-                                if (st === approval.status) return null
-                                return (
-                                  <Button
-                                    key={st}
-                                    type="button"
-                                    variant="outline"
-                                    className="h-7 px-2.5 text-[10px] font-semibold rounded-full bg-background/60 border-border/30 hover:bg-muted transition-all hover:text-foreground"
-                                    onClick={() => {
-                                      setStatusToChange(st)
-                                    }}
-                                  >
-                                    <span>Set {st}</span>
-                                  </Button>
-                                )
-                              })}
+                      {approval.isArchived ? (
+                        <div className="border-t border-border/20 p-4 bg-muted/5 text-center text-xs text-muted-foreground italic shrink-0">
+                          New messages cannot be added to archived approval requests.
+                        </div>
+                      ) : (
+                        <div className="border-t border-border/20 bg-muted/20 p-3 flex flex-col gap-2 shrink-0">
+                          {/* File drafts */}
+                          {draftAttachmentFiles.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto pb-1">
+                              {draftAttachmentFiles.map((draft, idx) => (
+                                <div key={idx} className="flex items-center gap-1 px-2 py-1 bg-background border rounded-md text-[10px]">
+                                  <span className="max-w-[100px] truncate">{draft.file.name}</span>
+                                  {!draft.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        handleDeleteAttachment(draft.id)
+                                        setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
+                                      }}
+                                      className="text-destructive hover:scale-110 ml-0.5"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           )}
-                        </div>
 
-                        {/* Input Text Form */}
-                        <form onSubmit={handleSendChatMessage} className="flex gap-2 items-center">
-                          <Input
-                            placeholder="Ask a question or add a status update comment..."
-                            value={newChat}
-                            onChange={(e) => setNewChat(e.target.value)}
-                            disabled={isChatSending}
-                            className="h-9 text-xs flex-1"
-                          />
-                          <Button type="submit" size="icon" className="h-9 w-9 shrink-0" disabled={isChatSending}>
-                            {isChatSending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
+                          {/* Toolbar buttons */}
+                          <div className="flex flex-wrap items-center gap-1.5 pb-1 select-none">
+                            {/* File Upload Input */}
+                            <div>
+                              <input
+                                type="file"
+                                id="approval-file-upload"
+                                className="hidden"
+                                multiple
+                                onChange={handleFileSelect}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                                onClick={() => document.getElementById("approval-file-upload")?.click()}
+                              >
+                                <Paperclip className="h-3 w-3 shrink-0" />
+                                <span>Add File</span>
+                              </Button>
+                            </div>
+
+                            {/* Status update selector triggers */}
+                            {(approval.approverIds.includes(currentUserId!) || approval.creatorId === currentUserId || activeMember?.role === "admin") && (
+                              <div className="flex items-center gap-1">
+                                {["Approved", "Declined", "Rework"].map((st) => {
+                                  if (st === approval.status) return null
+                                  return (
+                                    <Button
+                                      key={st}
+                                      type="button"
+                                      variant="outline"
+                                      className="h-7 px-2.5 text-[10px] font-semibold rounded-full bg-background/60 border-border/30 hover:bg-muted transition-all hover:text-foreground"
+                                      onClick={() => {
+                                        setStatusToChange(st)
+                                      }}
+                                    >
+                                      <span>Set {st}</span>
+                                    </Button>
+                                  )
+                                })}
+                              </div>
                             )}
-                          </Button>
-                        </form>
-                      </div>
+                          </div>
+
+                          {/* Input Text Form */}
+                          <form onSubmit={handleSendChatMessage} className="flex gap-2 items-center">
+                            <Input
+                              placeholder="Ask a question or add a status update comment..."
+                              value={newChat}
+                              onChange={(e) => setNewChat(e.target.value)}
+                              disabled={isChatSending}
+                              className="h-9 text-xs flex-1"
+                            />
+                            <Button type="submit" size="icon" className="h-9 w-9 shrink-0" disabled={isChatSending}>
+                              {isChatSending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </form>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
