@@ -75,6 +75,9 @@ import {
   Sparkles,
   Archive,
   ArchiveRestore,
+  CheckCircle2,
+  ImageIcon,
+  FileIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAvatarUrl, cn } from "@workspace/ui/lib/utils"
@@ -588,7 +591,12 @@ export default function ApprovalDetailsSheet({
                         </SelectTrigger>
                         <SelectContent className="text-xs">
                           <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Approved">Approved</SelectItem>
+                          <SelectItem 
+                            value="Approved" 
+                            disabled={!!approval.formId && !approval.formResponseId}
+                          >
+                            Approved
+                          </SelectItem>
                           <SelectItem value="Declined">Declined</SelectItem>
                           <SelectItem value="Rework">Rework</SelectItem>
                         </SelectContent>
@@ -786,6 +794,19 @@ export default function ApprovalDetailsSheet({
                       )
                     })()}
                   </div>
+
+                  {/* Required Custom Form Section */}
+                  {approval.formId && (
+                    <div className="col-span-2 mt-2">
+                      <ApprovalCompletionForm
+                        approvalId={approval._id}
+                        formId={approval.formId}
+                        formResponseId={approval.formResponseId}
+                        organizationId={approval.organizationId}
+                        isApproverOrCreator={approval.approverIds.includes(currentUserId!) || isCreator || isAdminOrOwner}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Request Description Card */}
@@ -998,12 +1019,14 @@ export default function ApprovalDetailsSheet({
                               <div className="flex items-center gap-1">
                                 {["Approved", "Declined", "Rework"].map((st) => {
                                   if (st === approval.status) return null
+                                  const isApproveBlocked = st === "Approved" && !!approval.formId && !approval.formResponseId
                                   return (
                                     <Button
                                       key={st}
                                       type="button"
                                       variant="outline"
-                                      className="h-7 px-2.5 text-[10px] font-semibold rounded-full bg-background/60 border-border/30 hover:bg-muted transition-all hover:text-foreground"
+                                      disabled={isApproveBlocked}
+                                      className="h-7 px-2.5 text-[10px] font-semibold rounded-full bg-background/60 border-border/30 hover:bg-muted transition-all hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
                                       onClick={() => {
                                         setStatusToChange(st)
                                       }}
@@ -1157,3 +1180,381 @@ export default function ApprovalDetailsSheet({
     </Sheet>
   )
 }
+
+function ApprovalCompletionForm({
+  approvalId,
+  formId,
+  formResponseId,
+  organizationId,
+  isApproverOrCreator
+}: {
+  approvalId: any
+  formId: any
+  formResponseId?: any
+  organizationId: string
+  isApproverOrCreator: boolean
+}) {
+  const form = useQuery(api.forms.getForm, { formId })
+  const responses = useQuery(api.forms.getFormResponses, { formId })
+  const submitFormResponse = useMutation(api.forms.submitFormResponse)
+  const { data: activeOrg } = authClient.useActiveOrganization()
+
+  const [answers, setAnswers] = useState<Record<string, any>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Initialize answers
+  useEffect(() => {
+    if (form) {
+      const initial: Record<string, any> = {}
+      form.fields.forEach((f: any) => {
+        if (f.type === "checkbox") {
+          initial[f.id] = []
+        } else {
+          initial[f.id] = ""
+        }
+      })
+      setAnswers(initial)
+    }
+  }, [form])
+
+  if (form === undefined) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground p-3">
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        <span>Loading form questions...</span>
+      </div>
+    )
+  }
+
+  if (form === null) return null
+
+  const handleTextChange = (fieldId: string, val: string) => {
+    setAnswers(prev => ({ ...prev, [fieldId]: val }))
+  }
+
+  const handleCheckboxChange = (fieldId: string, option: string, checked: boolean) => {
+    const current = answers[fieldId] || []
+    const updated = checked 
+      ? [...current, option] 
+      : current.filter((o: string) => o !== option)
+    setAnswers(prev => ({ ...prev, [fieldId]: updated }))
+  }
+
+  const handleFileUpload = (fieldId: string, type: "file" | "image", file: File | null) => {
+    if (!file) {
+      setAnswers(prev => ({ ...prev, [fieldId]: "" }))
+      return
+    }
+    
+    if (type === "image") {
+      setAnswers(prev => ({ 
+        ...prev, 
+        [fieldId]: `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`
+      }))
+    } else {
+      setAnswers(prev => ({ 
+        ...prev, 
+        [fieldId]: `https://ground-control.mock/attachments/${Date.now()}-${file.name}` 
+      }))
+    }
+    toast.success(`${file.name} uploaded successfully (mock)`)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    for (const f of form.fields) {
+      const val = answers[f.id]
+      if (f.required) {
+        if (f.type === "checkbox" && (!val || val.length === 0)) {
+          toast.error(`"${f.label}" is required.`)
+          return
+        }
+        if (f.type !== "checkbox" && (!val || String(val).trim() === "")) {
+          toast.error(`"${f.label}" is required.`)
+          return
+        }
+      }
+    }
+
+    setIsSubmitting(true)
+    try {
+      const payloadAnswers = Object.entries(answers).map(([fieldId, value]) => ({
+        fieldId,
+        value
+      }))
+
+      await submitFormResponse({
+        formId: form._id,
+        answers: payloadAnswers,
+        approvalId,
+        organizationId
+      })
+
+      toast.success("Required form submitted successfully!")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit response")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (formResponseId) {
+    const response = responses?.find(r => r._id === formResponseId)
+    return (
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
+        <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2 select-none">
+          <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+            <span>Completion Form Submitted</span>
+          </div>
+          {response && (
+            <Badge variant="outline" className="text-[9px] font-semibold text-emerald-600 bg-emerald-500/5 border-emerald-500/15">
+              Verified Response
+            </Badge>
+          )}
+        </div>
+
+        {response ? (
+          <div className="space-y-2.5 text-xs">
+            {form.fields.map((f: any) => {
+              const ans = response.answers.find((a: any) => a.fieldId === f.id)
+              const val = ans ? ans.value : undefined
+
+              return (
+                <div key={f.id} className="flex flex-col gap-0.5">
+                  <span className="font-semibold text-foreground/80">{f.label}</span>
+                  <div className="text-muted-foreground pl-2 border-l border-border/80 text-[11px] py-0.5 leading-relaxed font-medium">
+                    {val === undefined || val === "" ? (
+                      <span className="italic text-muted-foreground/50 text-[10px]">No answer provided</span>
+                    ) : Array.isArray(val) ? (
+                      val.join(", ")
+                    ) : f.type === "file" || f.type === "image" ? (
+                      <a href={val} target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold flex items-center gap-1">
+                        {f.type === "image" ? <ImageIcon className="h-3 w-3" /> : <FileIcon className="h-3 w-3" />}
+                        <span className="truncate max-w-[180px]">{val.split("/").pop() || "Attachment Link"}</span>
+                      </a>
+                    ) : (
+                      String(val)
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            <div className="pt-2 border-t border-emerald-500/10 flex items-center justify-between text-[10px] text-muted-foreground/75 font-semibold">
+              <span>Submitted by: {activeOrg?.members?.find((m: any) => m.userId === response.submitterId)?.user?.name || "Member"}</span>
+              <span>{new Date(response.submittedAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground italic">Loading submitted responses...</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-card p-4 space-y-4 shadow-2xs">
+      <div className="border-b border-border/40 pb-2">
+        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 animate-pulse">
+          <FileText className="h-4 w-4 text-primary" />
+          <span>Required Completion Form: {form.title}</span>
+        </h4>
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          You must fill out this form to complete this approval request.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        {form.fields.map((f: any) => {
+          const val = answers[f.id]
+
+          return (
+            <div key={f.id} className="flex flex-col gap-1.5 text-xs">
+              <label className="font-semibold text-foreground/80 flex items-center gap-1">
+                <span>{f.label}</span>
+                {f.required && <span className="text-red-500 font-bold">*</span>}
+              </label>
+
+              {/* Text Field */}
+              {f.type === "text" && (
+                <Input
+                  placeholder={f.placeholder || "Enter answer..."}
+                  value={val || ""}
+                  onChange={(e) => handleTextChange(f.id, e.target.value)}
+                  required={f.required}
+                  disabled={isSubmitting || !isApproverOrCreator}
+                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                />
+              )}
+
+              {/* Paragraph Textarea */}
+              {f.type === "textarea" && (
+                <textarea
+                  placeholder={f.placeholder || "Enter detailed answer..."}
+                  value={val || ""}
+                  onChange={(e) => handleTextChange(f.id, e.target.value)}
+                  required={f.required}
+                  disabled={isSubmitting || !isApproverOrCreator}
+                  rows={3}
+                  className="flex w-full rounded-md border border-input/60 bg-muted/5 px-3 py-1.5 text-xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              )}
+
+              {/* Radio Selection */}
+              {f.type === "radio" && (
+                <div className="flex flex-col gap-1.5 pl-1.5">
+                  {f.options?.map((opt: string, oIdx: number) => (
+                    <label key={oIdx} className="flex items-center gap-2 font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name={f.id}
+                        checked={val === opt}
+                        onChange={() => handleTextChange(f.id, opt)}
+                        required={f.required && !val}
+                        disabled={isSubmitting || !isApproverOrCreator}
+                        className="size-3 border-input accent-primary cursor-pointer"
+                      />
+                      <span>{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Checkbox List */}
+              {f.type === "checkbox" && (
+                <div className="flex flex-col gap-1.5 pl-1.5">
+                  {f.options?.map((opt: string, oIdx: number) => {
+                    const isChecked = (val || []).includes(opt)
+                    return (
+                      <label key={oIdx} className="flex items-center gap-2 font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => handleCheckboxChange(f.id, opt, e.target.checked)}
+                          disabled={isSubmitting || !isApproverOrCreator}
+                          className="size-3 rounded-sm border-input accent-primary cursor-pointer"
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Dropdown Select */}
+              {f.type === "select" && (
+                <Select
+                  value={val || ""}
+                  onValueChange={(value) => handleTextChange(f.id, value)}
+                >
+                  <SelectTrigger className="h-8.5 w-full text-xs font-semibold bg-background border-border/60">
+                    <SelectValue placeholder="Select option..." />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs bg-popover z-50">
+                    {f.options?.map((opt: string, oIdx: number) => (
+                      <SelectItem key={oIdx} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Date Input */}
+              {f.type === "date" && (
+                <Input
+                  type="date"
+                  value={val || ""}
+                  onChange={(e) => handleTextChange(f.id, e.target.value)}
+                  required={f.required}
+                  disabled={isSubmitting || !isApproverOrCreator}
+                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                />
+              )}
+
+              {/* Number Input */}
+              {f.type === "number" && (
+                <Input
+                  type="number"
+                  placeholder={f.placeholder || "Enter number..."}
+                  value={val || ""}
+                  onChange={(e) => handleTextChange(f.id, e.target.value)}
+                  required={f.required}
+                  disabled={isSubmitting || !isApproverOrCreator}
+                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                />
+              )}
+
+              {/* File Upload Component */}
+              {f.type === "file" && (
+                <div className="flex flex-col gap-1.5">
+                  <Input
+                    type="file"
+                    onChange={(e) => handleFileUpload(f.id, "file", e.target.files?.[0] || null)}
+                    required={f.required && !val}
+                    disabled={isSubmitting || !isApproverOrCreator}
+                    className="text-xs h-8.5 bg-background border-input/60 cursor-pointer"
+                  />
+                  {val && (
+                    <div className="flex items-center gap-1 text-[10px] text-primary font-semibold">
+                      <FileIcon className="h-3 w-3" />
+                      <span>Uploaded File Mock</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Image Upload Component */}
+              {f.type === "image" && (
+                <div className="flex flex-col gap-1.5">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(f.id, "image", e.target.files?.[0] || null)}
+                    required={f.required && !val}
+                    disabled={isSubmitting || !isApproverOrCreator}
+                    className="text-xs h-8.5 bg-background border-input/60 cursor-pointer"
+                  />
+                  {val && (
+                    <div className="mt-1 flex flex-col gap-1 items-start">
+                      <div className="flex items-center gap-1 text-[10px] text-primary font-semibold mb-1">
+                        <ImageIcon className="h-3 w-3" />
+                        <span>Image uploaded</span>
+                      </div>
+                      <img 
+                        src={val} 
+                        alt="Uploaded mockup" 
+                        className="h-16 w-16 object-cover rounded-lg border border-border"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {isApproverOrCreator ? (
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="h-8.5 text-xs font-bold w-full rounded-xl flex items-center justify-center gap-1 shadow-xs hover:shadow-sm cursor-pointer"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Submitting Response...</span>
+              </>
+            ) : (
+              <span>Submit Form & Approve Request</span>
+            )}
+          </Button>
+        ) : (
+          <div className="text-[10px] text-muted-foreground/75 font-semibold bg-muted/20 border border-border/40 p-2.5 rounded-lg text-center select-none">
+            Only approvers or the creator can submit this completion form.
+          </div>
+        )}
+      </form>
+    </div>
+  )
+}
+

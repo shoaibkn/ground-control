@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../../../packages/backend/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
@@ -97,6 +97,10 @@ export default function ApprovalsPage() {
   const [timePreset, setTimePreset] = useState<"all" | "overdue" | "today" | "week" | "later">("all")
   const [selectedTimelineDate, setSelectedTimelineDate] = useState<number | null>(new Date().setHours(0,0,0,0))
   const [showAllDates, setShowAllDates] = useState(false)
+  const [daysCount, setDaysCount] = useState(30)
+  const [pastDaysCount, setPastDaysCount] = useState(7)
+  const [currentVisibleMonth, setCurrentVisibleMonth] = useState("")
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: session } = authClient.useSession()
@@ -196,7 +200,7 @@ export default function ApprovalsPage() {
     const list = []
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-    for (let i = 0; i < 14; i++) {
+    for (let i = -pastDaysCount; i < daysCount; i++) {
       list.push(startOfToday + i * 24 * 60 * 60 * 1000)
     }
     return list
@@ -215,6 +219,68 @@ export default function ApprovalsPage() {
       a.dueDate <= dayEnd
     ).length
   }
+
+  const updateVisibleMonth = (container: HTMLDivElement | null) => {
+    if (!container) return
+    const children = container.children
+    if (!children || children.length === 0) return
+
+    const containerRect = container.getBoundingClientRect()
+    const targetX = containerRect.left + 80 // slightly offset from left edge
+
+    let closestChild: Element | null = null
+    let minDistance = Infinity
+
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i]
+      if (!child) continue
+      const childRect = child.getBoundingClientRect()
+      const centerX = childRect.left + childRect.width / 2
+      const distance = Math.abs(centerX - targetX)
+      if (distance < minDistance) {
+        minDistance = distance
+        closestChild = child
+      }
+    }
+
+    if (closestChild) {
+      const timestampAttr = closestChild.getAttribute("data-timestamp")
+      if (timestampAttr) {
+        const timestamp = parseInt(timestampAttr, 10)
+        const date = new Date(timestamp)
+        const monthYear = date.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+        setCurrentVisibleMonth(monthYear)
+      }
+    }
+  }
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const scrollRight = target.scrollWidth - target.scrollLeft - target.clientWidth
+    if (scrollRight < 200) {
+      setDaysCount((prev) => prev + 14)
+    }
+    if (target.scrollLeft < 100) {
+      const prevScrollWidth = target.scrollWidth
+      setPastDaysCount((prev) => prev + 14)
+      setTimeout(() => {
+        const diff = target.scrollWidth - prevScrollWidth
+        target.scrollLeft += diff
+      }, 0)
+    }
+    updateVisibleMonth(target)
+  }
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const todayStart = new Date().setHours(0,0,0,0)
+      const todayBtn = scrollContainerRef.current.querySelector(`[data-timestamp="${todayStart}"]`)
+      if (todayBtn) {
+        todayBtn.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" })
+      }
+      updateVisibleMonth(scrollContainerRef.current)
+    }
+  }, [scrollContainerRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeFiltersCount =
     filters.statuses.length +
@@ -590,59 +656,69 @@ export default function ApprovalsPage() {
           </div>
 
           {/* Sliding 14-day strip */}
-          <div className="flex items-center gap-3 overflow-hidden flex-1 lg:max-w-md xl:max-w-lg">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Horizon:</span>
-            <div 
-              className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 max-w-full"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {getTimelineDays().map((dayTimestamp) => {
-                const date = new Date(dayTimestamp)
-                const isSelected = selectedTimelineDate !== null && new Date(selectedTimelineDate).setHours(0,0,0,0) === new Date(dayTimestamp).setHours(0,0,0,0)
-                const dayName = date.toLocaleDateString(undefined, { weekday: "narrow" })
-                const dayNum = date.getDate()
-                const dayApprovalCount = getDayApprovalCount(dayTimestamp)
-                return (
-                  <button
-                    key={dayTimestamp}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTimelineDate(dayTimestamp)
-                      setShowAllDates(false)
-                    }}
-                    className={cn(
-                      "relative flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-full text-[9px] font-bold transition-all active:scale-95 cursor-pointer border",
-                      isSelected && !showAllDates
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs scale-105"
-                        : "hover:bg-muted/40 text-muted-foreground hover:text-foreground border-border/20 bg-background"
-                    )}
-                  >
-                    <span className="text-[8px] opacity-75 font-normal">{dayName}</span>
-                    <span className="text-[10px] leading-none mt-0.5">{dayNum}</span>
-                    {dayApprovalCount > 0 && (
-                      <span className={cn(
-                        "absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center border",
-                        isSelected && !showAllDates
-                          ? "bg-amber-500 text-white border-primary"
-                          : "bg-primary text-primary-foreground border-card"
-                      )}>
-                        {dayApprovalCount}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
+          <div className="flex flex-col gap-1 overflow-hidden flex-1 lg:max-w-md xl:max-w-lg">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Horizon</span>
+              <span className="text-[10px] font-bold text-primary bg-primary/10 dark:bg-primary/20 border border-primary/20 rounded px-1.5 py-0.5 select-none shrink-0 transition-all duration-200">
+                {currentVisibleMonth}
+              </span>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0 border-l border-border/50 pl-3">
-              <Switch
-                id="show-all-dates"
-                checked={showAllDates}
-                onCheckedChange={setShowAllDates}
-                className="scale-90"
-              />
-              <Label htmlFor="show-all-dates" className="text-[10px] font-medium text-muted-foreground select-none cursor-pointer">
-                Show All
-              </Label>
+            <div className="flex items-center gap-3 overflow-hidden w-full">
+              <div 
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 flex-1 max-w-full"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {getTimelineDays().map((dayTimestamp) => {
+                  const date = new Date(dayTimestamp)
+                  const isSelected = selectedTimelineDate !== null && new Date(selectedTimelineDate).setHours(0,0,0,0) === new Date(dayTimestamp).setHours(0,0,0,0)
+                  const dayName = date.toLocaleDateString(undefined, { weekday: "narrow" })
+                  const dayNum = date.getDate()
+                  const dayApprovalCount = getDayApprovalCount(dayTimestamp)
+                  return (
+                    <button
+                      key={dayTimestamp}
+                      type="button"
+                      data-timestamp={dayTimestamp}
+                      onClick={() => {
+                        setSelectedTimelineDate(dayTimestamp)
+                        setShowAllDates(false)
+                      }}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-full text-[9px] font-bold transition-all active:scale-95 cursor-pointer border",
+                        isSelected && !showAllDates
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs scale-105"
+                          : "hover:bg-muted/40 text-muted-foreground hover:text-foreground border-border/20 bg-background"
+                      )}
+                    >
+                      <span className="text-[8px] opacity-75 font-normal">{dayName}</span>
+                      <span className="text-[10px] leading-none mt-0.5">{dayNum}</span>
+                      {dayApprovalCount > 0 && (
+                        <span className={cn(
+                          "absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center border",
+                          isSelected && !showAllDates
+                            ? "bg-amber-500 text-white border-primary"
+                            : "bg-primary text-primary-foreground border-card"
+                        )}>
+                          {dayApprovalCount}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 border-l border-border/50 pl-3 py-1">
+                <Switch
+                  id="show-all-dates"
+                  checked={showAllDates}
+                  onCheckedChange={setShowAllDates}
+                  className="scale-90"
+                />
+                <Label htmlFor="show-all-dates" className="text-[10px] font-medium text-muted-foreground select-none cursor-pointer">
+                  Show All
+                </Label>
+              </div>
             </div>
           </div>
         </div>

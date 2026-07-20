@@ -8,6 +8,7 @@ import {
   Signature,
   Bolt,
   Plus,
+  FileText,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -69,6 +70,12 @@ const mainNavItems: NavItem[] = [
     url: "/approvals",
     icon: Signature,
     animation: "wiggle",
+  },
+  {
+    title: "Forms",
+    url: "/forms",
+    icon: FileText,
+    animation: "bounce",
   },
 ]
 
@@ -185,7 +192,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-3 gap-4 py-2">
+          <div className="grid grid-cols-2 gap-4 py-2">
             {/* Create Task */}
             <button
               onClick={() => {
@@ -236,6 +243,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span className="text-[9px] text-muted-foreground">Start a channel</span>
               </div>
             </button>
+
+            {/* Create Form */}
+            <Link
+              href="/forms/new"
+              onClick={() => setIsCreateMenuOpen(false)}
+              className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-border/50 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 group/item cursor-pointer text-center outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              <div className="p-3.5 bg-primary/10 text-primary rounded-xl group-hover/item:scale-110 transition-transform duration-200">
+                <FileText className="size-6" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-foreground">Form</span>
+                <span className="text-[9px] text-muted-foreground">Build custom form</span>
+              </div>
+            </Link>
           </div>
         </DialogContent>
       </Dialog>

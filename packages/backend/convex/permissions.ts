@@ -7,15 +7,18 @@ export const DEFAULT_PERMISSIONS = {
   owner: {
     tasks: ["create", "read_all", "assign", "delete", "archive", "cancel", "complete"],
     approvals: ["create", "read_all", "delete", "archive"],
+    forms: ["create", "read_all", "update", "delete", "attach"],
   },
   admin: {
     tasks: ["create", "read_all", "assign", "delete", "archive", "cancel", "complete"],
     approvals: ["create", "read_all", "delete", "archive"],
+    forms: ["create", "read_all", "update", "delete", "attach"],
   },
   member: {
     // Members can create, but only read their own, and cannot complete or cancel.
     tasks: ["create", "read_own"],
     approvals: ["create", "read_own"],
+    forms: ["create", "read_own"],
   },
 }
 

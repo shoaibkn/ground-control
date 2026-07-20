@@ -48,6 +48,7 @@ export const createApproval = mutation({
     organizationId: v.string(),
     approverIds: v.array(v.string()),
     subscriberIds: v.optional(v.array(v.string())),
+    formId: v.optional(v.id("forms")),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
@@ -73,6 +74,7 @@ export const createApproval = mutation({
       approverIds: cleanApprovers,
       subscriberIds: cleanSubscribers,
       isArchived: false,
+      formId: args.formId,
     })
 
     // Log the creation

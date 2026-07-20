@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../../../../packages/backend/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -54,6 +54,13 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [completedRequiresApproval, setCompletedRequiresApproval] = useState(false)
+  const [formId, setFormId] = useState<string>("none")
+
+  // Fetch active forms
+  const forms = useQuery(
+    api.forms.getForms,
+    activeOrg ? { organizationId: activeOrg.id } : "skip"
+  )
 
   // Recurrence States
   const [isRecurring, setIsRecurring] = useState(false)
@@ -152,6 +159,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
         collaboratorIds: selectedCollaborators,
         subscriberIds: selectedSubscribers,
         completedRequiresApproval,
+        formId: formId === "none" ? undefined : (formId as any),
       })
 
       toast.success("Task created successfully")
@@ -165,6 +173,7 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
       setSelectedCollaborators([])
       setSelectedSubscribers([])
       setCompletedRequiresApproval(false)
+      setFormId("none")
 
       // Reset recurrence fields
       setIsRecurring(false)
@@ -302,6 +311,30 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
               disabled={isSubmitting}
               className="cursor-pointer"
             />
+          </div>
+
+          {/* Required Completion Form Dropdown */}
+          <div className="flex flex-col gap-2 rounded-lg border border-border/80 bg-input/10 p-3 dark:bg-input/20">
+            <div className="space-y-0.5">
+              <Label htmlFor="required-form" className="text-xs font-semibold text-foreground">
+                Require Completion Form
+              </Label>
+              <p className="text-[10px] text-muted-foreground">
+                Assignee must submit the selected custom form to complete this task.
+              </p>
+            </div>
+            <select
+              id="required-form"
+              value={formId}
+              onChange={(e) => setFormId(e.target.value)}
+              disabled={isSubmitting}
+              className="text-xs border border-border/75 rounded-md px-2 py-1.5 bg-background hover:bg-muted/30 outline-none text-foreground cursor-pointer font-medium mt-1 w-full"
+            >
+              <option value="none">None (No form required)</option>
+              {forms?.map((f: any) => (
+                <option key={f._id} value={f._id}>{f.title}</option>
+              ))}
+            </select>
           </div>
 
           {/* Recurring Task Toggle */}

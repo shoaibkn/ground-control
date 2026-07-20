@@ -51,6 +51,7 @@ export const createTask = mutation({
     subscriberIds: v.optional(v.array(v.string())),
     timeOfDay: v.optional(v.string()),
     completedRequiresApproval: v.optional(v.boolean()),
+    formId: v.optional(v.id("forms")),
     recurrence: v.optional(
       v.object({
         frequency: v.string(),
@@ -105,6 +106,7 @@ export const createTask = mutation({
       subscriberIds: cleanSubscribers,
       isArchived: false,
       completedRequiresApproval: args.completedRequiresApproval ?? false,
+      formId: args.formId,
     })
 
     // Log the creation

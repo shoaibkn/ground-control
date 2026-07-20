@@ -50,6 +50,8 @@ export default defineSchema({
       )
     ),
     completedRequiresApproval: v.optional(v.boolean()),
+    formId: v.optional(v.id("forms")),
+    formResponseId: v.optional(v.id("formResponses")),
   }).index("by_organization", ["organizationId"]),
 
   taskChats: defineTable({
@@ -123,6 +125,8 @@ export default defineSchema({
     subscriberIds: v.optional(v.array(v.string())),
     isArchived: v.boolean(),
     taskId: v.optional(v.id("tasks")),
+    formId: v.optional(v.id("forms")),
+    formResponseId: v.optional(v.id("formResponses")),
   }).index("by_organization", ["organizationId"]),
 
   approvalChats: defineTable({
@@ -161,4 +165,40 @@ export default defineSchema({
   })
     .index("by_approval", ["approvalId"])
     .index("by_approval_user", ["approvalId", "userId"]),
+
+  forms: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    creatorId: v.string(),
+    organizationId: v.string(),
+    fields: v.array(
+      v.object({
+        id: v.string(),
+        type: v.string(), // "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "number" | "file" | "image"
+        label: v.string(),
+        placeholder: v.optional(v.string()),
+        required: v.boolean(),
+        options: v.optional(v.array(v.string())),
+      })
+    ),
+    isStandalone: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_organization", ["organizationId"]),
+
+  formResponses: defineTable({
+    formId: v.id("forms"),
+    submitterId: v.string(),
+    organizationId: v.string(),
+    answers: v.array(
+      v.object({
+        fieldId: v.string(),
+        value: v.any(),
+      })
+    ),
+    submittedAt: v.number(),
+    taskId: v.optional(v.id("tasks")),
+    approvalId: v.optional(v.id("approvals")),
+  }).index("by_form", ["formId"])
+    .index("by_task", ["taskId"])
+    .index("by_approval", ["approvalId"]),
 })

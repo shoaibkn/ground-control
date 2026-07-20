@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../../../../packages/backend/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -39,6 +39,13 @@ export function CreateApprovalDialog({ isOpen, setIsOpen }: CreateApprovalDialog
   const [selectedApprovers, setSelectedApprovers] = useState<string[]>([])
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formId, setFormId] = useState<string>("none")
+
+  // Fetch active forms
+  const forms = useQuery(
+    api.forms.getForms,
+    activeOrg ? { organizationId: activeOrg.id } : "skip"
+  )
 
   if (!activeOrg) return null
 
@@ -89,6 +96,7 @@ export function CreateApprovalDialog({ isOpen, setIsOpen }: CreateApprovalDialog
         organizationId: activeOrg.id,
         approverIds: selectedApprovers,
         subscriberIds: selectedSubscribers,
+        formId: formId === "none" ? undefined : (formId as any),
       })
 
       toast.success("Approval request created successfully")
@@ -99,6 +107,7 @@ export function CreateApprovalDialog({ isOpen, setIsOpen }: CreateApprovalDialog
       setDueDate(undefined)
       setSelectedApprovers([])
       setSelectedSubscribers([])
+      setFormId("none")
 
       setIsOpen(false)
     } catch (error: any) {
@@ -183,6 +192,25 @@ export function CreateApprovalDialog({ isOpen, setIsOpen }: CreateApprovalDialog
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+
+          {/* Required Completion Form Dropdown */}
+          <div className="space-y-1">
+            <Label htmlFor="required-form" className="text-xs font-semibold text-foreground">
+              Require Completion Form
+            </Label>
+            <select
+              id="required-form"
+              value={formId}
+              onChange={(e) => setFormId(e.target.value)}
+              disabled={isSubmitting}
+              className="text-xs border border-border/75 rounded-md px-2 py-1.5 bg-background hover:bg-muted/30 outline-none text-foreground cursor-pointer font-medium w-full h-9"
+            >
+              <option value="none">None (No form required)</option>
+              {forms?.map((f: any) => (
+                <option key={f._id} value={f._id}>{f.title}</option>
+              ))}
+            </select>
           </div>
 
           {/* Members Tabs */}
