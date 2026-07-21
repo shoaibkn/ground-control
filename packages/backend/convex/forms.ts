@@ -342,3 +342,53 @@ export const submitFormResponse = mutation({
     return responseId
   },
 })
+
+export const getFormResponse = query({
+  args: { formResponseId: v.id("formResponses") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const response = await ctx.db.get(args.formResponseId)
+    if (!response) return null
+
+    await requireMember(ctx, user._id, response.organizationId)
+
+    // 1. Allowed if the caller is the submitter
+    if (response.submitterId === user._id) return response
+
+    // 2. Allowed if the caller is the creator of the form
+    const form = await ctx.db.get(response.formId)
+    if (form && form.creatorId === user._id) return response
+
+    // 3. Allowed if the caller has global "forms: read_all" permissions (admin/owner)
+    const member = await requireMember(ctx, user._id, response.organizationId)
+    const canReadAll = await hasPermission(ctx, response.organizationId, member.role, "forms", "read_all")
+    if (canReadAll) return response
+
+    // 4. Allowed if the caller is a participant on the linked task
+    if (response.taskId) {
+      const task = await ctx.db.get(response.taskId)
+      if (task) {
+        const isParticipant =
+          task.creatorId === user._id ||
+          task.assigneeIds?.includes(user._id) ||
+          task.collaboratorIds?.includes(user._id) ||
+          task.subscriberIds?.includes(user._id)
+        if (isParticipant) return response
+      }
+    }
+
+    // 5. Allowed if the caller is a participant on the linked approval request
+    if (response.approvalId) {
+      const approval = await ctx.db.get(response.approvalId)
+      if (approval) {
+        const isParticipant =
+          approval.creatorId === user._id ||
+          approval.approverIds?.includes(user._id) ||
+          approval.subscriberIds?.includes(user._id)
+        if (isParticipant) return response
+      }
+    }
+
+    throw new Error("Permission denied to view this response")
+  },
+})

@@ -474,6 +474,35 @@ export default function TaskDetailsSheet({
     }
   }
 
+  const deleteTaskMutation = useMutation(api.tasks.deleteTask).withOptimisticUpdate(
+    (localStore, args) => {
+      const { taskId: targetId } = args
+      localStore.setQuery(api.tasks.getTask, { taskId: targetId }, null as any)
+      if (activeOrg?.id) {
+        for (const showArchived of [true, false, undefined]) {
+          const queryArgs = { organizationId: activeOrg.id, showArchived }
+          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
+          if (tasksList) {
+            const updatedTasks = tasksList.filter((t: any) => t._id !== targetId)
+            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
+          }
+        }
+      }
+    }
+  )
+
+  const handleDeleteTask = async () => {
+    if (!task) return
+    try {
+      await deleteTaskMutation({ taskId: task._id })
+      toast.success("Task deleted successfully!")
+      onClose()
+    } catch (err: any) {
+      console.error("Failed to delete task", err)
+      toast.error(err.message || "Failed to delete task")
+    }
+  }
+
   const updateTaskRecurrence = useMutation(api.tasks.updateTaskRecurrence).withOptimisticUpdate(
     (localStore, args) => {
       const { taskId: targetId, recurrence } = args
@@ -571,6 +600,7 @@ export default function TaskDetailsSheet({
   >("activity")
   const [isEditingDetails, setIsEditingDetails] = useState(false)
   const [chatToDelete, setChatToDelete] = useState<any | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // Sync details when task updates
   useEffect(() => {
@@ -1190,6 +1220,18 @@ export default function TaskDetailsSheet({
                     ) : (
                       <Archive className="h-4 w-4" />
                     )}
+                  </Button>
+                )}
+
+                {canArchive && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-500/5 transition-colors"
+                    title="Delete Task"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
 
@@ -3061,6 +3103,24 @@ export default function TaskDetailsSheet({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent className="sm:max-w-[400px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-sm font-bold flex items-center gap-2 text-destructive">
+                Delete Task?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs text-muted-foreground">
+                This action is permanent and cannot be undone. All chats, subtasks, and files associated with this task will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-2">
+              <AlertDialogCancel className="text-xs h-8">Cancel</AlertDialogCancel>
+              <AlertDialogAction className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/95" onClick={handleDeleteTask}>
+                Delete Task
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
           </>
         )}
       </SheetContent>
@@ -3497,7 +3557,10 @@ function TaskCompletionForm({
   isAssigneeOrCollaborator: boolean
 }) {
   const form = useQuery(api.forms.getForm, { formId })
-  const responses = useQuery(api.forms.getFormResponses, { formId })
+  const response = useQuery(
+    api.forms.getFormResponse,
+    formResponseId ? { formResponseId } : "skip"
+  )
   const submitFormResponse = useMutation(api.forms.submitFormResponse)
   const { data: activeOrg } = authClient.useActiveOrganization()
 
@@ -3602,7 +3665,6 @@ function TaskCompletionForm({
   }
 
   if (formResponseId) {
-    const response = responses?.find(r => r._id === formResponseId)
     return (
       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
         <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2 select-none">

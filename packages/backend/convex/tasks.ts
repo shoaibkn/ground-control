@@ -392,6 +392,7 @@ export async function spawnNextRecurringInstance(ctx: any, task: any) {
       subscriberIds: task.subscriberIds || [],
       isArchived: false,
       completedRequiresApproval: task.completedRequiresApproval,
+      formId: task.formId,
     })
 
     // 2. Clone subtasks
@@ -466,6 +467,11 @@ export const updateTaskStatus = mutation({
     const canComplete = await hasPermission(ctx, task.organizationId, member.role, "tasks", "complete")
     const canCancel = await hasPermission(ctx, task.organizationId, member.role, "tasks", "cancel")
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+
+    // Validate if the task requires form completion before transition to Completed or Pending Approval
+    if (task.formId && !task.formResponseId && (args.status === "Completed" || args.status === "Pending Approval")) {
+      throw new Error("You must fill out and submit the required form before completing this task.")
+    }
 
     // State machine logic
     let targetStatus = args.status
@@ -1076,6 +1082,58 @@ export const updateTaskRecurrence = mutation({
       details: { recurrence: args.recurrence },
       timestamp: Date.now(),
     })
+
+    return { success: true }
+  },
+})
+
+export const deleteTask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx)
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new Error("Task not found")
+
+    const member = await requireMember(ctx, user._id, task.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+    const isCreator = task.creatorId === user._id
+
+    const canDelete = isCreator || await hasPermission(ctx, task.organizationId, member.role, "tasks", "delete")
+    if (!canDelete) {
+      throw new Error("Permission denied to delete tasks")
+    }
+
+    // Delete associated subtasks
+    const subtasks = await ctx.db
+      .query("subtasks")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .collect()
+    for (const sub of subtasks) {
+      await ctx.db.delete(sub._id)
+    }
+
+    // Delete associated chats
+    const chats = await ctx.db
+      .query("taskChats")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .collect()
+    for (const chat of chats) {
+      await ctx.db.delete(chat._id)
+    }
+
+    // Delete associated attachments
+    const attachments = await ctx.db
+      .query("taskAttachments")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .collect()
+    for (const attach of attachments) {
+      await ctx.db.delete(attach._id)
+    }
+
+    // Delete the task itself
+    await ctx.db.delete(args.taskId)
 
     return { success: true }
   },

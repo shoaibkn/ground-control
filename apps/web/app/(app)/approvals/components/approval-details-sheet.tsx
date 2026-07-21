@@ -1195,7 +1195,10 @@ function ApprovalCompletionForm({
   isApproverOrCreator: boolean
 }) {
   const form = useQuery(api.forms.getForm, { formId })
-  const responses = useQuery(api.forms.getFormResponses, { formId })
+  const response = useQuery(
+    api.forms.getFormResponse,
+    formResponseId ? { formResponseId } : "skip"
+  )
   const submitFormResponse = useMutation(api.forms.submitFormResponse)
   const { data: activeOrg } = authClient.useActiveOrganization()
 
@@ -1300,7 +1303,6 @@ function ApprovalCompletionForm({
   }
 
   if (formResponseId) {
-    const response = responses?.find(r => r._id === formResponseId)
     return (
       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
         <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2 select-none">

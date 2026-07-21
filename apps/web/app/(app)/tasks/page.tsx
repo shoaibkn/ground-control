@@ -52,6 +52,8 @@ import {
   SlidersHorizontal,
   Filter,
   X,
+  FileText,
+  CheckCircle2,
 } from "lucide-react"
 import TasksSidebar from "./components/tasks-internal-sidebar"
 import { CreateTaskDialog } from "./components/create-task-dialog"
@@ -1472,10 +1474,32 @@ export default function TasksPage() {
                             Priority: {task.priority}
                           </Badge>
                           {getTaskRelation(task) !== "Other" && (
-                            <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] font-medium border rounded-md select-none shrink-0 ${getRelationStyle(getTaskRelation(task))}`}>
-                              {getTaskRelation(task)}
-                            </Badge>
-                          )}
+                             <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] font-medium border rounded-md select-none shrink-0 ${getRelationStyle(getTaskRelation(task))}`}>
+                               {getTaskRelation(task)}
+                             </Badge>
+                           )}
+                           {task.formId && !task.formResponseId && (
+                             <Badge 
+                               variant="outline" 
+                               className="px-1.5 py-0.5 text-[9px] font-semibold border rounded-md bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20 transition-all cursor-pointer flex items-center gap-1"
+                               onClick={(e) => {
+                                 e.stopPropagation()
+                                 setSelectedTaskId(task._id)
+                               }}
+                             >
+                               <FileText className="h-2.5 w-2.5 shrink-0" />
+                               <span>Fill Form</span>
+                             </Badge>
+                           )}
+                           {task.formId && task.formResponseId && (
+                             <Badge 
+                               variant="outline" 
+                               className="px-1.5 py-0.5 text-[9px] font-semibold border rounded-md bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1 select-none"
+                             >
+                               <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+                               <span>Submitted</span>
+                             </Badge>
+                           )}
                         </div>
 
                         <div onClick={(e) => e.stopPropagation()}>
@@ -1490,8 +1514,8 @@ export default function TasksPage() {
                               <SelectItem value="Pending">Pending</SelectItem>
                               <SelectItem value="In Progress">In Progress</SelectItem>
                               <SelectItem value="Under Review">Under Review</SelectItem>
-                              <SelectItem value="Pending Approval">Pending Approval</SelectItem>
-                              <SelectItem value="Completed">Completed</SelectItem>
+                              <SelectItem value="Pending Approval" disabled={!!task.formId && !task.formResponseId}>Pending Approval</SelectItem>
+                              <SelectItem value="Completed" disabled={!!task.formId && !task.formResponseId}>Completed</SelectItem>
                               <SelectItem value="Cancelled">Cancelled</SelectItem>
                             </SelectContent>
                           </Select>
@@ -1655,6 +1679,28 @@ export default function TasksPage() {
                                             {getTaskRelation(task)}
                                           </Badge>
                                         )}
+                                        {task.formId && !task.formResponseId && (
+                                          <Badge 
+                                            variant="outline" 
+                                            className="px-1.5 py-0 h-4 text-[9px] font-semibold border rounded-md bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20 transition-all cursor-pointer flex items-center gap-1"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setSelectedTaskId(task._id)
+                                            }}
+                                          >
+                                            <FileText className="h-2.5 w-2.5 shrink-0" />
+                                            <span>Fill Form</span>
+                                          </Badge>
+                                        )}
+                                        {task.formId && task.formResponseId && (
+                                          <Badge 
+                                            variant="outline" 
+                                            className="px-1.5 py-0 h-4 text-[9px] font-semibold border rounded-md bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1 select-none"
+                                          >
+                                            <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+                                            <span>Submitted</span>
+                                          </Badge>
+                                        )}
                                         {task.isArchived && (
                                           <Badge variant="secondary" className="px-1.5 py-0 h-4 text-[8px] font-normal opacity-85 shrink-0 select-none">
                                             Archived
@@ -1702,8 +1748,8 @@ export default function TasksPage() {
                                         <SelectItem value="Pending">Pending</SelectItem>
                                         <SelectItem value="In Progress">In Progress</SelectItem>
                                         <SelectItem value="Under Review">Under Review</SelectItem>
-                                        <SelectItem value="Pending Approval">Pending Approval</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
+                                        <SelectItem value="Pending Approval" disabled={!!task.formId && !task.formResponseId}>Pending Approval</SelectItem>
+                                        <SelectItem value="Completed" disabled={!!task.formId && !task.formResponseId}>Completed</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                       </SelectContent>
                                     </Select>
@@ -1859,6 +1905,28 @@ export default function TasksPage() {
                                       {getTaskRelation(task)}
                                     </Badge>
                                   )}
+                                  {task.formId && !task.formResponseId && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="px-1.5 py-0 h-4 text-[9px] font-semibold border rounded-md bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20 transition-all cursor-pointer flex items-center gap-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedTaskId(task._id)
+                                      }}
+                                    >
+                                      <FileText className="h-2.5 w-2.5 shrink-0" />
+                                      <span>Fill Form</span>
+                                    </Badge>
+                                  )}
+                                  {task.formId && task.formResponseId && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="px-1.5 py-0 h-4 text-[9px] font-semibold border rounded-md bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1 select-none"
+                                    >
+                                      <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+                                      <span>Submitted</span>
+                                    </Badge>
+                                  )}
                                 </div>
 
                                 <Badge variant="outline" className={`px-2 py-0 h-5 text-[9px] font-medium border ${getPriorityStyle(task.priority)}`}>
@@ -1914,8 +1982,8 @@ export default function TasksPage() {
                                         <SelectItem value="Pending">Pending</SelectItem>
                                         <SelectItem value="In Progress">In Progress</SelectItem>
                                         <SelectItem value="Under Review">Under Review</SelectItem>
-                                        <SelectItem value="Pending Approval">Pending Approval</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
+                                        <SelectItem value="Pending Approval" disabled={!!task.formId && !task.formResponseId}>Pending Approval</SelectItem>
+                                        <SelectItem value="Completed" disabled={!!task.formId && !task.formResponseId}>Completed</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                       </SelectContent>
                                     </Select>
@@ -2010,6 +2078,18 @@ export default function TasksPage() {
                   // Find task to see if it changed
                   const task = filteredTasks?.find((t: any) => t._id === taskId)
                   if (task && task.status !== status) {
+                    if (task.formId && !task.formResponseId && (status === "Completed" || status === "Pending Approval")) {
+                      toast.warning(
+                        "You must submit the required form before completing this task.",
+                        {
+                          action: {
+                            label: "Fill Form",
+                            onClick: () => setSelectedTaskId(task._id)
+                          }
+                        }
+                      )
+                      return
+                    }
                     await handleStatusChange(taskId, status)
                   }
                 }
