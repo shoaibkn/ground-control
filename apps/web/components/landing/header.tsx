@@ -1,6 +1,6 @@
 "use client"
 
-import { Book, Menu, Sunset, Trees, Zap, Loader2, LogOut, User } from "lucide-react"
+import { Menu, Loader2, LogOut, User, Rocket, CheckCircle2, FileText, Shield, Activity, ClipboardList } from "lucide-react"
 
 import {
   Accordion,
@@ -67,42 +67,51 @@ const Navbar1 = ({
     title: "Ground Control",
   },
   menu = [
-    { title: "Home", url: "#" },
+    { title: "Home", url: "/" },
     {
-      title: "Products",
-      url: "#",
+      title: "Features",
+      url: "#features",
       items: [
         {
-          title: "Blog",
-          description: "The latest industry news, updates, and info",
-          icon: <Book className="size-5 shrink-0" />,
-          url: "#",
+          title: "Task Management",
+          description: "Multi-view tasks with status workflows, priorities, and recurring schedules",
+          icon: <CheckCircle2 className="size-5 shrink-0" />,
+          url: "#features",
         },
         {
-          title: "Company",
-          description: "Our mission is to innovate and empower the world",
-          icon: <Trees className="size-5 shrink-0" />,
-          url: "#",
+          title: "Approval Workflows",
+          description: "Create approvals, assign approvers, and track decisions in real-time",
+          icon: <ClipboardList className="size-5 shrink-0" />,
+          url: "#features",
         },
         {
-          title: "Careers",
-          description: "Browse job listing and discover our workspace",
-          icon: <Sunset className="size-5 shrink-0" />,
-          url: "#",
+          title: "Forms Builder",
+          description: "Dynamic form builder with shareable forms linked to tasks and approvals",
+          icon: <FileText className="size-5 shrink-0" />,
+          url: "#features",
         },
         {
-          title: "Support",
-          description:
-            "Get in touch with our support team or visit our community forums",
-          icon: <Zap className="size-5 shrink-0" />,
-          url: "#",
+          title: "Role-Based Permissions",
+          description: "Granular permission matrices per organization with admin/member/guest control",
+          icon: <Shield className="size-5 shrink-0" />,
+          url: "#features",
+        },
+        {
+          title: "Real-Time Collaboration",
+          description: "Chat threads, file attachments, reactions, and read receipts",
+          icon: <Activity className="size-5 shrink-0" />,
+          url: "#features",
+        },
+        {
+          title: "Audit Trail",
+          description: "Comprehensive audit logging, notifications, and overdue task monitoring",
+          icon: <Rocket className="size-5 shrink-0" />,
+          url: "#features",
         },
       ],
     },
-    {
-      title: "Pricing",
-      url: "#",
-    },
+    { title: "How It Works", url: "#how-it-works" },
+    { title: "Beta", url: "#beta" },
   ],
   auth = {
     login: { title: "Login", url: "/sign-in" },
@@ -121,6 +130,16 @@ const Navbar1 = ({
         },
       },
     })
+  }
+
+  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+    if (url.startsWith("#")) {
+      e.preventDefault()
+      const el = document.getElementById(url.slice(1))
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" })
+      }
+    }
   }
 
   return (
@@ -143,7 +162,7 @@ const Navbar1 = ({
             <div className="flex items-center">
               <NavigationMenu>
                 <NavigationMenuList>
-                  {menu.map((item) => renderMenuItem(item))}
+                  {menu.map((item) => renderMenuItem(item, handleSmoothScroll))}
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
@@ -216,6 +235,16 @@ const Navbar1 = ({
                     {menu.map((item) => renderMobileMenuItem(item))}
                   </Accordion>
 
+                  {/* Legal Links */}
+                  <div className="flex flex-col gap-2 border-t border-zinc-800 pt-4">
+                    <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      Privacy Policy
+                    </Link>
+                    <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      Terms of Service
+                    </Link>
+                  </div>
+
                   <div className="flex flex-col gap-3">
                     {isPending ? (
                       <Loader2 className="animate-spin size-4 self-center" />
@@ -253,7 +282,10 @@ const Navbar1 = ({
   )
 }
 
-const renderMenuItem = (item: MenuItem) => {
+const renderMenuItem = (
+  item: MenuItem,
+  handleSmoothScroll: (e: React.MouseEvent<HTMLAnchorElement>, url: string) => void
+) => {
   if (item.items) {
     return (
       <NavigationMenuItem key={item.title}>
@@ -261,7 +293,7 @@ const renderMenuItem = (item: MenuItem) => {
         <NavigationMenuContent className="bg-popover text-popover-foreground">
           <div className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
             {item.items.map((subItem) => (
-              <SubMenuLink key={subItem.title} item={subItem} />
+              <SubMenuLink key={subItem.title} item={subItem} onSmoothScroll={handleSmoothScroll} />
             ))}
           </div>
         </NavigationMenuContent>
@@ -275,7 +307,12 @@ const renderMenuItem = (item: MenuItem) => {
         asChild
         className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-accent-foreground focus:bg-muted focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
       >
-        <Link href={item.url}>{item.title}</Link>
+        <Link
+          href={item.url}
+          onClick={(e) => handleSmoothScroll(e, item.url)}
+        >
+          {item.title}
+        </Link>
       </NavigationMenuLink>
     </NavigationMenuItem>
   )
@@ -304,11 +341,18 @@ const renderMobileMenuItem = (item: MenuItem) => {
   )
 }
 
-const SubMenuLink = ({ item }: { item: MenuItem }) => {
+const SubMenuLink = ({
+  item,
+  onSmoothScroll,
+}: {
+  item: MenuItem
+  onSmoothScroll?: (e: React.MouseEvent<HTMLAnchorElement>, url: string) => void
+}) => {
   return (
     <Link
       className="flex flex-row gap-4 rounded-md p-3 leading-none no-underline transition-colors outline-none select-none hover:bg-muted hover:text-accent-foreground"
       href={item.url}
+      onClick={onSmoothScroll ? (e) => onSmoothScroll(e, item.url) : undefined}
     >
       <div className="text-foreground">{item.icon}</div>
       <div>

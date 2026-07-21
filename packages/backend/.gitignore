@@ -1,5 +1,6 @@
-
 .env.local
+.env.production
+.env.production.local
 
 convex/_generated
 convex/betterAuth/_generated/

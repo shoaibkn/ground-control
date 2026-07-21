@@ -21,12 +21,21 @@ import {
   Plus,
   Send,
   Terminal,
+  ClipboardList,
+  FileText,
+  Bell,
+  MessageSquare,
+  Repeat,
+  ArrowRight,
+  Sparkles,
+  Kanban,
 } from "lucide-react"
 
 import { Navbar1 } from "@/components/landing/header"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
+import Link from "next/link"
 
 // Register ScrollTrigger only on the client
 if (typeof window !== "undefined") {
@@ -40,14 +49,85 @@ const USER_PROFILES: Record<string, { name: string; image: string; role: string 
   operator: { name: "System Operator", image: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-3.webp", role: "Astronaut" }
 }
 
+// Features data
+const FEATURES = [
+  {
+    icon: <CheckCircle2 className="size-5" />,
+    title: "Task Management",
+    description:
+      "Multi-view task management with table, kanban, and list views. Status state machine with Pending → In Progress → Under Review → Completed workflows, priority levels, due dates, subtasks, and recurring task schedules.",
+  },
+  {
+    icon: <ClipboardList className="size-5" />,
+    title: "Approval Workflows",
+    description:
+      "Create approvals linked to tasks, assign multiple approvers, and track decision status (Pending, Approved, Declined, Rework). Full audit trail with chat threads and file attachments on every approval.",
+  },
+  {
+    icon: <FileText className="size-5" />,
+    title: "Forms Builder",
+    description:
+      "Dynamic form builder with text, textarea, radio, checkbox, select, date, number, file, and image field types. Share forms externally and link responses directly to tasks and approvals.",
+  },
+  {
+    icon: <Shield className="size-5" />,
+    title: "Role-Based Permissions",
+    description:
+      "Granular permission matrices per organization. Admin, member, and guest roles with configurable action scopes. Every mutation is gate-checked against permission tables before execution.",
+  },
+  {
+    icon: <MessageSquare className="size-5" />,
+    title: "Real-Time Collaboration",
+    description:
+      "In-task and in-approval chat threads with rich message editing, deletion, and system messages. File attachments stored on Cloudflare R2, emoji reactions, read receipts, and @mentions.",
+  },
+  {
+    icon: <Activity className="size-5" />,
+    title: "Audit Trail & Notifications",
+    description:
+      "Comprehensive audit logging on every status change, assignee update, and permission event. Overdue task monitoring crons, in-app notification inbox, and transactional emails via Resend.",
+  },
+]
+
+// Timeline steps
+const TIMELINE_STEPS = [
+  {
+    stage: "01",
+    icon: <Cpu className="size-4 text-zinc-400" />,
+    title: "Create & Assign Tasks",
+    description:
+      "Create tasks with titles, descriptions, priorities, and due dates. Assign team members, add collaborators, and attach forms for structured data collection.",
+  },
+  {
+    stage: "02",
+    icon: <Shield className="size-4 text-zinc-400" />,
+    title: "Permission-Gated Workflows",
+    description:
+      "Every action passes through role-based permission checks. Members can start work and submit for review; admins can approve, complete, or cancel.",
+  },
+  {
+    stage: "03",
+    icon: <Users className="size-4 text-zinc-400" />,
+    title: "Collaborate in Real-Time",
+    description:
+      "Team members discuss progress in real-time chat threads. Upload attachments, react with emojis, and track who has read the latest updates.",
+  },
+  {
+    stage: "04",
+    icon: <CheckCircle2 className="size-4 text-zinc-400 animate-pulse" />,
+    title: "Track, Audit & Notify",
+    description:
+      "Every action is logged to immutable audit tables. Overdue tasks trigger notifications automatically. The dashboard gives real-time visibility across all workspace activity.",
+  },
+]
+
 export default function LandingPage() {
-  // References for GSAP
   const containerRef = useRef<HTMLDivElement>(null)
   const heroSectionRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const statsSectionRef = useRef<HTMLDivElement>(null)
 
-  // 1. Task State Machine Simulator State
+  // Interactive demo state (preserved from existing page)
   const [userRole, setUserRole] = useState<"guest" | "member" | "admin">("member")
   const [taskStatus, setTaskStatus] = useState<"Pending" | "In Progress" | "Under Review" | "Completed" | "Cancelled">("Pending")
   const [stateLogs, setStateLogs] = useState<string[]>([
@@ -57,7 +137,7 @@ export default function LandingPage() {
     ""
   ])
 
-  // 2. Subtask & Comments Widget State
+  // Subtask & Comments
   const [subtasks, setSubtasks] = useState([
     { id: 1, title: "Initialize telemetry antenna calibration", completed: true },
     { id: 2, title: "Check hydraulic thruster chamber pressure", completed: false },
@@ -69,16 +149,15 @@ export default function LandingPage() {
   ])
   const [newComment, setNewComment] = useState("")
 
-  // 3. CTA Diagnostics Flow State
-  const [diagStep, setDiagStep] = useState(0)
-  const [diagLogs, setDiagLogs] = useState<string[]>([])
-  const [diagComplete, setDiagComplete] = useState(false)
-  const [diagRunning, setDiagRunning] = useState(false)
+  // Stats counters
+  const [statCounts, setStatCounts] = useState({ tasks: 0, orgs: 0, uptime: 0 })
 
-  // 4. Staggered Stat Counts state
-  const [statCounts, setStatCounts] = useState({ tasks: 0, sync: 0, logs: 0 })
+  // Beta form state
+  const [betaName, setBetaName] = useState("")
+  const [betaEmail, setBetaEmail] = useState("")
+  const [betaSubmitted, setBetaSubmitted] = useState(false)
+  const [betaSubmitting, setBetaSubmitting] = useState(false)
 
-  // Log end-of-list ref
   const logEndRef = useRef<HTMLDivElement>(null)
 
   // Scroll logs to bottom
@@ -97,14 +176,13 @@ export default function LandingPage() {
         .fromTo(".hero-heading", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7 }, "-=0.3")
         .fromTo(".hero-desc", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, "-=0.4")
         .fromTo(".hero-buttons", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5 }, "-=0.3")
-        .fromTo(".hero-widgets", { opacity: 0, scale: 0.98, y: 40 }, { opacity: 1, scale: 1, y: 0, duration: 0.9 }, "-=0.4")
 
       // Stats numbers reveal tween
-      const statTarget = { tasks: 0, sync: 0, logs: 0 }
+      const statTarget = { tasks: 0, orgs: 0, uptime: 0 }
       gsap.to(statTarget, {
-        tasks: 124,
-        sync: 100,
-        logs: 8940,
+        tasks: 2400,
+        orgs: 180,
+        uptime: 99.9,
         duration: 2.2,
         ease: "power2.out",
         scrollTrigger: {
@@ -114,10 +192,29 @@ export default function LandingPage() {
         onUpdate: () => {
           setStatCounts({
             tasks: Math.floor(statTarget.tasks),
-            sync: Math.floor(statTarget.sync),
-            logs: Math.floor(statTarget.logs)
+            orgs: Math.floor(statTarget.orgs),
+            uptime: Math.round(statTarget.uptime * 10) / 10
           })
         }
+      })
+
+      // Staggered feature card reveals
+      gsap.utils.toArray<HTMLElement>(".feature-card").forEach((card, i) => {
+        gsap.fromTo(
+          card,
+          { opacity: 0, y: 40 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            delay: i * 0.08,
+            scrollTrigger: {
+              trigger: card,
+              start: "top 85%",
+              toggleActions: "play none none reverse",
+            }
+          }
+        )
       })
 
       // Timeline vertical connector line growth
@@ -155,12 +252,26 @@ export default function LandingPage() {
         )
       })
 
+      // Beta section reveal
+      gsap.fromTo(
+        ".beta-section",
+        { opacity: 0, y: 50, scale: 0.98 },
+        {
+          opacity: 1, y: 0, scale: 1, duration: 0.8,
+          scrollTrigger: {
+            trigger: ".beta-section",
+            start: "top 80%",
+            toggleActions: "play none none reverse",
+          }
+        }
+      )
+
     }, containerRef)
 
     return () => ctx.revert()
   }, [])
 
-  // 3D Tilt Hover effect on Feature Cards (minimalist, shadcn style)
+  // 3D Tilt Hover effect on Feature Cards
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget
     const rect = card.getBoundingClientRect()
@@ -168,7 +279,7 @@ export default function LandingPage() {
     const y = e.clientY - rect.top
     const xc = rect.width / 2
     const yc = rect.height / 2
-    const maxRotate = 5 // subtle tilt for shadcn aesthetic
+    const maxRotate = 5
     const rotateY = ((x - xc) / xc) * maxRotate
     const rotateX = -((y - yc) / yc) * maxRotate
 
@@ -181,7 +292,6 @@ export default function LandingPage() {
       overwrite: "auto"
     })
 
-    // Update reflection glow coordinate
     const glow = card.querySelector(".card-radial-glow") as HTMLDivElement
     if (glow) {
       gsap.to(glow, {
@@ -214,14 +324,13 @@ export default function LandingPage() {
     }
   }
 
-  // 1. State Machine Action click handlers
+  // State Machine handlers
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString("en-GB", { hour12: false })
     setStateLogs(prev => [...prev, `[${time}] ${msg}`])
   }
 
   const triggerWidgetWarning = () => {
-    // Shakes the state machine widget when permission or action is blocked
     gsap.fromTo(
       ".state-machine-widget",
       { x: -6 },
@@ -230,7 +339,6 @@ export default function LandingPage() {
   }
 
   const handleStatusTransition = (targetStatus: typeof taskStatus) => {
-    // Permission checks matching Convex backend schema
     if (userRole === "guest") {
       triggerWidgetWarning()
       addLog(`⚠ ACCESS_DENIED: Guest role has read_only permission scope. Mutation blocked.`)
@@ -238,7 +346,6 @@ export default function LandingPage() {
     }
 
     if (userRole === "member") {
-      // Member can start and submit review
       if (targetStatus === "In Progress") {
         setTaskStatus("In Progress")
         addLog(`MUTATION: task_0x9a23 status patched to IN_PROGRESS by Member_Sarah (assignee).`)
@@ -246,7 +353,6 @@ export default function LandingPage() {
         setTaskStatus("Under Review")
         addLog(`MUTATION: task_0x9a23 status patched to UNDER_REVIEW by Member_Sarah (submitted for approval).`)
       } else if (targetStatus === "Completed") {
-        // Redirection logic from backend: Member completing task sends it to Under Review instead
         setTaskStatus("Under Review")
         triggerWidgetWarning()
         addLog(`⚠ INTERCEPT: Member requested COMPLETE. Redirecting task status to UNDER_REVIEW for Admin audit.`)
@@ -261,7 +367,6 @@ export default function LandingPage() {
     }
 
     if (userRole === "admin") {
-      // Admin has full control
       setTaskStatus(targetStatus)
       if (targetStatus === "Completed") {
         addLog(`MUTATION: task_0x9a23 status resolved to COMPLETED by Admin_John. Telemetry locked.`)
@@ -273,7 +378,7 @@ export default function LandingPage() {
     }
   }
 
-  // 2. Checklist toggle handlers
+  // Subtask toggle
   const handleToggleSubtask = (id: number) => {
     setSubtasks(prev =>
       prev.map(st => {
@@ -307,7 +412,6 @@ export default function LandingPage() {
     const commentText = newComment.trim()
     setNewComment("")
 
-    // Animate comments wrapper to show new item smoothly
     setTimeout(() => {
       gsap.fromTo(
         ".comment-item:last-child",
@@ -319,67 +423,27 @@ export default function LandingPage() {
     }, 50)
   }
 
-  // Calculates subtask progress percentage
   const completedSubtasksCount = subtasks.filter(s => s.completed).length
   const progressPercent = Math.round((completedSubtasksCount / subtasks.length) * 100)
 
-  // 3. CTA Telemetry Diagnostic run sequence
-  const runDiagnostics = () => {
-    if (diagRunning || diagComplete) return
-    setDiagRunning(true)
-    setDiagLogs([])
-    setDiagStep(1)
+  // Beta form submit
+  const handleBetaSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!betaName.trim() || !betaEmail.trim()) return
+    setBetaSubmitting(true)
 
-    const diagTimeline = gsap.timeline({
-      onComplete: () => {
-        setDiagComplete(true)
-        setDiagRunning(false)
-      }
-    })
+    // Simulate submission
+    setTimeout(() => {
+      setBetaSubmitting(false)
+      setBetaSubmitted(true)
 
-    // Step 1: Convex DB check
-    diagTimeline.call(() => {
-      setDiagLogs(prev => [...prev, "Checking Convex database clusters..."])
-    })
-    .to({}, { duration: 0.7 })
-    .call(() => {
-      setDiagLogs(prev => [...prev, "✔ SUCCESS: Convex clusters connected (replica link active)"])
-      setDiagStep(2)
-    })
-    // Step 2: betterAuth handshake
-    .call(() => {
-      setDiagLogs(prev => [...prev, "Validating betterAuth token vectors..."])
-    })
-    .to({}, { duration: 0.8 })
-    .call(() => {
-      setDiagLogs(prev => [...prev, "✔ SUCCESS: credential adapters and session tokens sync OK"])
-      setDiagStep(3)
-    })
-    // Step 3: R2 Attachment check
-    .call(() => {
-      setDiagLogs(prev => [...prev, "Pinging Cloudflare R2 bucket mounts..."])
-    })
-    .to({}, { duration: 0.7 })
-    .call(() => {
-      setDiagLogs(prev => [...prev, "✔ SUCCESS: R2 attachment upload/download telemetry verified"])
-      setDiagStep(4)
-    })
-    // Step 4: Final handshake
-    .call(() => {
-      setDiagLogs(prev => [...prev, "Validating user role permission tables..."])
-    })
-    .to({}, { duration: 0.6 })
-    .call(() => {
-      setDiagLogs(prev => [...prev, "✔ SUCCESS: Role permissions parsed. Workspace active."])
-      setDiagStep(5)
-    })
-  }
-
-  const resetDiagnostics = () => {
-    setDiagComplete(false)
-    setDiagRunning(false)
-    setDiagStep(0)
-    setDiagLogs([])
+      // Animate success
+      gsap.fromTo(
+        ".beta-success",
+        { opacity: 0, scale: 0.9, y: 20 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "back.out(1.4)" }
+      )
+    }, 1200)
   }
 
   return (
@@ -387,68 +451,147 @@ export default function LandingPage() {
       ref={containerRef}
       className="relative min-h-screen w-full bg-zinc-950 text-zinc-100 overflow-x-hidden font-sans antialiased"
     >
-      {/* Minimalist Grid Pattern Background with Fading Radial Mask (shadcn signature look) */}
+      {/* Grid Pattern Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
 
-      {/* Floating abstract decorative grids */}
+      {/* Floating decorative blurs */}
       <div className="absolute top-[20%] left-[-15%] w-[450px] h-[450px] bg-zinc-800/10 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="absolute top-[55%] right-[-15%] w-[500px] h-[500px] bg-zinc-800/10 rounded-full blur-[140px] pointer-events-none z-0" />
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Top Navbar */}
+        {/* Navbar */}
         <Navbar1 className="border-b border-zinc-900 bg-zinc-950/70 backdrop-blur-md sticky top-0 z-40" />
 
-        {/* Hero Section */}
+        {/* =============== HERO SECTION =============== */}
         <section
           ref={heroSectionRef}
-          className="container mx-auto px-6 pt-16 pb-20 lg:pt-24 lg:pb-28 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
+          className="container mx-auto px-6 pt-20 pb-24 lg:pt-32 lg:pb-36 flex flex-col items-center text-center"
         >
-          {/* Hero left details */}
-          <div className="lg:col-span-5 flex flex-col space-y-6 text-center lg:text-left items-center lg:items-start">
-            <div className="hero-badge inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs font-mono select-none backdrop-blur-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              Convex Active Telemetry Link
-            </div>
-
-            <h1 className="hero-heading text-4xl sm:text-5xl md:text-6xl font-bold font-heading tracking-tight leading-[1.05] text-white">
-              Ground Control.
-              <br />
-              <span className="text-zinc-500 font-light">Secure Project Telemetry.</span>
-            </h1>
-
-            <p className="hero-desc text-zinc-400 text-base md:text-lg font-light leading-relaxed max-w-lg">
-              A developer-first collaborative task suite. Partition workspaces by organization, map roles to strict permission tables, enforce status state machines, and log every action to Convex audit tables.
-            </p>
-
-            <div className="hero-buttons flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center lg:justify-start pt-2">
-              <Button size="lg" className="w-full sm:w-auto bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-medium group h-11" asChild>
-                <a href="/sign-up" className="flex items-center justify-center gap-2">
-                  Access Console
-                  <ChevronRight className="size-4 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto border-zinc-800 hover:bg-zinc-900 text-zinc-300 h-11"
-                onClick={() => {
-                  document.getElementById("interactive-telemetry")?.scrollIntoView({ behavior: "smooth" })
-                }}
-              >
-                Simulate Permissions
-              </Button>
-            </div>
+          <div className="hero-badge inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs font-mono select-none backdrop-blur-sm mb-6">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Now in Beta — Join Early Access
           </div>
 
-          {/* Hero right: Interactive Mock Widgets side-by-side */}
-          <div className="lg:col-span-7 w-full flex flex-col space-y-6 hero-widgets">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-              
-              {/* Widget 1: State Machine (7cols) */}
-              <div className="md:col-span-7 state-machine-widget bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md">
+          <h1 className="hero-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-heading tracking-tight leading-[1.05] text-white max-w-4xl">
+            Ground Control.
+            <br />
+            <span className="text-zinc-500 font-light">Task Management, Reinvented.</span>
+          </h1>
+
+          <p className="hero-desc text-zinc-400 text-base md:text-lg font-light leading-relaxed max-w-2xl mt-6">
+            A collaborative project management platform with real-time task tracking, approval workflows, dynamic forms, role-based permissions, and comprehensive audit trails — all powered by a reactive backend.
+          </p>
+
+          <div className="hero-buttons flex flex-col sm:flex-row gap-3 mt-8">
+            <Button size="lg" className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-medium group h-12 px-8" asChild>
+              <a
+                href="#beta"
+                onClick={(e) => {
+                  e.preventDefault()
+                  document.getElementById("beta")?.scrollIntoView({ behavior: "smooth" })
+                }}
+                className="flex items-center justify-center gap-2"
+              >
+                <Sparkles className="size-4" />
+                Join the Beta
+                <ChevronRight className="size-4 group-hover:translate-x-1 transition-transform" />
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-zinc-800 hover:bg-zinc-900 text-zinc-300 h-12 px-8"
+              onClick={() => {
+                document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })
+              }}
+            >
+              Explore Features
+            </Button>
+          </div>
+        </section>
+
+        {/* =============== STATS BAR =============== */}
+        <section
+          ref={statsSectionRef}
+          className="border-y border-zinc-900 bg-zinc-900/10 backdrop-blur-sm"
+        >
+          <div className="container mx-auto px-6 py-10 max-w-5xl">
+            <div className="grid grid-cols-3 gap-8">
+              <div className="text-center font-mono">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Tasks Managed</span>
+                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.tasks.toLocaleString()}+</span>
+              </div>
+              <div className="text-center font-mono">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Organizations</span>
+                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.orgs}+</span>
+              </div>
+              <div className="text-center font-mono">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Uptime</span>
+                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.uptime}%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =============== FEATURES GRID =============== */}
+        <section id="features" className="container mx-auto px-6 py-20 lg:py-28 max-w-6xl">
+          <div className="text-center space-y-4 mb-16">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+              <Layers className="size-3" />
+              Platform Features
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">Everything You Need to Ship</h2>
+            <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+              Ground Control brings together task management, approvals, forms, and team collaboration into one unified workspace.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((feature) => (
+              <div
+                key={feature.title}
+                className="feature-card group relative flex flex-col p-6 rounded-xl bg-zinc-900/10 border border-zinc-900 hover:border-zinc-800 overflow-hidden cursor-default transition-all duration-300 transform-gpu"
+                style={{ transformStyle: "preserve-3d" }}
+                onMouseMove={handleCardMouseMove}
+                onMouseLeave={handleCardMouseLeave}
+              >
+                <div className="card-radial-glow absolute -left-20 -top-20 w-40 h-40 rounded-full bg-zinc-300 opacity-0 blur-3xl pointer-events-none transition-all duration-200" />
+                <div className="space-y-4" style={{ transform: "translateZ(15px)" }}>
+                  <div className="p-2.5 w-fit rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 group-hover:border-zinc-700 transition-colors">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-sm font-bold uppercase text-white tracking-wide font-mono">
+                    {feature.title}
+                  </h3>
+                  <p className="text-[12px] text-zinc-400 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* =============== INTERACTIVE DEMO =============== */}
+        <section className="border-t border-zinc-900 bg-zinc-900/5">
+          <div className="container mx-auto px-6 py-20 lg:py-28 max-w-6xl">
+            <div className="text-center space-y-4 mb-12">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+                <Terminal className="size-3" />
+                Interactive Demo
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">Try the Permission Engine</h2>
+              <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+                Switch between roles and see how Ground Control&apos;s permission system controls task state transitions in real-time.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* State Machine Widget */}
+              <div className="lg:col-span-7 state-machine-widget bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/40 border-b border-zinc-900 text-[10px] font-mono text-zinc-500 select-none">
                   <div className="flex items-center gap-1.5 font-semibold">
@@ -457,11 +600,11 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="uppercase text-[9px] tracking-wide text-zinc-400 bg-zinc-800 px-1 py-0.2 rounded border border-zinc-700">task_0x9a23</span>
+                    <span className="uppercase text-[9px] tracking-wide text-zinc-400 bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">task_0x9a23</span>
                   </div>
                 </div>
 
-                {/* Role Toggler inside Widget */}
+                {/* Role Toggler */}
                 <div className="p-4 border-b border-zinc-900 bg-zinc-900/10 flex items-center justify-between text-[11px] font-mono">
                   <span className="text-zinc-500 font-semibold uppercase">Actor Permission Role:</span>
                   <div className="flex border border-zinc-800 rounded overflow-hidden">
@@ -504,22 +647,19 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Active Graph Vis */}
+                {/* Status Graph */}
                 <div className="p-5 flex flex-col space-y-5">
                   <div className="flex items-center justify-between relative px-2">
-                    {/* Background Connection line */}
                     <div className="absolute top-3.5 left-6 right-6 h-0.5 bg-zinc-800 z-0" />
-                    
-                    {/* Status node dots */}
                     {["Pending", "In Progress", "Under Review", "Completed"].map((status, index) => {
                       const isCompleted = ["Pending", "In Progress", "Under Review", "Completed"].indexOf(taskStatus) >= index && taskStatus !== "Cancelled"
                       const isActive = taskStatus === status
                       return (
                         <div key={status} className="flex flex-col items-center z-10 font-mono">
                           <button
-                            onClick={() => handleStatusTransition(status as any)}
+                            onClick={() => handleStatusTransition(status as typeof taskStatus)}
                             className={cn(
-                              "w-7.5 h-7.5 rounded-full flex items-center justify-center border transition-all text-[11px]",
+                              "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all text-[11px]",
                               isActive
                                 ? "bg-zinc-100 text-zinc-950 border-zinc-100 shadow-[0_0_8px_rgba(255,255,255,0.3)] font-bold scale-110"
                                 : isCompleted
@@ -530,7 +670,7 @@ export default function LandingPage() {
                             {isCompleted && !isActive ? <Check className="size-3.5" /> : index + 1}
                           </button>
                           <span className={cn(
-                            "text-[8px] uppercase tracking-wide mt-2 font-semibold",
+                            "text-[7px] sm:text-[8px] uppercase tracking-wide mt-2 font-semibold",
                             isActive ? "text-zinc-200 font-bold" : "text-zinc-600"
                           )}>
                             {status}
@@ -540,7 +680,7 @@ export default function LandingPage() {
                     })}
                   </div>
 
-                  {/* Operational Transition Trigger Buttons */}
+                  {/* Transition Buttons */}
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                     <button
                       onClick={() => handleStatusTransition("In Progress")}
@@ -580,7 +720,7 @@ export default function LandingPage() {
                     </button>
                   </div>
 
-                  {/* Audit Logs feed at bottom of widget */}
+                  {/* Audit Logs */}
                   <div className="border border-zinc-900 bg-zinc-950 rounded-lg overflow-hidden flex flex-col">
                     <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900/40 border-b border-zinc-900 text-[9px] font-mono text-zinc-500 select-none">
                       <span>CONVEX_AUDIT_LOG_TELEMETRY</span>
@@ -600,10 +740,9 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Widget 2: Subtask checklist & Comments (5cols) */}
-              <div className="md:col-span-5 flex flex-col space-y-4">
-                
-                {/* Subtask progress card */}
+              {/* Subtask & Comments Widget */}
+              <div className="lg:col-span-5 flex flex-col space-y-4">
+                {/* Subtask progress */}
                 <Card className="bg-zinc-950 border-zinc-800 shadow-xl overflow-hidden">
                   <CardHeader className="p-4 border-b border-zinc-900 bg-zinc-900/20">
                     <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 select-none">
@@ -641,7 +780,7 @@ export default function LandingPage() {
                   </CardContent>
                 </Card>
 
-                {/* Task comments card */}
+                {/* Comments */}
                 <Card className="bg-zinc-950 border-zinc-800 shadow-xl overflow-hidden flex flex-col flex-1">
                   <CardHeader className="p-4 border-b border-zinc-900 bg-zinc-900/20">
                     <span className="font-mono text-[10px] text-zinc-500 font-semibold uppercase flex items-center gap-1 select-none">
@@ -683,284 +822,201 @@ export default function LandingPage() {
                     </form>
                   </CardFooter>
                 </Card>
-
               </div>
             </div>
           </div>
         </section>
 
-        {/* Real-time sync statistics counters */}
+        {/* =============== HOW IT WORKS TIMELINE =============== */}
         <section
-          ref={statsSectionRef}
-          className="border-y border-zinc-900 bg-zinc-900/10 backdrop-blur-sm"
-        >
-          <div className="container mx-auto px-6 py-10 max-w-5xl">
-            <div className="grid grid-cols-3 gap-8">
-              <div className="text-center font-mono">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Workspace Tasks</span>
-                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.tasks}</span>
-              </div>
-              <div className="text-center font-mono">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Real-time Sync</span>
-                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.sync}%</span>
-              </div>
-              <div className="text-center font-mono">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Audit Events Logged</span>
-                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.logs}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Feature Grid Section (Project Architecture Focused) */}
-        <section className="container mx-auto px-6 py-20 lg:py-28 max-w-6xl">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl font-bold font-heading text-white">Project Telemetry Architecture</h2>
-            <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-              Explore Ground Control's underlying Convex data structures, reactive document feeds, and role authentication protocols.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Feature 1 */}
-            <div
-              className="group relative flex flex-col p-6 rounded-xl bg-zinc-900/10 border border-zinc-900 hover:border-zinc-800 overflow-hidden cursor-default transition-all duration-300 transform-gpu preserve-3d"
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-            >
-              <div className="card-radial-glow absolute -left-20 -top-20 w-40 h-40 rounded-full bg-zinc-300 opacity-0 blur-3xl pointer-events-none transition-all duration-200" />
-              <div className="translate-z-[15px] space-y-4 font-mono">
-                <div className="p-2.5 w-fit rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800">
-                  <Activity className="size-5" />
-                </div>
-                <h3 className="text-sm font-bold uppercase text-white tracking-wide">Audit Log Telemetry</h3>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                  Automatically inserts audit logs (`taskAuditLogs`) on every mutation check (STATUS_CHANGED, ASSIGNEES_UPDATED). Seamless user profile mapping.
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 2 */}
-            <div
-              className="group relative flex flex-col p-6 rounded-xl bg-zinc-900/10 border border-zinc-900 hover:border-zinc-800 overflow-hidden cursor-default transition-all duration-300 transform-gpu preserve-3d"
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-            >
-              <div className="card-radial-glow absolute -left-20 -top-20 w-40 h-40 rounded-full bg-zinc-300 opacity-0 blur-3xl pointer-events-none transition-all duration-200" />
-              <div className="translate-z-[15px] space-y-4 font-mono">
-                <div className="p-2.5 w-fit rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800">
-                  <Shield className="size-5" />
-                </div>
-                <h3 className="text-sm font-bold uppercase text-white tracking-wide">Permission Matrices</h3>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                  Granular permission checks evaluated at mutation invocation. Restricts reading, task assignments, cancellations, and completes by member profile roles.
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 3 */}
-            <div
-              className="group relative flex flex-col p-6 rounded-xl bg-zinc-900/10 border border-zinc-900 hover:border-zinc-800 overflow-hidden cursor-default transition-all duration-300 transform-gpu preserve-3d"
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-            >
-              <div className="card-radial-glow absolute -left-20 -top-20 w-40 h-40 rounded-full bg-zinc-300 opacity-0 blur-3xl pointer-events-none transition-all duration-200" />
-              <div className="translate-z-[15px] space-y-4 font-mono">
-                <div className="p-2.5 w-fit rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800">
-                  <Layers className="size-5" />
-                </div>
-                <h3 className="text-sm font-bold uppercase text-white tracking-wide">Workspace Partition</h3>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                  Organization-level data segregation. Better Auth manages workspace membership rosters while database queries automatically filter scopes.
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 4 */}
-            <div
-              className="group relative flex flex-col p-6 rounded-xl bg-zinc-900/10 border border-zinc-900 hover:border-zinc-800 overflow-hidden cursor-default transition-all duration-300 transform-gpu preserve-3d"
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-            >
-              <div className="card-radial-glow absolute -left-20 -top-20 w-40 h-40 rounded-full bg-zinc-300 opacity-0 blur-3xl pointer-events-none transition-all duration-200" />
-              <div className="translate-z-[15px] space-y-4 font-mono">
-                <div className="p-2.5 w-fit rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800">
-                  <Paperclip className="size-5" />
-                </div>
-                <h3 className="text-sm font-bold uppercase text-white tracking-wide">Payload Carriers</h3>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                  File uploads (`taskAttachments`) integrated directly into task cards. Cloudflare R2 bucket interfaces store images and logs with key matching.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Scroll-Triggered Timeline Section */}
-        <section
+          id="how-it-works"
           ref={timelineRef}
-          className="container mx-auto px-6 py-20 border-t border-zinc-900 bg-zinc-900/5"
+          className="container mx-auto px-6 py-20 border-t border-zinc-900"
         >
           <div className="max-w-4xl mx-auto space-y-12">
-            <div className="text-center space-y-3 mb-16">
-              <h2 className="text-3xl font-bold font-heading text-white">How Telemetry Sync Propagates</h2>
+            <div className="text-center space-y-4 mb-16">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+                <Compass className="size-3" />
+                Workflow
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">How It Works</h2>
               <p className="text-zinc-400 max-w-xl mx-auto text-sm leading-relaxed">
-                Watch how Ground Control processes reactive mutations from front-end actions into immutable telemetry logs.
+                From task creation to completion, every step is tracked, permission-gated, and audited in real-time.
               </p>
             </div>
 
-            {/* Timeline element */}
             <div className="relative pl-8 sm:pl-32 space-y-12">
-              {/* Vertical line connectors */}
               <div className="absolute top-2 left-6 sm:left-20 bottom-2 w-0.5 bg-zinc-800" />
               <div className="timeline-connector-progress absolute top-2 left-6 sm:left-20 bottom-2 w-0.5 bg-zinc-200 scale-y-0" />
 
-              {/* Node 1 */}
-              <div className="timeline-card relative flex flex-col sm:flex-row items-start gap-4 sm:gap-8 group">
-                <div className="absolute left-[-26px] sm:left-[-116px] top-1.5 w-4 h-4 rounded-full border border-zinc-800 bg-zinc-950 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-300" />
-                <span className="sm:w-20 text-zinc-500 font-mono text-xs uppercase tracking-widest pt-1">Stage 01</span>
-                <div className="flex-1 space-y-1">
-                  <h3 className="text-sm font-bold font-heading uppercase tracking-wide text-zinc-200 flex items-center gap-2">
-                    <Cpu className="size-4 text-zinc-400" /> Mutation Call Triggered
-                  </h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    User clicks "Start Work" in the dashboard. React triggers the `updateTaskStatus` mutation in the Convex client library.
-                  </p>
+              {TIMELINE_STEPS.map((step) => (
+                <div key={step.stage} className="timeline-card relative flex flex-col sm:flex-row items-start gap-4 sm:gap-8 group">
+                  <div className="absolute left-[-26px] sm:left-[-116px] top-1.5 w-4 h-4 rounded-full border border-zinc-800 bg-zinc-950 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-300" />
+                  <span className="sm:w-20 text-zinc-500 font-mono text-xs uppercase tracking-widest pt-1">Stage {step.stage}</span>
+                  <div className="flex-1 space-y-1">
+                    <h3 className="text-sm font-bold font-heading uppercase tracking-wide text-zinc-200 flex items-center gap-2">
+                      {step.icon} {step.title}
+                    </h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Node 2 */}
-              <div className="timeline-card relative flex flex-col sm:flex-row items-start gap-4 sm:gap-8 group">
-                <div className="absolute left-[-26px] sm:left-[-116px] top-1.5 w-4 h-4 rounded-full border border-zinc-800 bg-zinc-950 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-300" />
-                <span className="sm:w-20 text-zinc-500 font-mono text-xs uppercase tracking-widest pt-1">Stage 02</span>
-                <div className="flex-1 space-y-1">
-                  <h3 className="text-sm font-bold font-heading uppercase tracking-wide text-zinc-200 flex items-center gap-2">
-                    <Lock className="size-4 text-zinc-400" /> Auth & Role Verification
-                  </h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    The Convex handler calls `requireAuth(ctx)` and queries `requireMember(ctx, userId, organizationId)` to retrieve the member's profile role.
-                  </p>
-                </div>
-              </div>
-
-              {/* Node 3 */}
-              <div className="timeline-card relative flex flex-col sm:flex-row items-start gap-4 sm:gap-8 group">
-                <div className="absolute left-[-26px] sm:left-[-116px] top-1.5 w-4 h-4 rounded-full border border-zinc-800 bg-zinc-950 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-300" />
-                <span className="sm:w-20 text-zinc-500 font-mono text-xs uppercase tracking-widest pt-1">Stage 03</span>
-                <div className="flex-1 space-y-1">
-                  <h3 className="text-sm font-bold font-heading uppercase tracking-wide text-zinc-200 flex items-center gap-2">
-                    <Shield className="size-4 text-zinc-400" /> Permission Gate Evaluation
-                  </h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Evaluates permission maps (`hasPermission(ctx, orgId, role, "tasks", "complete")`). If successful, task status is patched; otherwise, it is redirected or rejected.
-                  </p>
-                </div>
-              </div>
-
-              {/* Node 4 */}
-              <div className="timeline-card relative flex flex-col sm:flex-row items-start gap-4 sm:gap-8 group">
-                <div className="absolute left-[-26px] sm:left-[-116px] top-1.5 w-4 h-4 rounded-full border border-zinc-800 bg-zinc-950 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-300" />
-                <span className="sm:w-20 text-zinc-500 font-mono text-xs uppercase tracking-widest pt-1">Stage 04</span>
-                <div className="flex-1 space-y-1">
-                  <h3 className="text-sm font-bold font-heading uppercase tracking-wide text-zinc-200 flex items-center gap-2">
-                    <CheckCircle2 className="size-4 text-zinc-400 animate-pulse" /> Telemetry Log Logged
-                  </h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Convex commits database updates and inserts an audit record (`taskAuditLogs`). Reactive subscriptions push updates to all team dashboards in 15ms.
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* CTA: Interactive Diagnostic Run (Ignition Sequence Redesign) */}
+        {/* =============== BETA PROGRAMME CTA =============== */}
         <section
-          id="interactive-telemetry"
+          id="beta"
           className="container mx-auto px-6 py-20 border-t border-zinc-900 flex justify-center"
         >
-          <div className="w-full max-w-2xl">
-            <div className="border border-zinc-800 rounded-xl bg-zinc-900/10 p-8 sm:p-12 backdrop-blur-md relative overflow-hidden flex flex-col items-center text-center space-y-8">
-              
-              {/* Decorative background grids */}
+          <div className="beta-section w-full max-w-2xl">
+            <div className="border border-zinc-800 rounded-2xl bg-zinc-900/10 p-8 sm:p-12 backdrop-blur-md relative overflow-hidden">
+              {/* Grid decoration */}
               <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.005)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:12px_12px] pointer-events-none" />
+              {/* Glassmorphism glow */}
+              <div className="absolute -top-20 -right-20 w-60 h-60 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-zinc-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-              <div className="relative z-10 space-y-3">
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
-                  <Terminal className="size-3 text-zinc-400 animate-pulse" />
-                  Diagnostic Telemetry Suite
+              {!betaSubmitted ? (
+                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+                    <Sparkles className="size-3 text-emerald-400" />
+                    Beta Programme
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">
+                    Get Early Access
+                  </h2>
+                  <p className="text-zinc-400 max-w-sm mx-auto text-sm leading-relaxed">
+                    Join the Ground Control Beta Programme and be among the first to experience the future of team task management. Get priority access and help shape the product.
+                  </p>
+
+                  <form onSubmit={handleBetaSubmit} className="w-full max-w-md space-y-3 mt-2">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="text"
+                        value={betaName}
+                        onChange={(e) => setBetaName(e.target.value)}
+                        placeholder="Your name"
+                        required
+                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors font-mono"
+                      />
+                      <input
+                        type="email"
+                        value={betaEmail}
+                        onChange={(e) => setBetaEmail(e.target.value)}
+                        placeholder="you@email.com"
+                        required
+                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors font-mono"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={betaSubmitting}
+                      size="lg"
+                      className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold h-12"
+                    >
+                      {betaSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin" />
+                          Processing...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Sparkles className="size-4" />
+                          Request Beta Access
+                        </span>
+                      )}
+                    </Button>
+                  </form>
+
+                  <p className="text-[10px] text-zinc-600 font-mono">
+                    By joining, you agree to our{" "}
+                    <Link href="/privacy" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-300 transition-colors">
+                      Privacy Policy
+                    </Link>
+                    {" "}and{" "}
+                    <Link href="/terms" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-300 transition-colors">
+                      Terms of Service
+                    </Link>
+                    .
+                  </p>
                 </div>
-                <h2 className="text-3xl font-bold font-heading text-white">Launch System Connection</h2>
-                <p className="text-zinc-400 max-w-sm mx-auto text-xs sm:text-sm">
-                  Run Ground Control diagnostics to check authorization handshakes, database pools, and Cloudflare attachment endpoints.
+              ) : (
+                <div className="beta-success relative z-10 flex flex-col items-center text-center space-y-6 py-8">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                    <Check className="size-8 text-emerald-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold text-white">You&apos;re on the List!</h3>
+                    <p className="text-zinc-400 text-sm max-w-xs mx-auto">
+                      Thanks, {betaName}! We&apos;ll send early access details to <span className="text-zinc-300 font-medium">{betaEmail}</span> when we&apos;re ready to launch.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-zinc-800 hover:bg-zinc-900 text-zinc-300"
+                    onClick={() => {
+                      setBetaSubmitted(false)
+                      setBetaName("")
+                      setBetaEmail("")
+                    }}
+                  >
+                    <RotateCcw className="size-3.5 mr-2" />
+                    Submit Another
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* =============== FOOTER =============== */}
+        <footer className="mt-auto border-t border-zinc-900 py-10 bg-zinc-950/40">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
+              {/* Brand */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-sm font-semibold tracking-tight text-zinc-200">Ground Control</span>
+                </div>
+                <p className="text-[11px] text-zinc-500 leading-relaxed max-w-xs">
+                  Collaborative project management with real-time task tracking, approval workflows, and comprehensive audit trails.
                 </p>
               </div>
 
-              {/* Progress and status logger inside diagnostic box */}
-              {diagStep > 0 && (
-                <div className="relative w-full border border-zinc-900 bg-zinc-950/80 rounded-lg p-5 font-mono text-[10px] text-zinc-400 text-left space-y-2 select-text w-full max-w-md">
-                  <div className="flex items-center justify-between border-b border-zinc-900 pb-1.5 text-zinc-500 select-none">
-                    <span>DIAGNOSTICS PROTOCOL</span>
-                    <span>{diagComplete ? "COMPLETE" : `RUNNING - STEP 0${diagStep}/04`}</span>
-                  </div>
-                  <div className="space-y-1.5 h-[90px] overflow-y-auto">
-                    {diagLogs.map((log, index) => (
-                      <div key={index} className={log.includes("✔") ? "text-zinc-300 font-semibold" : "text-zinc-500"}>
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                  {/* Dynamic Progress indicator */}
-                  <div className="h-1 bg-zinc-900 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-zinc-200 transition-all duration-300"
-                      style={{ width: `${(diagStep - 1) * 25}%` }}
-                    />
-                  </div>
+              {/* Product Links */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-semibold">Product</h4>
+                <div className="flex flex-col gap-2">
+                  <a href="#features" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Features</a>
+                  <a href="#how-it-works" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">How It Works</a>
+                  <a href="#beta" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Join Beta</a>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full justify-center">
-                {!diagComplete ? (
-                  <Button
-                    size="lg"
-                    disabled={diagRunning}
-                    onClick={runDiagnostics}
-                    className="w-full sm:w-auto bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold h-11 px-8"
-                  >
-                    {diagRunning ? "Running Suite..." : "Run Diagnostic Suite"}
-                  </Button>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
-                    <Button size="lg" className="w-full sm:w-auto bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold h-11 px-8" asChild>
-                      <a href="/dashboard">Enter Console</a>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={resetDiagnostics}
-                      className="w-full sm:w-auto border-zinc-800 hover:bg-zinc-900 text-zinc-300 h-11"
-                    >
-                      <RotateCcw className="size-4 mr-2" />
-                      Reset Diagnostics
-                    </Button>
-                  </div>
-                )}
               </div>
 
+              {/* Legal Links */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-semibold">Legal</h4>
+                <div className="flex flex-col gap-2">
+                  <Link href="/privacy" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Privacy Policy</Link>
+                  <Link href="/terms" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Terms of Service</Link>
+                  <Link href="/data-deletion" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Data Deletion</Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
 
-        {/* Footer */}
-        <footer className="mt-auto border-t border-zinc-900 py-8 bg-zinc-950/40">
-          <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-zinc-600">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Ground Control telemetry node #19 active</span>
+            <div className="border-t border-zinc-900 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-zinc-600">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>All systems operational</span>
+              </div>
+              <span>© {new Date().getFullYear()} Ground Control. All rights reserved.</span>
             </div>
-            <span>© {new Date().getFullYear()} Ground Control Inc. All telemetry parameters nominal.</span>
           </div>
         </footer>
       </div>
