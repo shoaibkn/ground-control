@@ -545,6 +545,31 @@ export const updateTaskStatus = mutation({
       })
     }
 
+    // Dispatch notifications to task participants
+    const recipients = new Set<string>()
+    if (task.creatorId) recipients.add(task.creatorId)
+    task.assigneeIds?.forEach((id: string) => recipients.add(id))
+    task.collaboratorIds?.forEach((id: string) => recipients.add(id))
+    task.subscriberIds?.forEach((id: string) => recipients.add(id))
+    recipients.delete(user._id)
+
+    for (const recipientId of recipients) {
+      await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+        userId: recipientId,
+        organizationId: task.organizationId,
+        templateName: "task_status_changed",
+        parameters: {
+          taskTitle: task.title,
+          updaterName: user.name || user.email || "Someone",
+          newStatus: targetStatus,
+        },
+        actorId: user._id,
+        entityId: task._id,
+        entityType: "task",
+        link: `/tasks?taskId=${task._id}`,
+      })
+    }
+
     // If marked Completed and has recurrence, spawn next instance and archive this one
     if (targetStatus === "Completed" && task.recurrence) {
       await spawnNextRecurringInstance(ctx, task)

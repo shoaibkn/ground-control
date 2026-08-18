@@ -1,7 +1,7 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
-import { components } from "./_generated/api"
+import { components, internal } from "./_generated/api"
 import { spawnNextRecurringInstance } from "./tasks"
 import { hasPermission } from "./permissions"
 
@@ -337,6 +337,24 @@ export const submitFormResponse = mutation({
           }
         }
       }
+    }
+
+    // Dispatch notifications to form creator or task/approval owner
+    const targetRecipient = form.creatorId !== user._id ? form.creatorId : null
+    if (targetRecipient) {
+      await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+        userId: targetRecipient,
+        organizationId: args.organizationId,
+        templateName: "form_response_submitted",
+        parameters: {
+          formTitle: form.title,
+          submitterName: user.name || user.email || "Someone",
+        },
+        actorId: user._id,
+        entityId: form._id,
+        entityType: "form",
+        link: `/forms`,
+      })
     }
 
     return responseId

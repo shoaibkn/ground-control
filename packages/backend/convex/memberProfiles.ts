@@ -54,6 +54,20 @@ export const upsertProfile = mutation({
         sms: v.boolean(),
         rcs: v.boolean(),
         whatsapp: v.boolean(),
+        push: v.optional(v.boolean()),
+        inApp: v.optional(v.boolean()),
+      })
+    ),
+    notificationPreferences: v.optional(
+      v.object({
+        taskAssigned: v.optional(v.boolean()),
+        taskStatusChanged: v.optional(v.boolean()),
+        taskDueReminder: v.optional(v.boolean()),
+        taskComments: v.optional(v.boolean()),
+        approvalRequested: v.optional(v.boolean()),
+        approvalDecided: v.optional(v.boolean()),
+        approvalComments: v.optional(v.boolean()),
+        formResponses: v.optional(v.boolean()),
       })
     ),
   },
@@ -63,23 +77,27 @@ export const upsertProfile = mutation({
       throw new Error("Unauthorized")
     }
 
-    // Check if caller is admin or owner of the org
-    const callerMember = (await ctx.runQuery(
-      components.betterAuth.adapter.findOne,
-      {
-        model: "member",
-        where: [
-          { field: "organizationId", value: args.organizationId },
-          { field: "userId", value: callerUser._id },
-        ],
-      }
-    )) as any
+    // Check if caller is admin or owner of the org or updating their own profile
+    const isSelf = callerUser._id === args.memberId
 
-    if (
-      !callerMember ||
-      (callerMember.role !== "owner" && callerMember.role !== "admin")
-    ) {
-      throw new Error("Unauthorized to perform this action")
+    if (!isSelf) {
+      const callerMember = (await ctx.runQuery(
+        components.betterAuth.adapter.findOne,
+        {
+          model: "member",
+          where: [
+            { field: "organizationId", value: args.organizationId },
+            { field: "userId", value: callerUser._id },
+          ],
+        }
+      )) as any
+
+      if (
+        !callerMember ||
+        (callerMember.role !== "owner" && callerMember.role !== "admin")
+      ) {
+        throw new Error("Unauthorized to perform this action")
+      }
     }
 
     const existingProfile = await ctx.db
@@ -94,6 +112,7 @@ export const upsertProfile = mutation({
         department: args.department !== undefined ? args.department : existingProfile.department,
         phoneNumber: args.phoneNumber !== undefined ? args.phoneNumber : existingProfile.phoneNumber,
         integrations: args.integrations !== undefined ? args.integrations : existingProfile.integrations,
+        notificationPreferences: args.notificationPreferences !== undefined ? args.notificationPreferences : existingProfile.notificationPreferences,
       })
     } else {
       await ctx.db.insert("memberProfiles", {
@@ -102,7 +121,128 @@ export const upsertProfile = mutation({
         position: args.position,
         department: args.department,
         phoneNumber: args.phoneNumber,
-        integrations: args.integrations ?? { email: true, sms: false, rcs: false, whatsapp: false },
+        integrations: args.integrations ?? { email: true, sms: false, rcs: false, whatsapp: false, push: true, inApp: true },
+        notificationPreferences: args.notificationPreferences ?? {
+          taskAssigned: true,
+          taskStatusChanged: true,
+          taskDueReminder: true,
+          taskComments: true,
+          approvalRequested: true,
+          approvalDecided: true,
+          approvalComments: true,
+          formResponses: true,
+        },
+      })
+    }
+
+    return { success: true }
+  },
+})
+
+export const getMyProfile = query({
+  args: {
+    organizationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const callerUser = await authComponent.getAuthUser(ctx)
+    if (!callerUser) {
+      return null
+    }
+
+    const profile = await ctx.db
+      .query("memberProfiles")
+      .withIndex("by_memberId", (q) => q.eq("memberId", callerUser._id))
+      .first()
+
+    return {
+      userId: callerUser._id,
+      name: callerUser.name,
+      email: callerUser.email,
+      phoneNumber: profile?.phoneNumber || "",
+      address: profile?.address || "",
+      position: profile?.position || "",
+      department: profile?.department || "",
+      integrations: profile?.integrations ?? {
+        email: true,
+        sms: false,
+        rcs: false,
+        whatsapp: false,
+        push: true,
+        inApp: true,
+      },
+      notificationPreferences: profile?.notificationPreferences ?? {
+        taskAssigned: true,
+        taskStatusChanged: true,
+        taskDueReminder: true,
+        taskComments: true,
+        approvalRequested: true,
+        approvalDecided: true,
+        approvalComments: true,
+        formResponses: true,
+      },
+    }
+  },
+})
+
+export const updateMyPreferences = mutation({
+  args: {
+    organizationId: v.string(),
+    phoneNumber: v.optional(v.string()),
+    integrations: v.optional(
+      v.object({
+        email: v.optional(v.boolean()),
+        sms: v.boolean(),
+        rcs: v.boolean(),
+        whatsapp: v.boolean(),
+        push: v.optional(v.boolean()),
+        inApp: v.optional(v.boolean()),
+      })
+    ),
+    notificationPreferences: v.optional(
+      v.object({
+        taskAssigned: v.optional(v.boolean()),
+        taskStatusChanged: v.optional(v.boolean()),
+        taskDueReminder: v.optional(v.boolean()),
+        taskComments: v.optional(v.boolean()),
+        approvalRequested: v.optional(v.boolean()),
+        approvalDecided: v.optional(v.boolean()),
+        approvalComments: v.optional(v.boolean()),
+        formResponses: v.optional(v.boolean()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const callerUser = await authComponent.getAuthUser(ctx)
+    if (!callerUser) {
+      throw new Error("Unauthorized")
+    }
+
+    const existingProfile = await ctx.db
+      .query("memberProfiles")
+      .withIndex("by_memberId", (q) => q.eq("memberId", callerUser._id))
+      .first()
+
+    if (existingProfile) {
+      await ctx.db.patch(existingProfile._id, {
+        phoneNumber: args.phoneNumber !== undefined ? args.phoneNumber : existingProfile.phoneNumber,
+        integrations: args.integrations !== undefined ? args.integrations : existingProfile.integrations,
+        notificationPreferences: args.notificationPreferences !== undefined ? args.notificationPreferences : existingProfile.notificationPreferences,
+      })
+    } else {
+      await ctx.db.insert("memberProfiles", {
+        memberId: callerUser._id,
+        phoneNumber: args.phoneNumber,
+        integrations: args.integrations ?? { email: true, sms: false, rcs: false, whatsapp: false, push: true, inApp: true },
+        notificationPreferences: args.notificationPreferences ?? {
+          taskAssigned: true,
+          taskStatusChanged: true,
+          taskDueReminder: true,
+          taskComments: true,
+          approvalRequested: true,
+          approvalDecided: true,
+          approvalComments: true,
+          formResponses: true,
+        },
       })
     }
 

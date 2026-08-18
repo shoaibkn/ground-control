@@ -14,6 +14,20 @@ export default defineSchema({
         sms: v.boolean(),
         rcs: v.boolean(),
         whatsapp: v.boolean(),
+        push: v.optional(v.boolean()),
+        inApp: v.optional(v.boolean()),
+      })
+    ),
+    notificationPreferences: v.optional(
+      v.object({
+        taskAssigned: v.optional(v.boolean()),
+        taskStatusChanged: v.optional(v.boolean()),
+        taskDueReminder: v.optional(v.boolean()),
+        taskComments: v.optional(v.boolean()),
+        approvalRequested: v.optional(v.boolean()),
+        approvalDecided: v.optional(v.boolean()),
+        approvalComments: v.optional(v.boolean()),
+        formResponses: v.optional(v.boolean()),
       })
     ),
   }).index("by_memberId", ["memberId"]),
@@ -201,4 +215,24 @@ export default defineSchema({
   }).index("by_form", ["formId"])
     .index("by_task", ["taskId"])
     .index("by_approval", ["approvalId"]),
+
+  notifications: defineTable({
+    userId: v.string(),
+    organizationId: v.string(),
+    type: v.string(),
+    title: v.string(),
+    message: v.string(),
+    link: v.optional(v.string()),
+    isRead: v.boolean(),
+    readAt: v.optional(v.number()),
+    actorId: v.optional(v.string()),
+    entityId: v.optional(v.string()),
+    entityType: v.optional(v.string()),
+    channelSent: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "isRead"])
+    .index("by_user_org", ["userId", "organizationId"])
+    .index("by_user_org_read", ["userId", "organizationId", "isRead"]),
 })

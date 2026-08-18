@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { authComponent } from "./auth"
-import { components } from "./_generated/api"
+import { components, internal } from "./_generated/api"
 import { hasPermission } from "./permissions"
 import { spawnNextRecurringInstance } from "./tasks"
 
@@ -160,6 +160,33 @@ export const addChat = mutation({
       statusChange: args.statusChange,
       completedSubtaskIds: args.completedSubtaskIds,
     })
+
+    // 4. Send Notifications to task participants (excluding sender)
+    const recipients = new Set<string>()
+    if (task.creatorId) recipients.add(task.creatorId)
+    task.assigneeIds?.forEach((id: string) => recipients.add(id))
+    task.collaboratorIds?.forEach((id: string) => recipients.add(id))
+    task.subscriberIds?.forEach((id: string) => recipients.add(id))
+    recipients.delete(user._id)
+
+    const commentPreview = args.content.length > 80 ? `${args.content.slice(0, 80)}...` : args.content
+
+    for (const recipientId of recipients) {
+      await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+        userId: recipientId,
+        organizationId: task.organizationId,
+        templateName: "task_comment",
+        parameters: {
+          taskTitle: task.title,
+          authorName: user.name || user.email || "Someone",
+          commentPreview: commentPreview || "New attachment/status update",
+        },
+        actorId: user._id,
+        entityId: task._id,
+        entityType: "task",
+        link: `/tasks?taskId=${task._id}`,
+      })
+    }
 
     return chatId
   },

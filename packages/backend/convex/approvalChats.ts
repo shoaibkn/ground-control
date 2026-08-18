@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { authComponent } from "./auth"
-import { components } from "./_generated/api"
+import { components, internal } from "./_generated/api"
 
 async function requireAuth(ctx: any) {
   const user = await authComponent.getAuthUser(ctx)
@@ -139,6 +139,32 @@ export const addChat = mutation({
       attachmentIds: args.attachmentIds,
       statusChange: args.statusChange,
     })
+
+    // 3. Send Notifications to approval participants (excluding sender)
+    const recipients = new Set<string>()
+    if (approval.creatorId) recipients.add(approval.creatorId)
+    approval.approverIds?.forEach((id: string) => recipients.add(id))
+    approval.subscriberIds?.forEach((id: string) => recipients.add(id))
+    recipients.delete(user._id)
+
+    const commentPreview = args.content.length > 80 ? `${args.content.slice(0, 80)}...` : args.content
+
+    for (const recipientId of recipients) {
+      await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+        userId: recipientId,
+        organizationId: approval.organizationId,
+        templateName: "approval_comment",
+        parameters: {
+          approvalTitle: approval.title,
+          authorName: user.name || user.email || "Someone",
+          commentPreview: commentPreview || "New attachment/status update",
+        },
+        actorId: user._id,
+        entityId: approval._id,
+        entityType: "approval",
+        link: `/approvals?approvalId=${approval._id}`,
+      })
+    }
 
     return chatId
   },

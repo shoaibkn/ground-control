@@ -6,7 +6,6 @@ export const checkOverdueTasks = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now()
-    // 24 hours in milliseconds
     const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
 
     const tasks = await ctx.db
@@ -31,30 +30,75 @@ export const checkOverdueTasks = internalMutation({
 
     for (const task of overdueTasks) {
       await ctx.db.patch(task._id, {
-        lastOverdueNotifiedAt: now
+        lastOverdueNotifiedAt: now,
       })
 
-      // We could also auto-update the status or add a comment/audit log
       await ctx.db.insert("taskAuditLogs", {
         taskId: task._id,
-        actorId: "SYSTEM", // System generated
+        actorId: "SYSTEM",
         action: "OVERDUE_NOTIFIED",
         details: { dueDate: task.dueDate },
         timestamp: now,
       })
 
-      // Send overdue notifications to assignees
-      for (const assigneeId of task.assigneeIds) {
+      // Send overdue notifications to assignees & creator
+      const recipients = new Set<string>(task.assigneeIds)
+      if (task.creatorId) recipients.add(task.creatorId)
+
+      for (const recipientId of recipients) {
         await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
-          userId: assigneeId,
+          userId: recipientId,
           organizationId: task.organizationId,
           templateName: "task_overdue",
           parameters: {
             taskTitle: task.title,
             dueDate: task.dueDate
               ? new Date(task.dueDate).toLocaleDateString()
-              : "No due date",
+              : "Past due",
           },
+          entityId: task._id,
+          entityType: "task",
+          link: `/tasks?taskId=${task._id}`,
+        })
+      }
+    }
+  },
+})
+
+export const checkDueSoonTasks = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now()
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
+
+    const tasks = await ctx.db
+      .query("tasks")
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect()
+
+    // Tasks due within next 24 hours
+    const dueSoonTasks = tasks.filter((task) => {
+      if (!task.dueDate) return false
+      const timeRemaining = task.dueDate - now
+      if (timeRemaining <= 0 || timeRemaining > TWENTY_FOUR_HOURS) return false
+      if (task.status === "Completed" || task.status === "Cancelled") return false
+
+      return true
+    })
+
+    for (const task of dueSoonTasks) {
+      for (const assigneeId of task.assigneeIds) {
+        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
+          userId: assigneeId,
+          organizationId: task.organizationId,
+          templateName: "task_due_soon",
+          parameters: {
+            taskTitle: task.title,
+            dueDate: new Date(task.dueDate!).toLocaleDateString(),
+          },
+          entityId: task._id,
+          entityType: "task",
+          link: `/tasks?taskId=${task._id}`,
         })
       }
     }
