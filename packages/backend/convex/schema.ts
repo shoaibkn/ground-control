@@ -235,4 +235,26 @@ export default defineSchema({
     .index("by_user_read", ["userId", "isRead"])
     .index("by_user_org", ["userId", "organizationId"])
     .index("by_user_org_read", ["userId", "organizationId", "isRead"]),
+
+  organizationApiKeys: defineTable({
+    organizationId: v.string(),
+    resendApiKey: v.optional(v.string()),
+    resendFromEmail: v.optional(v.string()),
+    sentDmApiKey: v.optional(v.string()),
+    sentDmTemplateIds: v.optional(
+      v.object({
+        task_assigned: v.optional(v.string()),
+        task_status_changed: v.optional(v.string()),
+        task_overdue: v.optional(v.string()),
+        task_due_soon: v.optional(v.string()),
+        task_comment: v.optional(v.string()),
+        approval_requested: v.optional(v.string()),
+        approval_status_changed: v.optional(v.string()),
+        approval_comment: v.optional(v.string()),
+        form_response_submitted: v.optional(v.string()),
+      })
+    ),
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }).index("by_organization", ["organizationId"]),
 })

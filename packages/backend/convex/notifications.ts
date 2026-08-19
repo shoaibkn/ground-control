@@ -21,6 +21,26 @@ async function requireAuth(ctx: any) {
   return user
 }
 
+async function requireMember(ctx: any, userId: string, organizationId: string) {
+  const memberResult = (await ctx.runQuery(
+    components.betterAuth.adapter.findMany,
+    {
+      model: "member",
+      where: [
+        { field: "userId", value: userId },
+        { field: "organizationId", value: organizationId },
+      ],
+      paginationOpts: { numItems: 1, cursor: null },
+    }
+  )) as any
+
+  const member = memberResult?.page?.[0]
+  if (!member) {
+    throw new Error("User is not a member of this organization")
+  }
+  return member
+}
+
 // ---------------------------------------------------------------------------
 // Push Notification Token Registration (Mobile)
 // ---------------------------------------------------------------------------
@@ -194,6 +214,132 @@ export const clearAllReadNotifications = mutation({
 })
 
 // ---------------------------------------------------------------------------
+// Organization BYOK API Key Management (Resend & Sent.dm)
+// ---------------------------------------------------------------------------
+
+export const getOrganizationApiKeys = query({
+  args: { organizationId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx)
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+
+    const member = await requireMember(ctx, user._id, args.organizationId)
+    const isAdminOrOwner = member.role === "admin" || member.role === "owner"
+
+    const keysRecord = await ctx.db
+      .query("organizationApiKeys")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .first()
+
+    const maskKey = (key?: string) => {
+      if (!key) return null
+      if (key.length <= 8) return "••••••••"
+      return `${key.slice(0, 4)}••••••••${key.slice(-4)}`
+    }
+
+    return {
+      canManage: isAdminOrOwner,
+      hasCustomResendKey: Boolean(keysRecord?.resendApiKey),
+      resendApiKeyMasked: maskKey(keysRecord?.resendApiKey),
+      resendFromEmail: keysRecord?.resendFromEmail || null,
+      hasCustomSentDmKey: Boolean(keysRecord?.sentDmApiKey),
+      sentDmApiKeyMasked: maskKey(keysRecord?.sentDmApiKey),
+      sentDmTemplateIds: keysRecord?.sentDmTemplateIds || null,
+      isPlatformResendAvailable: Boolean(process.env.RESEND_API_KEY),
+      isPlatformSentDmAvailable: Boolean(process.env.SENT_DM_API_KEY),
+      platformFromEmail: emailFrom,
+      updatedAt: keysRecord?.updatedAt || null,
+    }
+  },
+})
+
+export const updateOrganizationApiKeys = mutation({
+  args: {
+    organizationId: v.string(),
+    resendApiKey: v.optional(v.string()),
+    clearResendKey: v.optional(v.boolean()),
+    resendFromEmail: v.optional(v.string()),
+    sentDmApiKey: v.optional(v.string()),
+    clearSentDmKey: v.optional(v.boolean()),
+    sentDmTemplateIds: v.optional(
+      v.object({
+        task_assigned: v.optional(v.string()),
+        task_status_changed: v.optional(v.string()),
+        task_overdue: v.optional(v.string()),
+        task_due_soon: v.optional(v.string()),
+        task_comment: v.optional(v.string()),
+        approval_requested: v.optional(v.string()),
+        approval_status_changed: v.optional(v.string()),
+        approval_comment: v.optional(v.string()),
+        form_response_submitted: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx)
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+
+    const member = await requireMember(ctx, user._id, args.organizationId)
+    if (member.role !== "admin" && member.role !== "owner") {
+      throw new Error("Only organization owners and administrators can configure API keys")
+    }
+
+    const existing = await ctx.db
+      .query("organizationApiKeys")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .first()
+
+    const now = Date.now()
+
+    let newResendApiKey = existing?.resendApiKey
+    if (args.clearResendKey) {
+      newResendApiKey = undefined
+    } else if (args.resendApiKey !== undefined && args.resendApiKey.trim() !== "") {
+      newResendApiKey = args.resendApiKey.trim()
+    }
+
+    let newSentDmApiKey = existing?.sentDmApiKey
+    if (args.clearSentDmKey) {
+      newSentDmApiKey = undefined
+    } else if (args.sentDmApiKey !== undefined && args.sentDmApiKey.trim() !== "") {
+      newSentDmApiKey = args.sentDmApiKey.trim()
+    }
+
+    const updateData = {
+      organizationId: args.organizationId,
+      resendApiKey: newResendApiKey,
+      resendFromEmail: args.resendFromEmail !== undefined ? (args.resendFromEmail.trim() || undefined) : existing?.resendFromEmail,
+      sentDmApiKey: newSentDmApiKey,
+      sentDmTemplateIds: args.sentDmTemplateIds !== undefined ? args.sentDmTemplateIds : existing?.sentDmTemplateIds,
+      updatedAt: now,
+      updatedBy: user._id,
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, updateData)
+    } else {
+      await ctx.db.insert("organizationApiKeys", updateData)
+    }
+
+    return { success: true }
+  },
+})
+
+export const getOrganizationApiKeysInternal = internalQuery({
+  args: { organizationId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("organizationApiKeys")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .first()
+  },
+})
+
+// ---------------------------------------------------------------------------
 // Internal Dispatchers & Actions
 // ---------------------------------------------------------------------------
 
@@ -255,7 +401,7 @@ export const insertInAppNotification = internalMutation({
     channelSent: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("notifications", {
+    await ctx.db.insert("notifications", {
       userId: args.userId,
       organizationId: args.organizationId,
       type: args.type,
@@ -266,7 +412,7 @@ export const insertInAppNotification = internalMutation({
       actorId: args.actorId,
       entityId: args.entityId,
       entityType: args.entityType,
-      channelSent: args.channelSent || ["in_app"],
+      channelSent: args.channelSent,
       createdAt: Date.now(),
     })
   },
@@ -307,9 +453,15 @@ export const sendEmailAction = internalAction({
     message: v.string(),
     actionUrl: v.string(),
     actionLabel: v.string(),
+    resendApiKey: v.optional(v.string()),
+    fromEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const resend = new Resend(components.resend, { testMode: false })
+    const resend = args.resendApiKey
+      ? new Resend(components.resend, { apiKey: args.resendApiKey, testMode: false })
+      : new Resend(components.resend, { testMode: false })
+
+    const from = args.fromEmail && args.fromEmail.trim() !== "" ? args.fromEmail.trim() : emailFrom
 
     const html = await render(
       NotificationEmail({
@@ -322,7 +474,7 @@ export const sendEmailAction = internalAction({
     )
 
     await resend.sendEmail(ctx as any, {
-      from: emailFrom,
+      from,
       to: args.email,
       subject: args.subject,
       html,
@@ -490,6 +642,11 @@ export const sendNotification = internalAction({
       }
     }
 
+    // Retrieve organization BYOK configuration
+    const orgKeys = await ctx.runQuery(internal.notifications.getOrganizationApiKeysInternal, {
+      organizationId: args.organizationId,
+    })
+
     // 3. Dispatch via Email (Resend)
     const wantsEmail = integrations?.email ?? true
     if (wantsEmail && email) {
@@ -504,6 +661,8 @@ export const sendNotification = internalAction({
           message,
           actionUrl,
           actionLabel,
+          resendApiKey: orgKeys?.resendApiKey,
+          fromEmail: orgKeys?.resendFromEmail,
         })
         channelsSent.push("email")
       } catch (error) {
@@ -512,7 +671,7 @@ export const sendNotification = internalAction({
     }
 
     // 4. Dispatch via Messages/RCS/WhatsApp (SentDM Smart Router)
-    const sentDmApiKey = process.env.SENT_DM_API_KEY
+    const sentDmApiKey = orgKeys?.sentDmApiKey || process.env.SENT_DM_API_KEY
     const wantsRcs = integrations?.rcs ?? false
     const wantsWhatsapp = integrations?.whatsapp ?? false
     const wantsSms = integrations?.sms ?? false
@@ -524,9 +683,9 @@ export const sendNotification = internalAction({
 
     if (channels.length > 0 && phoneNumber) {
       if (!sentDmApiKey) {
-        console.warn(`[SentDM Warning] SENT_DM_API_KEY is not defined. Logging payload: ${JSON.stringify(args.parameters)}`)
+        console.warn(`[SentDM Warning] Neither custom nor platform SENT_DM_API_KEY is defined. Logging payload: ${JSON.stringify(args.parameters)}`)
       } else {
-        const templateIds: Record<string, string | undefined> = {
+        const defaultTemplateIds: Record<string, string | undefined> = {
           task_assigned: process.env.SENTDM_TASK_ASSIGNED_TEMPLATE_ID,
           task_status_changed: process.env.SENTDM_TASK_STATUS_CHANGED_TEMPLATE_ID,
           task_overdue: process.env.SENTDM_TASK_OVERDUE_TEMPLATE_ID,
@@ -538,7 +697,10 @@ export const sendNotification = internalAction({
           form_response_submitted: process.env.SENTDM_FORM_RESPONSE_SUBMITTED_TEMPLATE_ID,
         }
 
-        const templateId = templateIds[args.templateName]
+        const templateId =
+          (orgKeys?.sentDmTemplateIds as any)?.[args.templateName] ||
+          defaultTemplateIds[args.templateName]
+
         if (templateId) {
           try {
             const client = new SentDm({ apiKey: sentDmApiKey })
@@ -588,6 +750,10 @@ export const sendTestNotification = action({
       throw new Error("Member profile not found")
     }
 
+    const orgKeys = await ctx.runQuery(internal.notifications.getOrganizationApiKeysInternal, {
+      organizationId: args.organizationId,
+    })
+
     const testTime = new Date().toLocaleTimeString()
     const testTitle = `Test Notification (${args.channel.toUpperCase()})`
     const testMessage = `This is a test notification from Ground Control at ${testTime}. Your notification routing is operational!`
@@ -628,6 +794,7 @@ export const sendTestNotification = action({
     if (args.channel === "all" || args.channel === "email") {
       if (profile.email) {
         try {
+          const resendMode = orgKeys?.resendApiKey ? "Custom Org Key (BYOK)" : "Platform Managed Key"
           await ctx.runAction(internal.notifications.sendEmailAction, {
             email: profile.email,
             templateName: "system_test",
@@ -635,11 +802,16 @@ export const sendTestNotification = action({
             subject: `Ground Control: Test Notification (${testTime})`,
             previewText: "Your Ground Control notification test was successful!",
             title: "Ground Control Test Notification",
-            message: `Hello ${profile.name || "Operator"}, this is a test notification verifying that your email integration via Resend is working properly.`,
+            message: `Hello ${profile.name || "Operator"}, this is a test notification verifying that your email integration via Resend is working properly (${resendMode}).`,
             actionUrl: `${siteUrl}/settings?tab=notifications`,
             actionLabel: "Open Notification Settings",
+            resendApiKey: orgKeys?.resendApiKey,
+            fromEmail: orgKeys?.resendFromEmail,
           })
-          results.email = { status: "success", message: `Email delivered to ${profile.email}` }
+          results.email = {
+            status: "success",
+            message: `Email delivered to ${profile.email} using ${resendMode}`,
+          }
         } catch (e: any) {
           results.email = { status: "error", message: e.message || "Failed to send email" }
         }
@@ -651,14 +823,20 @@ export const sendTestNotification = action({
     // SentDM Smart Messaging Test (WhatsApp / SMS / RCS)
     if (args.channel === "all" || args.channel === "whatsapp" || args.channel === "sms" || args.channel === "rcs") {
       const targetChannel = (args.channel === "all" ? "sms" : args.channel) as "sms" | "whatsapp" | "rcs"
+      const sentDmApiKey = orgKeys?.sentDmApiKey || process.env.SENT_DM_API_KEY
+      const sentDmMode = orgKeys?.sentDmApiKey ? "Custom Org Key (BYOK)" : "Platform Managed Key"
+
       if (!profile.phoneNumber) {
         results.phone = { status: "skipped", message: "No phone number configured in profile" }
-      } else if (!process.env.SENT_DM_API_KEY) {
-        results.phone = { status: "warning", message: "SENT_DM_API_KEY environment variable not set on Convex deployment" }
+      } else if (!sentDmApiKey) {
+        results.phone = { status: "warning", message: "No Sent.dm API key configured (Neither custom nor platform key found)" }
       } else {
         try {
-          const client = new SentDm({ apiKey: process.env.SENT_DM_API_KEY })
-          const templateId = process.env.SENTDM_TASK_ASSIGNED_TEMPLATE_ID
+          const client = new SentDm({ apiKey: sentDmApiKey })
+          const templateId =
+            (orgKeys?.sentDmTemplateIds as any)?.task_assigned ||
+            process.env.SENTDM_TASK_ASSIGNED_TEMPLATE_ID
+
           if (templateId) {
             await client.messages.send({
               to: [profile.phoneNumber],
@@ -672,9 +850,12 @@ export const sendTestNotification = action({
               },
               channel: [targetChannel],
             })
-            results.phone = { status: "success", message: `Sent.dm message dispatched to ${profile.phoneNumber} via ${targetChannel.toUpperCase()}` }
+            results.phone = {
+              status: "success",
+              message: `Sent.dm message dispatched to ${profile.phoneNumber} via ${targetChannel.toUpperCase()} using ${sentDmMode}`,
+            }
           } else {
-            results.phone = { status: "warning", message: "Sent.dm template ID not configured in environment variables" }
+            results.phone = { status: "warning", message: "Sent.dm template ID not configured (custom or environment template ID needed)" }
           }
         } catch (e: any) {
           results.phone = { status: "error", message: e.message || "Failed to dispatch Sent.dm message" }

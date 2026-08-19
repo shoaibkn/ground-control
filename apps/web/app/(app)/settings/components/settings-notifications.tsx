@@ -32,6 +32,12 @@ import {
   Sparkles,
   ShieldCheck,
   Zap,
+  Key,
+  ExternalLink,
+  Coins,
+  Check,
+  Trash2,
+  Info,
 } from "lucide-react"
 
 export default function NotificationSettings() {
@@ -42,7 +48,13 @@ export default function NotificationSettings() {
     api.memberProfiles.getMyProfile,
     orgId ? { organizationId: orgId } : "skip"
   )
+  const orgApiKeys = useQuery(
+    api.notifications.getOrganizationApiKeys,
+    orgId ? { organizationId: orgId } : "skip"
+  )
+
   const updatePreferences = useMutation(api.memberProfiles.updateMyPreferences)
+  const updateOrgKeys = useMutation(api.notifications.updateOrganizationApiKeys)
   const triggerTestAction = useAction(api.notifications.sendTestNotification)
 
   const [isSaving, setIsSaving] = useState(false)
@@ -69,6 +81,12 @@ export default function NotificationSettings() {
     approvalComments: true,
     formResponses: true,
   })
+
+  // BYOK (Bring Your Own Key) States
+  const [resendApiKeyInput, setResendApiKeyInput] = useState("")
+  const [resendFromEmailInput, setResendFromEmailInput] = useState("")
+  const [sentDmApiKeyInput, setSentDmApiKeyInput] = useState("")
+  const [isSavingOrgKeys, setIsSavingOrgKeys] = useState(false)
 
   // Test notification state
   const [testChannel, setTestChannel] = useState<string>("in_app")
@@ -100,6 +118,13 @@ export default function NotificationSettings() {
     }
   }, [profile])
 
+  // Sync custom sender address when orgApiKeys load
+  useEffect(() => {
+    if (orgApiKeys?.resendFromEmail) {
+      setResendFromEmailInput(orgApiKeys.resendFromEmail)
+    }
+  }, [orgApiKeys])
+
   const handleSavePreferences = async () => {
     if (!orgId) return
     setIsSaving(true)
@@ -115,6 +140,75 @@ export default function NotificationSettings() {
       toast.error(err.message || "Failed to save preferences.")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSaveResendKeys = async () => {
+    if (!orgId) return
+    setIsSavingOrgKeys(true)
+    try {
+      await updateOrgKeys({
+        organizationId: orgId,
+        resendApiKey: resendApiKeyInput || undefined,
+        resendFromEmail: resendFromEmailInput || undefined,
+      })
+      setResendApiKeyInput("")
+      toast.success("Resend configuration updated successfully.")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update Resend credentials.")
+    } finally {
+      setIsSavingOrgKeys(false)
+    }
+  }
+
+  const handleClearResendKey = async () => {
+    if (!orgId) return
+    setIsSavingOrgKeys(true)
+    try {
+      await updateOrgKeys({
+        organizationId: orgId,
+        clearResendKey: true,
+      })
+      setResendApiKeyInput("")
+      toast.success("Custom Resend key removed. Organization now uses platform credentials.")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to clear Resend key.")
+    } finally {
+      setIsSavingOrgKeys(false)
+    }
+  }
+
+  const handleSaveSentDmKeys = async () => {
+    if (!orgId) return
+    setIsSavingOrgKeys(true)
+    try {
+      await updateOrgKeys({
+        organizationId: orgId,
+        sentDmApiKey: sentDmApiKeyInput || undefined,
+      })
+      setSentDmApiKeyInput("")
+      toast.success("Sent.dm credentials updated successfully.")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update Sent.dm credentials.")
+    } finally {
+      setIsSavingOrgKeys(false)
+    }
+  }
+
+  const handleClearSentDmKey = async () => {
+    if (!orgId) return
+    setIsSavingOrgKeys(true)
+    try {
+      await updateOrgKeys({
+        organizationId: orgId,
+        clearSentDmKey: true,
+      })
+      setSentDmApiKeyInput("")
+      toast.success("Custom Sent.dm key removed. Organization now uses platform credentials.")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to clear Sent.dm key.")
+    } finally {
+      setIsSavingOrgKeys(false)
     }
   }
 
@@ -179,7 +273,224 @@ export default function NotificationSettings() {
         </div>
       </div>
 
-      {/* 1. Delivery Channels Card */}
+      {/* 1. External API Keys & Provider Billing (BYOK) - Only visible to Owners & Admins */}
+      {orgApiKeys?.canManage && (
+        <Card className="border-border shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Key className="h-4 w-4 text-primary" />
+                  External API Setup & Provider Billing
+                </CardTitle>
+                <CardDescription>
+                  Choose whether to use Ground Control managed credentials or Bring Your Own Keys (BYOK) for direct provider billing.
+                </CardDescription>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                Owner / Admin Settings
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Transparent Pricing Disclosure Banner */}
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-semibold text-amber-600 dark:text-amber-400">
+                <Coins className="h-4 w-4 shrink-0" />
+                <span>Transparent Usage & Pricing Notice</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-muted-foreground pt-1">
+                <div className="rounded-md border border-amber-500/20 bg-background/50 p-3 space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Platform Managed Keys (Default)
+                  </p>
+                  <p>
+                    Emails and SMS/WhatsApp messages are sent using Ground Control's shared provider accounts. Standard carrier & message usage rates will be added directly to your monthly organization bill.
+                  </p>
+                </div>
+                <div className="rounded-md border border-emerald-500/20 bg-background/50 p-3 space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Bring Your Own Key (BYOK)
+                  </p>
+                  <p>
+                    Provide your own Resend or Sent.dm API keys to enjoy <strong>0% platform markup</strong> and pay your provider directly. You can also use your own verified custom sender domains (e.g. <span className="font-mono text-foreground">alerts@yourcompany.com</span>).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Resend BYOK Card */}
+            <div className="rounded-lg border p-4 space-y-3 bg-card/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-emerald-500" />
+                  <div>
+                    <p className="text-sm font-semibold">Resend Email API</p>
+                    <p className="text-xs text-muted-foreground">Transactional email delivery</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {orgApiKeys.hasCustomResendKey ? (
+                    <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30 text-[11px]">
+                      Custom Key Active (BYOK)
+                    </Badge>
+                  ) : orgApiKeys.isPlatformResendAvailable ? (
+                    <Badge variant="secondary" className="text-[11px]">
+                      Platform Managed (Usage Fees Apply)
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-[11px]">
+                      No Key Configured
+                    </Badge>
+                  )}
+                  <a
+                    href="https://resend.com/api-keys"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 ml-1"
+                  >
+                    Resend Console <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <Label htmlFor="resendApiKey" className="text-xs">
+                    Resend API Key {orgApiKeys.hasCustomResendKey && `(${orgApiKeys.resendApiKeyMasked})`}
+                  </Label>
+                  <Input
+                    id="resendApiKey"
+                    type="password"
+                    value={resendApiKeyInput}
+                    onChange={(e) => setResendApiKeyInput(e.target.value)}
+                    placeholder={orgApiKeys.hasCustomResendKey ? "Enter new key to replace..." : "re_123456789..."}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="resendFromEmail" className="text-xs">
+                    Custom Sender Address / "From" Header
+                  </Label>
+                  <Input
+                    id="resendFromEmail"
+                    value={resendFromEmailInput}
+                    onChange={(e) => setResendFromEmailInput(e.target.value)}
+                    placeholder={orgApiKeys.platformFromEmail || "Acme <notifications@acme.com>"}
+                    className="text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[11px] text-muted-foreground">
+                  Default sender fallback: <span className="font-mono text-foreground">{orgApiKeys.platformFromEmail}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  {orgApiKeys.hasCustomResendKey && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearResendKey}
+                      disabled={isSavingOrgKeys}
+                      className="text-destructive hover:text-destructive text-xs h-8"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Reset to Platform
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={handleSaveResendKeys}
+                    disabled={isSavingOrgKeys || (!resendApiKeyInput && resendFromEmailInput === (orgApiKeys.resendFromEmail || ""))}
+                    className="h-8 text-xs"
+                  >
+                    {isSavingOrgKeys && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    Save Resend Config
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sent.dm BYOK Card */}
+            <div className="rounded-lg border p-4 space-y-3 bg-card/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-500" />
+                  <div>
+                    <p className="text-sm font-semibold">Sent.dm API</p>
+                    <p className="text-xs text-muted-foreground">WhatsApp, SMS, and RCS multi-channel messaging</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {orgApiKeys.hasCustomSentDmKey ? (
+                    <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30 text-[11px]">
+                      Custom Key Active (BYOK)
+                    </Badge>
+                  ) : orgApiKeys.isPlatformSentDmAvailable ? (
+                    <Badge variant="secondary" className="text-[11px]">
+                      Platform Managed (Usage Fees Apply)
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-[11px]">
+                      No Key Configured
+                    </Badge>
+                  )}
+                  <a
+                    href="https://sent.dm"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 ml-1"
+                  >
+                    Sent.dm Console <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+
+              <div className="space-y-1 pt-1">
+                <Label htmlFor="sentDmApiKey" className="text-xs">
+                  Sent.dm API Key {orgApiKeys.hasCustomSentDmKey && `(${orgApiKeys.sentDmApiKeyMasked})`}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="sentDmApiKey"
+                    type="password"
+                    value={sentDmApiKeyInput}
+                    onChange={(e) => setSentDmApiKeyInput(e.target.value)}
+                    placeholder={orgApiKeys.hasCustomSentDmKey ? "Enter new key to replace..." : "sent_123456789..."}
+                    className="font-mono text-xs max-w-md"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveSentDmKeys}
+                    disabled={isSavingOrgKeys || !sentDmApiKeyInput}
+                    className="h-8 text-xs"
+                  >
+                    {isSavingOrgKeys && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    Save Sent.dm Key
+                  </Button>
+                  {orgApiKeys.hasCustomSentDmKey && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearSentDmKey}
+                      disabled={isSavingOrgKeys}
+                      className="text-destructive hover:text-destructive text-xs h-8"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Reset to Platform
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 2. Delivery Channels Card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -187,7 +498,7 @@ export default function NotificationSettings() {
             Delivery Channels
           </CardTitle>
           <CardDescription>
-            Choose the endpoints Ground Control uses to deliver real-time notifications.
+            Choose the endpoints Ground Control uses to deliver your notifications.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -240,7 +551,7 @@ export default function NotificationSettings() {
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">Email Notifications</p>
                   <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
-                    Resend
+                    {orgApiKeys?.hasCustomResendKey ? "Custom BYOK" : "Resend"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -264,7 +575,7 @@ export default function NotificationSettings() {
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">WhatsApp</p>
                   <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
-                    Sent.dm
+                    {orgApiKeys?.hasCustomSentDmKey ? "Custom BYOK" : "Sent.dm"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">Direct template messages</p>
@@ -286,7 +597,7 @@ export default function NotificationSettings() {
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">SMS Messages</p>
                   <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
-                    Sent.dm
+                    {orgApiKeys?.hasCustomSentDmKey ? "Custom BYOK" : "Sent.dm"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">Standard carrier cellular text</p>
@@ -308,7 +619,7 @@ export default function NotificationSettings() {
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">RCS Business Messaging</p>
                   <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
-                    Sent.dm
+                    {orgApiKeys?.hasCustomSentDmKey ? "Custom BYOK" : "Sent.dm"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">Rich cards with verified sender ID</p>
@@ -322,7 +633,7 @@ export default function NotificationSettings() {
         </CardContent>
       </Card>
 
-      {/* 2. Phone Contact Routing Card */}
+      {/* 3. Phone Contact Routing Card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -355,7 +666,7 @@ export default function NotificationSettings() {
         </CardContent>
       </Card>
 
-      {/* 3. Granular Event Subscriptions Matrix */}
+      {/* 4. Granular Event Subscriptions Matrix */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Event Subscriptions</CardTitle>
@@ -464,7 +775,7 @@ export default function NotificationSettings() {
         </CardContent>
       </Card>
 
-      {/* 4. Interactive Live Test Center */}
+      {/* 5. Interactive Live Test Center */}
       <Card className="border-primary/20 bg-gradient-to-b from-card to-primary/5 shadow-md">
         <CardHeader>
           <div className="flex items-center justify-between">
