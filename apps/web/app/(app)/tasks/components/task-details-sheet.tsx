@@ -19,7 +19,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@workspace/ui/components/tooltip"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@workspace/ui/components/tooltip"
 import {
   Select,
   SelectContent,
@@ -122,88 +126,113 @@ export default function TaskDetailsSheet({
     taskId ? { taskId } : "skip"
   )
 
-  const updateDetails = useMutation(api.tasks.updateTaskDetails).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId, title: newTitle, description: newDescription, priority, dueDate, completedRequiresApproval } = args
+  const updateDetails = useMutation(
+    api.tasks.updateTaskDetails
+  ).withOptimisticUpdate((localStore, args) => {
+    const {
+      taskId: targetId,
+      title: newTitle,
+      description: newDescription,
+      priority,
+      dueDate,
+      completedRequiresApproval,
+    } = args
 
-      // 1. Update task details query
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
-      if (currentTask) {
-        localStore.setQuery(
-          api.tasks.getTask,
-          { taskId: targetId },
-          {
-            ...currentTask,
-            ...(newTitle !== undefined && { title: newTitle }),
-            ...(newDescription !== undefined && { description: newDescription }),
-            ...(priority !== undefined && { priority }),
-            ...(dueDate !== undefined && { dueDate }),
-            ...(completedRequiresApproval !== undefined && { completedRequiresApproval }),
-          }
-        )
-      }
-
-      // 2. Update task list queries (both showArchived options)
-      if (activeOrg?.id) {
-        for (const showArchived of [true, false, undefined]) {
-          const queryArgs = { organizationId: activeOrg.id, showArchived }
-          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
-          if (tasksList) {
-            const updatedTasks = tasksList.map((t: any) => {
-              if (t._id === targetId) {
-                return {
-                  ...t,
-                  ...(newTitle !== undefined && { title: newTitle }),
-                  ...(newDescription !== undefined && { description: newDescription }),
-                  ...(priority !== undefined && { priority }),
-                  ...(dueDate !== undefined && { dueDate }),
-                  ...(completedRequiresApproval !== undefined && { completedRequiresApproval }),
-                }
-              }
-              return t
-            })
-            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
-          }
+    // 1. Update task details query
+    const currentTask = localStore.getQuery(api.tasks.getTask, {
+      taskId: targetId,
+    })
+    if (currentTask) {
+      localStore.setQuery(
+        api.tasks.getTask,
+        { taskId: targetId },
+        {
+          ...currentTask,
+          ...(newTitle !== undefined && { title: newTitle }),
+          ...(newDescription !== undefined && { description: newDescription }),
+          ...(priority !== undefined && { priority }),
+          ...(dueDate !== undefined && { dueDate }),
+          ...(completedRequiresApproval !== undefined && {
+            completedRequiresApproval,
+          }),
         }
-      }
+      )
     }
-  )
 
-  const updateStatus = useMutation(api.tasks.updateTaskStatus).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId, status } = args
-
-      // 1. Update task details query
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
-      if (currentTask) {
-        localStore.setQuery(
-          api.tasks.getTask,
-          { taskId: targetId },
-          { ...currentTask, status }
-        )
-      }
-
-      // 2. Update task list query
-      if (activeOrg?.id) {
-        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
+    // 2. Update task list queries (both showArchived options)
+    if (activeOrg?.id) {
+      for (const showArchived of [true, false, undefined]) {
+        const queryArgs = { organizationId: activeOrg.id, showArchived }
+        const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
         if (tasksList) {
           const updatedTasks = tasksList.map((t: any) => {
             if (t._id === targetId) {
-              return { ...t, status }
+              return {
+                ...t,
+                ...(newTitle !== undefined && { title: newTitle }),
+                ...(newDescription !== undefined && {
+                  description: newDescription,
+                }),
+                ...(priority !== undefined && { priority }),
+                ...(dueDate !== undefined && { dueDate }),
+                ...(completedRequiresApproval !== undefined && {
+                  completedRequiresApproval,
+                }),
+              }
             }
             return t
           })
-          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+          localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
         }
       }
     }
-  )
+  })
+
+  const updateStatus = useMutation(
+    api.tasks.updateTaskStatus
+  ).withOptimisticUpdate((localStore, args) => {
+    const { taskId: targetId, status } = args
+
+    // 1. Update task details query
+    const currentTask = localStore.getQuery(api.tasks.getTask, {
+      taskId: targetId,
+    })
+    if (currentTask) {
+      localStore.setQuery(
+        api.tasks.getTask,
+        { taskId: targetId },
+        { ...currentTask, status }
+      )
+    }
+
+    // 2. Update task list query
+    if (activeOrg?.id) {
+      const tasksList = localStore.getQuery(api.tasks.getTasks, {
+        organizationId: activeOrg.id,
+      })
+      if (tasksList) {
+        const updatedTasks = tasksList.map((t: any) => {
+          if (t._id === targetId) {
+            return { ...t, status }
+          }
+          return t
+        })
+        localStore.setQuery(
+          api.tasks.getTasks,
+          { organizationId: activeOrg.id },
+          updatedTasks
+        )
+      }
+    }
+  })
 
   const invite = useMutation(api.tasks.inviteAssignees).withOptimisticUpdate(
     (localStore, args) => {
       const { taskId: targetId, assigneeIds } = args
 
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      const currentTask = localStore.getQuery(api.tasks.getTask, {
+        taskId: targetId,
+      })
       if (currentTask) {
         localStore.setQuery(
           api.tasks.getTask,
@@ -213,7 +242,9 @@ export default function TaskDetailsSheet({
       }
 
       if (activeOrg?.id) {
-        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
+        const tasksList = localStore.getQuery(api.tasks.getTasks, {
+          organizationId: activeOrg.id,
+        })
         if (tasksList) {
           const updatedTasks = tasksList.map((t: any) => {
             if (t._id === targetId) {
@@ -221,47 +252,57 @@ export default function TaskDetailsSheet({
             }
             return t
           })
-          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
+          localStore.setQuery(
+            api.tasks.getTasks,
+            { organizationId: activeOrg.id },
+            updatedTasks
+          )
         }
       }
     }
   )
 
-  const updateCollabs = useMutation(api.tasks.updateCollaborators).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId, collaboratorIds } = args
+  const updateCollabs = useMutation(
+    api.tasks.updateCollaborators
+  ).withOptimisticUpdate((localStore, args) => {
+    const { taskId: targetId, collaboratorIds } = args
 
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
-      if (currentTask) {
-        localStore.setQuery(
-          api.tasks.getTask,
-          { taskId: targetId },
-          { ...currentTask, collaboratorIds }
-        )
-      }
+    const currentTask = localStore.getQuery(api.tasks.getTask, {
+      taskId: targetId,
+    })
+    if (currentTask) {
+      localStore.setQuery(
+        api.tasks.getTask,
+        { taskId: targetId },
+        { ...currentTask, collaboratorIds }
+      )
     }
-  )
+  })
 
-  const updateSubs = useMutation(api.tasks.updateSubscribers).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId, subscriberIds } = args
+  const updateSubs = useMutation(
+    api.tasks.updateSubscribers
+  ).withOptimisticUpdate((localStore, args) => {
+    const { taskId: targetId, subscriberIds } = args
 
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
-      if (currentTask) {
-        localStore.setQuery(
-          api.tasks.getTask,
-          { taskId: targetId },
-          { ...currentTask, subscriberIds }
-        )
-      }
+    const currentTask = localStore.getQuery(api.tasks.getTask, {
+      taskId: targetId,
+    })
+    if (currentTask) {
+      localStore.setQuery(
+        api.tasks.getTask,
+        { taskId: targetId },
+        { ...currentTask, subscriberIds }
+      )
     }
-  )
+  })
   const addSubtask = useMutation(api.tasks.createSubtask).withOptimisticUpdate(
     (localStore, args) => {
       const { taskId: targetId, title } = args
       if (!targetId || !currentUserId) return
 
-      const currentSubtasks = localStore.getQuery(api.tasks.getSubtasks, { taskId: targetId })
+      const currentSubtasks = localStore.getQuery(api.tasks.getSubtasks, {
+        taskId: targetId,
+      })
       if (currentSubtasks) {
         const optimisticSubtask = {
           _id: `temp-subtask-${Date.now()}` as any,
@@ -272,11 +313,10 @@ export default function TaskDetailsSheet({
           creatorId: currentUserId,
           createdAt: Date.now(),
         }
-        localStore.setQuery(
-          api.tasks.getSubtasks,
-          { taskId: targetId },
-          [...currentSubtasks, optimisticSubtask]
-        )
+        localStore.setQuery(api.tasks.getSubtasks, { taskId: targetId }, [
+          ...currentSubtasks,
+          optimisticSubtask,
+        ])
       }
     }
   )
@@ -286,7 +326,9 @@ export default function TaskDetailsSheet({
       const { subtaskId, isCompleted } = args
       if (!taskId) return
 
-      const currentSubtasks = localStore.getQuery(api.tasks.getSubtasks, { taskId })
+      const currentSubtasks = localStore.getQuery(api.tasks.getSubtasks, {
+        taskId,
+      })
       if (currentSubtasks) {
         const updated = currentSubtasks.map((s: any) => {
           if (s._id === subtaskId) {
@@ -302,63 +344,79 @@ export default function TaskDetailsSheet({
   const deleteAttach = useMutation(api.taskAttachments.deleteAttachment)
 
   // Reactions & Comments Mutations/Queries
-  const toggleReaction = useMutation(api.tasks.toggleReaction).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId, emoji } = args
-      if (!currentUserId) return
+  const toggleReaction = useMutation(
+    api.tasks.toggleReaction
+  ).withOptimisticUpdate((localStore, args) => {
+    const { taskId: targetId, emoji } = args
+    if (!currentUserId) return
 
-      // 1. Update task details query
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
-      if (currentTask) {
-        const reactions = currentTask.reactions || []
-        const existingIndex = reactions.findIndex(
-          (r: any) => r.userId === currentUserId && r.emoji === emoji
-        )
-        let newReactions = [...reactions]
-        if (existingIndex > -1) {
-          newReactions.splice(existingIndex, 1)
-        } else {
-          newReactions.push({ userId: currentUserId, emoji })
-        }
-        localStore.setQuery(
-          api.tasks.getTask,
-          { taskId: targetId },
-          { ...currentTask, reactions: newReactions }
-        )
+    // 1. Update task details query
+    const currentTask = localStore.getQuery(api.tasks.getTask, {
+      taskId: targetId,
+    })
+    if (currentTask) {
+      const reactions = currentTask.reactions || []
+      const existingIndex = reactions.findIndex(
+        (r: any) => r.userId === currentUserId && r.emoji === emoji
+      )
+      let newReactions = [...reactions]
+      if (existingIndex > -1) {
+        newReactions.splice(existingIndex, 1)
+      } else {
+        newReactions.push({ userId: currentUserId, emoji })
       }
+      localStore.setQuery(
+        api.tasks.getTask,
+        { taskId: targetId },
+        { ...currentTask, reactions: newReactions }
+      )
+    }
 
-      // 2. Update task list query
-      if (activeOrg?.id) {
-        const tasksList = localStore.getQuery(api.tasks.getTasks, { organizationId: activeOrg.id })
-        if (tasksList) {
-          const updatedTasks = tasksList.map((t: any) => {
-            if (t._id === targetId) {
-              const reactions = t.reactions || []
-              const existingIndex = reactions.findIndex(
-                (r: any) => r.userId === currentUserId && r.emoji === emoji
-              )
-              let newReactions = [...reactions]
-              if (existingIndex > -1) {
-                newReactions.splice(existingIndex, 1)
-              } else {
-                newReactions.push({ userId: currentUserId, emoji })
-              }
-              return { ...t, reactions: newReactions }
+    // 2. Update task list query
+    if (activeOrg?.id) {
+      const tasksList = localStore.getQuery(api.tasks.getTasks, {
+        organizationId: activeOrg.id,
+      })
+      if (tasksList) {
+        const updatedTasks = tasksList.map((t: any) => {
+          if (t._id === targetId) {
+            const reactions = t.reactions || []
+            const existingIndex = reactions.findIndex(
+              (r: any) => r.userId === currentUserId && r.emoji === emoji
+            )
+            let newReactions = [...reactions]
+            if (existingIndex > -1) {
+              newReactions.splice(existingIndex, 1)
+            } else {
+              newReactions.push({ userId: currentUserId, emoji })
             }
-            return t
-          })
-          localStore.setQuery(api.tasks.getTasks, { organizationId: activeOrg.id }, updatedTasks)
-        }
+            return { ...t, reactions: newReactions }
+          }
+          return t
+        })
+        localStore.setQuery(
+          api.tasks.getTasks,
+          { organizationId: activeOrg.id },
+          updatedTasks
+        )
       }
     }
-  )
+  })
   const chats = useQuery(api.taskChats.getChats, taskId ? { taskId } : "skip")
   const addChat = useMutation(api.taskChats.addChat).withOptimisticUpdate(
     (localStore, args) => {
-      const { taskId: targetId, content, attachmentIds, statusChange, completedSubtaskIds } = args
+      const {
+        taskId: targetId,
+        content,
+        attachmentIds,
+        statusChange,
+        completedSubtaskIds,
+      } = args
       if (!targetId || !currentUserId) return
 
-      const currentChats = localStore.getQuery(api.taskChats.getChats, { taskId: targetId })
+      const currentChats = localStore.getQuery(api.taskChats.getChats, {
+        taskId: targetId,
+      })
       if (currentChats) {
         const optimisticChat = {
           _id: `temp-chat-${Date.now()}` as any,
@@ -372,11 +430,10 @@ export default function TaskDetailsSheet({
           statusChange,
           completedSubtaskIds,
         }
-        localStore.setQuery(
-          api.taskChats.getChats,
-          { taskId: targetId },
-          [...currentChats, optimisticChat]
-        )
+        localStore.setQuery(api.taskChats.getChats, { taskId: targetId }, [
+          ...currentChats,
+          optimisticChat,
+        ])
       }
     }
   )
@@ -386,7 +443,9 @@ export default function TaskDetailsSheet({
       const { chatId, newContent } = args
       if (!taskId) return
 
-      const currentChats = localStore.getQuery(api.taskChats.getChats, { taskId })
+      const currentChats = localStore.getQuery(api.taskChats.getChats, {
+        taskId,
+      })
       if (currentChats) {
         const updated = currentChats.map((c: any) => {
           if (c._id === chatId) {
@@ -408,7 +467,9 @@ export default function TaskDetailsSheet({
       const { chatId } = args
       if (!taskId) return
 
-      const currentChats = localStore.getQuery(api.taskChats.getChats, { taskId })
+      const currentChats = localStore.getQuery(api.taskChats.getChats, {
+        taskId,
+      })
       if (currentChats) {
         const updated = currentChats.map((c: any) => {
           if (c._id === chatId) {
@@ -424,14 +485,19 @@ export default function TaskDetailsSheet({
       }
     }
   )
-  const readReceipts = useQuery(api.taskChats.getTaskReadReceipts, taskId ? { taskId } : "skip")
+  const readReceipts = useQuery(
+    api.taskChats.getTaskReadReceipts,
+    taskId ? { taskId } : "skip"
+  )
   const markAsRead = useMutation(api.taskChats.markChatsAsRead)
   const archiveTask = useMutation(api.tasks.archiveTask).withOptimisticUpdate(
     (localStore, args) => {
       const { taskId: targetId, isArchived } = args
 
       // 1. Update task details query
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
+      const currentTask = localStore.getQuery(api.tasks.getTask, {
+        taskId: targetId,
+      })
       if (currentTask) {
         localStore.setQuery(
           api.tasks.getTask,
@@ -464,7 +530,11 @@ export default function TaskDetailsSheet({
     const nextArchivedState = !task.isArchived
     try {
       await archiveTask({ taskId: task._id, isArchived: nextArchivedState })
-      toast.success(nextArchivedState ? "Task archived successfully!" : "Task restored successfully!")
+      toast.success(
+        nextArchivedState
+          ? "Task archived successfully!"
+          : "Task restored successfully!"
+      )
       if (nextArchivedState) {
         onClose()
       }
@@ -474,22 +544,22 @@ export default function TaskDetailsSheet({
     }
   }
 
-  const deleteTaskMutation = useMutation(api.tasks.deleteTask).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId } = args
-      localStore.setQuery(api.tasks.getTask, { taskId: targetId }, null as any)
-      if (activeOrg?.id) {
-        for (const showArchived of [true, false, undefined]) {
-          const queryArgs = { organizationId: activeOrg.id, showArchived }
-          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
-          if (tasksList) {
-            const updatedTasks = tasksList.filter((t: any) => t._id !== targetId)
-            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
-          }
+  const deleteTaskMutation = useMutation(
+    api.tasks.deleteTask
+  ).withOptimisticUpdate((localStore, args) => {
+    const { taskId: targetId } = args
+    localStore.setQuery(api.tasks.getTask, { taskId: targetId }, null as any)
+    if (activeOrg?.id) {
+      for (const showArchived of [true, false, undefined]) {
+        const queryArgs = { organizationId: activeOrg.id, showArchived }
+        const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
+        if (tasksList) {
+          const updatedTasks = tasksList.filter((t: any) => t._id !== targetId)
+          localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
         }
       }
     }
-  )
+  })
 
   const handleDeleteTask = async () => {
     if (!task) return
@@ -503,34 +573,40 @@ export default function TaskDetailsSheet({
     }
   }
 
-  const updateTaskRecurrence = useMutation(api.tasks.updateTaskRecurrence).withOptimisticUpdate(
-    (localStore, args) => {
-      const { taskId: targetId, recurrence } = args
+  const updateTaskRecurrence = useMutation(
+    api.tasks.updateTaskRecurrence
+  ).withOptimisticUpdate((localStore, args) => {
+    const { taskId: targetId, recurrence } = args
 
-      // 1. Update task details query
-      const currentTask = localStore.getQuery(api.tasks.getTask, { taskId: targetId })
-      if (currentTask) {
-        localStore.setQuery(api.tasks.getTask, { taskId: targetId }, { ...currentTask, recurrence })
-      }
+    // 1. Update task details query
+    const currentTask = localStore.getQuery(api.tasks.getTask, {
+      taskId: targetId,
+    })
+    if (currentTask) {
+      localStore.setQuery(
+        api.tasks.getTask,
+        { taskId: targetId },
+        { ...currentTask, recurrence }
+      )
+    }
 
-      // 2. Update task list queries (both showArchived options)
-      if (activeOrg?.id) {
-        for (const showArchived of [true, false, undefined]) {
-          const queryArgs = { organizationId: activeOrg.id, showArchived }
-          const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
-          if (tasksList) {
-            const updatedTasks = tasksList.map((t: any) => {
-              if (t._id === targetId) {
-                return { ...t, recurrence }
-              }
-              return t
-            })
-            localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
-          }
+    // 2. Update task list queries (both showArchived options)
+    if (activeOrg?.id) {
+      for (const showArchived of [true, false, undefined]) {
+        const queryArgs = { organizationId: activeOrg.id, showArchived }
+        const tasksList = localStore.getQuery(api.tasks.getTasks, queryArgs)
+        if (tasksList) {
+          const updatedTasks = tasksList.map((t: any) => {
+            if (t._id === targetId) {
+              return { ...t, recurrence }
+            }
+            return t
+          })
+          localStore.setQuery(api.tasks.getTasks, queryArgs, updatedTasks)
         }
       }
     }
-  )
+  })
 
   const handleRecurrenceChange = async (frequency: string) => {
     if (!task) return
@@ -559,7 +635,11 @@ export default function TaskDetailsSheet({
     }
     try {
       await updateTaskRecurrence({ taskId: task._id, recurrence: nextRec })
-      toast.success(nextPaused ? "Recurrence paused successfully!" : "Recurrence resumed successfully!")
+      toast.success(
+        nextPaused
+          ? "Recurrence paused successfully!"
+          : "Recurrence resumed successfully!"
+      )
     } catch (err: any) {
       toast.error(err.message || "Failed to toggle recurrence pause status")
     }
@@ -613,7 +693,9 @@ export default function TaskDetailsSheet({
   // Mark chats as read when chats tab becomes active or a new chat arrives
   useEffect(() => {
     if (activeTab === "chats" && taskId) {
-      markAsRead({ taskId }).catch((err) => console.error("Failed to mark chats as read", err))
+      markAsRead({ taskId }).catch((err) =>
+        console.error("Failed to mark chats as read", err)
+      )
     }
   }, [activeTab, taskId, chats, markAsRead])
 
@@ -628,20 +710,30 @@ export default function TaskDetailsSheet({
     activeMember?.role === "owner" ||
     currentUserMember?.role === "admin" ||
     currentUserMember?.role === "owner"
-  const isCreator = !!currentUserId && !!task?.creatorId && task.creatorId === currentUserId
-  const isAssignee = !!currentUserId && !!task?.assigneeIds && task.assigneeIds.includes(currentUserId)
-  const isCollaborator = !!currentUserId && !!task?.collaboratorIds && task.collaboratorIds.includes(currentUserId)
-  const isSubscriber = !!currentUserId && !!task?.subscriberIds && task.subscriberIds.includes(currentUserId)
+  const isCreator =
+    !!currentUserId && !!task?.creatorId && task.creatorId === currentUserId
+  const isAssignee =
+    !!currentUserId &&
+    !!task?.assigneeIds &&
+    task.assigneeIds.includes(currentUserId)
+  const isCollaborator =
+    !!currentUserId &&
+    !!task?.collaboratorIds &&
+    task.collaboratorIds.includes(currentUserId)
+  const isSubscriber =
+    !!currentUserId &&
+    !!task?.subscriberIds &&
+    task.subscriberIds.includes(currentUserId)
 
   const relation = isCreator
     ? "Creator"
     : isAssignee
-    ? "Assignee"
-    : isCollaborator
-    ? "Collaborator"
-    : isSubscriber
-    ? "Subscriber"
-    : "Other"
+      ? "Assignee"
+      : isCollaborator
+        ? "Collaborator"
+        : isSubscriber
+          ? "Subscriber"
+          : "Other"
 
   const getRelationStyle = (rel: string) => {
     switch (rel) {
@@ -660,15 +752,37 @@ export default function TaskDetailsSheet({
 
   const canArchive = isAdminOrOwner || isCreator
   const canEditTaskDetails = (isAdminOrOwner || isCreator) && !task?.isArchived
-  const canUpdateStatus = (isAdminOrOwner || isCreator || isAssignee || isCollaborator) && !task?.isArchived && (task?.status !== "Pending Approval" || isCreator || isAdminOrOwner)
-  const canManageSubtasks = (isAdminOrOwner || isCreator || isAssignee || isCollaborator) && !task?.isArchived
+  const canUpdateStatus =
+    (isAdminOrOwner || isCreator || isAssignee || isCollaborator) &&
+    !task?.isArchived &&
+    (task?.status !== "Pending Approval" || isCreator || isAdminOrOwner)
+  const canManageSubtasks =
+    (isAdminOrOwner || isCreator || isAssignee || isCollaborator) &&
+    !task?.isArchived
   const canManageAssignees = (isAdminOrOwner || isCreator) && !task?.isArchived
-  const canManageCollaborators = (isAdminOrOwner || isCreator || isAssignee) && !task?.isArchived
-  const canManageSubscribers = (isAdminOrOwner || isCreator || isAssignee || isCollaborator) && !task?.isArchived
-  const canAddAttachments = (isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber) && !task?.isArchived
-  const canAddChats = (isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber) && !task?.isArchived
+  const canManageCollaborators =
+    (isAdminOrOwner || isCreator || isAssignee) && !task?.isArchived
+  const canManageSubscribers =
+    (isAdminOrOwner || isCreator || isAssignee || isCollaborator) &&
+    !task?.isArchived
+  const canAddAttachments =
+    (isAdminOrOwner ||
+      isCreator ||
+      isAssignee ||
+      isCollaborator ||
+      isSubscriber) &&
+    !task?.isArchived
+  const canAddChats =
+    (isAdminOrOwner ||
+      isCreator ||
+      isAssignee ||
+      isCollaborator ||
+      isSubscriber) &&
+    !task?.isArchived
 
-  const getUserDetails = (userId: string): { name: string; email: string; image?: string } => {
+  const getUserDetails = (
+    userId: string
+  ): { name: string; email: string; image?: string } => {
     const member = activeOrg?.members?.find((m: any) => m.userId === userId)
     return member?.user || { name: "Unknown User", email: "", image: undefined }
   }
@@ -692,12 +806,15 @@ export default function TaskDetailsSheet({
       : 0
 
   const reactions = task?.reactions || []
-  const groupedReactions = reactions.reduce((acc: Record<string, string[]>, curr) => {
-    const list = acc[curr.emoji] || []
-    list.push(curr.userId)
-    acc[curr.emoji] = list
-    return acc
-  }, {})
+  const groupedReactions = reactions.reduce(
+    (acc: Record<string, string[]>, curr) => {
+      const list = acc[curr.emoji] || []
+      list.push(curr.userId)
+      acc[curr.emoji] = list
+      return acc
+    },
+    {}
+  )
 
   const handleUpdate = async (fields: {
     title?: string
@@ -814,7 +931,11 @@ export default function TaskDetailsSheet({
         chatId: chatToDelete._id,
       })
 
-      if (deleteAttachments && chatToDelete.attachmentIds && chatToDelete.attachmentIds.length > 0) {
+      if (
+        deleteAttachments &&
+        chatToDelete.attachmentIds &&
+        chatToDelete.attachmentIds.length > 0
+      ) {
         for (const attId of chatToDelete.attachmentIds) {
           await deleteAttach({ attachmentId: attId })
         }
@@ -896,7 +1017,9 @@ export default function TaskDetailsSheet({
     const currentCollabs = task.collaboratorIds || []
     const currentSubs = task.subscriberIds || []
 
-    let nextAssignees = currentAssignees.filter((id: string) => id !== targetUserId)
+    let nextAssignees = currentAssignees.filter(
+      (id: string) => id !== targetUserId
+    )
     let nextCollabs = currentCollabs.filter((id: string) => id !== targetUserId)
     let nextSubs = currentSubs.filter((id: string) => id !== targetUserId)
 
@@ -959,7 +1082,9 @@ export default function TaskDetailsSheet({
     const attach = attachments?.find((a: any) => a._id === attachmentId)
     const isUploader = attach?.uploaderId === currentUserId
     if (!canEditTaskDetails && !isUploader) {
-      toast.error("Only admins, the task creator, or the uploader can delete attachments")
+      toast.error(
+        "Only admins, the task creator, or the uploader can delete attachments"
+      )
       return
     }
     const toastId = toast.loading("Deleting document...")
@@ -1176,14 +1301,19 @@ export default function TaskDetailsSheet({
                   onClick={(e) => {
                     e.stopPropagation()
                     navigator.clipboard.writeText(`#${task._id.slice(-4)}`)
-                    toast.success(`Copied Task ID #${task._id.slice(-4)} to clipboard!`)
+                    toast.success(
+                      `Copied Task ID #${task._id.slice(-4)} to clipboard!`
+                    )
                   }}
-                  className="text-[11px] font-medium font-mono text-muted-foreground/50 hover:text-foreground transition-colors select-all cursor-pointer"
+                  className="cursor-pointer font-mono text-[11px] font-medium text-muted-foreground/50 transition-colors select-all hover:text-foreground"
                 >
                   #{task._id.slice(-4)}
                 </span>
                 {relation !== "Other" && (
-                  <Badge variant="outline" className={`px-1.5 py-0 h-4 text-[9px] font-medium border ${getRelationStyle(relation)}`}>
+                  <Badge
+                    variant="outline"
+                    className={`h-4 border px-1.5 py-0 text-[9px] font-medium ${getRelationStyle(relation)}`}
+                  >
                     Role: {relation}
                   </Badge>
                 )}
@@ -1228,7 +1358,7 @@ export default function TaskDetailsSheet({
                     size="icon-sm"
                     variant="ghost"
                     onClick={() => setIsDeleteDialogOpen(true)}
-                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-500/5 transition-colors"
+                    className="h-8 w-8 rounded-full text-muted-foreground transition-colors hover:bg-red-500/5 hover:text-red-500"
                     title="Delete Task"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1264,7 +1394,10 @@ export default function TaskDetailsSheet({
               {task.isArchived && (
                 <div className="m-6 mb-0 flex items-center gap-2.5 rounded-xl border border-amber-200/50 bg-amber-500/10 p-4 text-xs text-amber-700 dark:border-amber-800/30 dark:text-amber-400">
                   <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
-                  <span>This task is archived. Unarchive it to allow edits, comments, or attachments.</span>
+                  <span>
+                    This task is archived. Unarchive it to allow edits,
+                    comments, or attachments.
+                  </span>
                 </div>
               )}
 
@@ -1277,10 +1410,14 @@ export default function TaskDetailsSheet({
                       <span
                         onClick={(e) => {
                           e.stopPropagation()
-                          navigator.clipboard.writeText(`#${task._id.slice(-4)}`)
-                          toast.success(`Copied Task ID #${task._id.slice(-4)} to clipboard!`)
+                          navigator.clipboard.writeText(
+                            `#${task._id.slice(-4)}`
+                          )
+                          toast.success(
+                            `Copied Task ID #${task._id.slice(-4)} to clipboard!`
+                          )
                         }}
-                        className="text-muted-foreground/50 font-mono text-xl font-medium select-all shrink-0 select-none cursor-pointer hover:text-foreground transition-colors"
+                        className="shrink-0 cursor-pointer font-mono text-xl font-medium text-muted-foreground/50 transition-colors select-all select-none hover:text-foreground"
                       >
                         #{task._id.slice(-4)}
                       </span>
@@ -1300,20 +1437,27 @@ export default function TaskDetailsSheet({
                       />
                     </div>
                   ) : (
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2 flex-wrap">
+                    <h2 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
                       <span
                         onClick={(e) => {
                           e.stopPropagation()
-                          navigator.clipboard.writeText(`#${task._id.slice(-4)}`)
-                          toast.success(`Copied Task ID #${task._id.slice(-4)} to clipboard!`)
+                          navigator.clipboard.writeText(
+                            `#${task._id.slice(-4)}`
+                          )
+                          toast.success(
+                            `Copied Task ID #${task._id.slice(-4)} to clipboard!`
+                          )
                         }}
-                        className="font-mono text-muted-foreground/60 hover:text-foreground transition-colors mr-2 text-xl font-medium select-all cursor-pointer"
+                        className="mr-2 cursor-pointer font-mono text-xl font-medium text-muted-foreground/60 transition-colors select-all hover:text-foreground"
                       >
                         #{task._id.slice(-4)}
                       </span>
                       {task.title}
                       {relation !== "Other" && (
-                        <Badge variant="outline" className={`px-2 py-0.5 text-xs font-semibold border ${getRelationStyle(relation)}`}>
+                        <Badge
+                          variant="outline"
+                          className={`border px-2 py-0.5 text-xs font-semibold ${getRelationStyle(relation)}`}
+                        >
                           Role: {relation}
                         </Badge>
                       )}
@@ -1323,35 +1467,41 @@ export default function TaskDetailsSheet({
 
                 {/* Task Reactions Bar */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  {Object.entries(groupedReactions).map(([emoji, userIds]: any) => {
-                    const hasReacted = currentUserId ? userIds.includes(currentUserId) : false
-                    const reactorNames = userIds
-                      .map((id: string) => getUserDetails(id).name)
-                      .join(", ")
-                    return (
-                      <Tooltip key={emoji}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleReaction(emoji)}
-                            className={`h-7 gap-1.5 rounded-full px-2.5 text-xs border transition-all ${
-                              hasReacted
-                                ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/15"
-                                : "bg-muted/10 border-border/10 hover:border-border/30 hover:bg-muted/15"
-                            }`}
-                          >
-                            <span>{emoji}</span>
-                            <span className="font-semibold text-[10px]">{userIds.length}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-popover text-popover-foreground border shadow-md p-1.5 px-2 text-[10px] z-50">
-                          <span className="font-medium">{reactorNames}</span>
-                        </TooltipContent>
-                      </Tooltip>
-                    )
-                  })}
+                  {Object.entries(groupedReactions).map(
+                    ([emoji, userIds]: any) => {
+                      const hasReacted = currentUserId
+                        ? userIds.includes(currentUserId)
+                        : false
+                      const reactorNames = userIds
+                        .map((id: string) => getUserDetails(id).name)
+                        .join(", ")
+                      return (
+                        <Tooltip key={emoji}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleReaction(emoji)}
+                              className={`h-7 gap-1.5 rounded-full border px-2.5 text-xs transition-all ${
+                                hasReacted
+                                  ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                                  : "border-border/10 bg-muted/10 hover:border-border/30 hover:bg-muted/15"
+                              }`}
+                            >
+                              <span>{emoji}</span>
+                              <span className="text-[10px] font-semibold">
+                                {userIds.length}
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="z-50 border bg-popover p-1.5 px-2 text-[10px] text-popover-foreground shadow-md">
+                            <span className="font-medium">{reactorNames}</span>
+                          </TooltipContent>
+                        </Tooltip>
+                      )
+                    }
+                  )}
 
                   <div className="relative">
                     <Button
@@ -1359,14 +1509,14 @@ export default function TaskDetailsSheet({
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
-                      className="h-7 w-7 rounded-full border border-border/10 bg-muted/5 hover:bg-muted/15 flex items-center justify-center"
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-border/10 bg-muted/5 hover:bg-muted/15"
                     >
                       <Smile className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                     {emojiPickerOpen && (
                       <>
-                        <div 
-                          className="fixed inset-0 z-10" 
+                        <div
+                          className="fixed inset-0 z-10"
                           onClick={() => setEmojiPickerOpen(false)}
                         />
                         <div className="absolute top-8 left-0 z-20 flex gap-1 rounded-full border border-border/80 bg-popover p-1.5 shadow-xl backdrop-blur-md">
@@ -1378,7 +1528,7 @@ export default function TaskDetailsSheet({
                                 handleToggleReaction(emoji)
                                 setEmojiPickerOpen(false)
                               }}
-                              className="flex h-7 w-7 items-center justify-center rounded-full text-sm hover:bg-muted/20 active:scale-95 transition-all"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-sm transition-all hover:bg-muted/20 active:scale-95"
                             >
                               {emoji}
                             </button>
@@ -1420,7 +1570,9 @@ export default function TaskDetailsSheet({
                         value={task.status}
                         onValueChange={handleStatusChange}
                       >
-                        <SelectTrigger className={`h-8 w-[150px] text-xs font-semibold rounded-full border px-2.5 ${getStatusStyle(task.status)}`}>
+                        <SelectTrigger
+                          className={`h-8 w-[150px] rounded-full border px-2.5 text-xs font-semibold ${getStatusStyle(task.status)}`}
+                        >
                           <SelectValue placeholder={task.status} />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
@@ -1431,14 +1583,14 @@ export default function TaskDetailsSheet({
                           <SelectItem value="Under Review">
                             Under Review
                           </SelectItem>
-                          <SelectItem 
-                            value="Pending Approval" 
+                          <SelectItem
+                            value="Pending Approval"
                             disabled={!!task.formId && !task.formResponseId}
                           >
                             Pending Approval
                           </SelectItem>
-                          <SelectItem 
-                            value="Completed" 
+                          <SelectItem
+                            value="Completed"
                             disabled={!!task.formId && !task.formResponseId}
                           >
                             Completed
@@ -1537,18 +1689,21 @@ export default function TaskDetailsSheet({
                           <Button
                             variant="outline"
                             className={cn(
-                              "h-8 justify-start text-left font-normal text-xs bg-background/50 border-border/80 px-3 py-1",
+                              "h-8 justify-start border-border/80 bg-background/50 px-3 py-1 text-left text-xs font-normal",
                               !task.dueDate && "text-muted-foreground"
                             )}
                           >
                             <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/80" />
                             {task.dueDate ? (
                               <span>
-                                {new Date(task.dueDate).toLocaleDateString(undefined, {
-                                  month: "long",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {new Date(task.dueDate).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    month: "long",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )}
                               </span>
                             ) : (
                               <span>Pick due date</span>
@@ -1558,7 +1713,9 @@ export default function TaskDetailsSheet({
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                            selected={
+                              task.dueDate ? new Date(task.dueDate) : undefined
+                            }
                             onSelect={(date) => {
                               handleUpdate({
                                 dueDate: date ? date.getTime() : 0,
@@ -1568,7 +1725,11 @@ export default function TaskDetailsSheet({
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      <DueDateBadge dueDate={task.dueDate} timeOfDay={task.timeOfDay} status={task.status} />
+                      <DueDateBadge
+                        dueDate={task.dueDate}
+                        timeOfDay={task.timeOfDay}
+                        status={task.status}
+                      />
                     )}
                   </div>
 
@@ -1611,7 +1772,9 @@ export default function TaskDetailsSheet({
                         avatarClassName="h-6 w-6 border border-card shadow-xs"
                       />
                     ) : (
-                      <span className="text-xs text-muted-foreground italic">None</span>
+                      <span className="text-xs text-muted-foreground italic">
+                        None
+                      </span>
                     )}
                   </div>
 
@@ -1637,60 +1800,74 @@ export default function TaskDetailsSheet({
                       )}
                     </div>
                     {canManageAssignees && (
-                        <div className="relative">
-                          <Button
-                            size="icon-xs"
-                            variant="ghost"
-                            onClick={() => setInviteOpen(!inviteOpen)}
-                            className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
-                          >
-                            <UserPlus className="h-3 w-3" />
-                          </Button>
-                          {inviteOpen && (
-                            <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
-                              <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
-                                <span className="text-[10px] font-bold text-muted-foreground">
-                                  Manage Assignees
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setInviteOpen(false)
-                                    setAssigneeSearch("")
-                                  }}
-                                  className="text-muted-foreground hover:text-foreground"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                              <div className="p-2 border-b border-border/40 bg-muted/5">
-                                <Input
-                                  placeholder="Search members..."
-                                  value={assigneeSearch}
-                                  onChange={(e) => setAssigneeSearch(e.target.value)}
-                                  className="h-7 text-[10px] bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
-                                />
-                              </div>
-                              <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {(activeOrg?.members || [])
-                                  .filter((member: any) => {
-                                    const name = member.user?.name || ""
-                                    const email = member.user?.email || ""
-                                    const q = assigneeSearch.toLowerCase()
-                                    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
-                                  })
-                                  .map((member: any) => {
-                                  const isChecked = task.assigneeIds?.includes(member.userId)
+                      <div className="relative">
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          onClick={() => setInviteOpen(!inviteOpen)}
+                          className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                        </Button>
+                        {inviteOpen && (
+                          <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
+                            <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
+                              <span className="text-[10px] font-bold text-muted-foreground">
+                                Manage Assignees
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setInviteOpen(false)
+                                  setAssigneeSearch("")
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <div className="border-b border-border/40 bg-muted/5 p-2">
+                              <Input
+                                placeholder="Search members..."
+                                value={assigneeSearch}
+                                onChange={(e) =>
+                                  setAssigneeSearch(e.target.value)
+                                }
+                                className="h-7 bg-background/50 text-[10px] focus-visible:ring-1 focus-visible:ring-primary/20"
+                              />
+                            </div>
+                            <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
+                              {(activeOrg?.members || [])
+                                .filter((member: any) => {
+                                  const name = member.user?.name || ""
+                                  const email = member.user?.email || ""
+                                  const q = assigneeSearch.toLowerCase()
+                                  return (
+                                    name.toLowerCase().includes(q) ||
+                                    email.toLowerCase().includes(q)
+                                  )
+                                })
+                                .map((member: any) => {
+                                  const isChecked = task.assigneeIds?.includes(
+                                    member.userId
+                                  )
                                   return (
                                     <button
                                       type="button"
                                       key={member.id}
-                                      onClick={() => handleToggleAssignee(member.userId)}
+                                      onClick={() =>
+                                        handleToggleAssignee(member.userId)
+                                      }
                                       className="flex w-full items-center justify-between rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
                                     >
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-5 w-5 shrink-0">
-                                          <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
+                                          <AvatarImage
+                                            src={getAvatarUrl(
+                                              member.user?.image,
+                                              member.user?.name
+                                            )}
+                                          />
                                           <AvatarFallback className="text-[9px]">
                                             {member.user?.name?.charAt(0)}
                                           </AvatarFallback>
@@ -1701,15 +1878,17 @@ export default function TaskDetailsSheet({
                                           </span>
                                         </div>
                                       </div>
-                                      {isChecked && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                      {isChecked && (
+                                        <Check className="h-3 w-3 shrink-0 text-primary" />
+                                      )}
                                     </button>
                                   )
                                 })}
-                              </div>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Collaborators */}
@@ -1719,7 +1898,8 @@ export default function TaskDetailsSheet({
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1.5 overflow-hidden">
-                      {task.collaboratorIds && task.collaboratorIds.length > 0 ? (
+                      {task.collaboratorIds &&
+                      task.collaboratorIds.length > 0 ? (
                         task.collaboratorIds.map((userId: string) => (
                           <UserAvatar
                             key={userId}
@@ -1734,60 +1914,75 @@ export default function TaskDetailsSheet({
                       )}
                     </div>
                     {canManageCollaborators && (
-                        <div className="relative">
-                          <Button
-                            size="icon-xs"
-                            variant="ghost"
-                            onClick={() => setCollabInviteOpen(!collabInviteOpen)}
-                            className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
-                          >
-                            <UserPlus className="h-3 w-3" />
-                          </Button>
-                          {collabInviteOpen && (
-                            <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
-                              <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
-                                <span className="text-[10px] font-bold text-muted-foreground">
-                                  Manage Collaborators
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setCollabInviteOpen(false)
-                                    setCollabSearch("")
-                                  }}
-                                  className="text-muted-foreground hover:text-foreground"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                              <div className="p-2 border-b border-border/40 bg-muted/5">
-                                <Input
-                                  placeholder="Search members..."
-                                  value={collabSearch}
-                                  onChange={(e) => setCollabSearch(e.target.value)}
-                                  className="h-7 text-[10px] bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
-                                />
-                              </div>
-                              <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {(activeOrg?.members || [])
-                                  .filter((member: any) => {
-                                    const name = member.user?.name || ""
-                                    const email = member.user?.email || ""
-                                    const q = collabSearch.toLowerCase()
-                                    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
-                                  })
-                                  .map((member: any) => {
-                                  const isChecked = task.collaboratorIds?.includes(member.userId)
+                      <div className="relative">
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          onClick={() => setCollabInviteOpen(!collabInviteOpen)}
+                          className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                        </Button>
+                        {collabInviteOpen && (
+                          <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
+                            <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
+                              <span className="text-[10px] font-bold text-muted-foreground">
+                                Manage Collaborators
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCollabInviteOpen(false)
+                                  setCollabSearch("")
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <div className="border-b border-border/40 bg-muted/5 p-2">
+                              <Input
+                                placeholder="Search members..."
+                                value={collabSearch}
+                                onChange={(e) =>
+                                  setCollabSearch(e.target.value)
+                                }
+                                className="h-7 bg-background/50 text-[10px] focus-visible:ring-1 focus-visible:ring-primary/20"
+                              />
+                            </div>
+                            <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
+                              {(activeOrg?.members || [])
+                                .filter((member: any) => {
+                                  const name = member.user?.name || ""
+                                  const email = member.user?.email || ""
+                                  const q = collabSearch.toLowerCase()
+                                  return (
+                                    name.toLowerCase().includes(q) ||
+                                    email.toLowerCase().includes(q)
+                                  )
+                                })
+                                .map((member: any) => {
+                                  const isChecked =
+                                    task.collaboratorIds?.includes(
+                                      member.userId
+                                    )
                                   return (
                                     <button
                                       type="button"
                                       key={member.id}
-                                      onClick={() => handleToggleCollaborator(member.userId)}
+                                      onClick={() =>
+                                        handleToggleCollaborator(member.userId)
+                                      }
                                       className="flex w-full items-center justify-between rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
                                     >
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-5 w-5 shrink-0">
-                                          <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
+                                          <AvatarImage
+                                            src={getAvatarUrl(
+                                              member.user?.image,
+                                              member.user?.name
+                                            )}
+                                          />
                                           <AvatarFallback className="text-[9px]">
                                             {member.user?.name?.charAt(0)}
                                           </AvatarFallback>
@@ -1798,15 +1993,17 @@ export default function TaskDetailsSheet({
                                           </span>
                                         </div>
                                       </div>
-                                      {isChecked && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                      {isChecked && (
+                                        <Check className="h-3 w-3 shrink-0 text-primary" />
+                                      )}
                                     </button>
                                   )
                                 })}
-                              </div>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Subscribers */}
@@ -1831,60 +2028,71 @@ export default function TaskDetailsSheet({
                       )}
                     </div>
                     {canManageSubscribers && (
-                        <div className="relative">
-                          <Button
-                            size="icon-xs"
-                            variant="ghost"
-                            onClick={() => setSubInviteOpen(!subInviteOpen)}
-                            className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
-                          >
-                            <UserPlus className="h-3 w-3" />
-                          </Button>
-                          {subInviteOpen && (
-                            <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
-                              <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
-                                <span className="text-[10px] font-bold text-muted-foreground">
-                                  Manage Subscribers
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSubInviteOpen(false)
-                                    setSubSearch("")
-                                  }}
-                                  className="text-muted-foreground hover:text-foreground"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                              <div className="p-2 border-b border-border/40 bg-muted/5">
-                                <Input
-                                  placeholder="Search members..."
-                                  value={subSearch}
-                                  onChange={(e) => setSubSearch(e.target.value)}
-                                  className="h-7 text-[10px] bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
-                                />
-                              </div>
-                              <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
-                                {(activeOrg?.members || [])
-                                  .filter((member: any) => {
-                                    const name = member.user?.name || ""
-                                    const email = member.user?.email || ""
-                                    const q = subSearch.toLowerCase()
-                                    return name.toLowerCase().includes(q) || email.toLowerCase().includes(q)
-                                  })
-                                  .map((member: any) => {
-                                  const isChecked = task.subscriberIds?.includes(member.userId)
+                      <div className="relative">
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          onClick={() => setSubInviteOpen(!subInviteOpen)}
+                          className="h-6 w-6 rounded-full transition-colors hover:bg-primary/10 hover:text-primary"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                        </Button>
+                        {subInviteOpen && (
+                          <div className="absolute top-7 left-0 z-20 w-64 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl backdrop-blur-md">
+                            <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2">
+                              <span className="text-[10px] font-bold text-muted-foreground">
+                                Manage Subscribers
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSubInviteOpen(false)
+                                  setSubSearch("")
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <div className="border-b border-border/40 bg-muted/5 p-2">
+                              <Input
+                                placeholder="Search members..."
+                                value={subSearch}
+                                onChange={(e) => setSubSearch(e.target.value)}
+                                className="h-7 bg-background/50 text-[10px] focus-visible:ring-1 focus-visible:ring-primary/20"
+                              />
+                            </div>
+                            <div className="max-h-[200px] space-y-0.5 overflow-y-auto p-1">
+                              {(activeOrg?.members || [])
+                                .filter((member: any) => {
+                                  const name = member.user?.name || ""
+                                  const email = member.user?.email || ""
+                                  const q = subSearch.toLowerCase()
+                                  return (
+                                    name.toLowerCase().includes(q) ||
+                                    email.toLowerCase().includes(q)
+                                  )
+                                })
+                                .map((member: any) => {
+                                  const isChecked =
+                                    task.subscriberIds?.includes(member.userId)
                                   return (
                                     <button
                                       type="button"
                                       key={member.id}
-                                      onClick={() => handleToggleSubscriber(member.userId)}
+                                      onClick={() =>
+                                        handleToggleSubscriber(member.userId)
+                                      }
                                       className="flex w-full items-center justify-between rounded-lg p-1.5 text-left font-sans transition-colors hover:bg-accent"
                                     >
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-5 w-5 shrink-0">
-                                          <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
+                                          <AvatarImage
+                                            src={getAvatarUrl(
+                                              member.user?.image,
+                                              member.user?.name
+                                            )}
+                                          />
                                           <AvatarFallback className="text-[9px]">
                                             {member.user?.name?.charAt(0)}
                                           </AvatarFallback>
@@ -1895,132 +2103,142 @@ export default function TaskDetailsSheet({
                                           </span>
                                         </div>
                                       </div>
-                                      {isChecked && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                      {isChecked && (
+                                        <Check className="h-3 w-3 shrink-0 text-primary" />
+                                      )}
                                     </button>
                                   )
                                 })}
-                              </div>
                             </div>
-                          )}
-                        </div>
-                      )}
-                  </div>
-                    {/* Completion Sign-off */}
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Sparkles className="size-3.5 shrink-0 text-muted-foreground/60" />
-                      <span>Completion Sign-off</span>
-                    </div>
-                    <div>
-                      {isEditingDetails && canEditTaskDetails ? (
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            id="details-completed-requires-approval"
-                            checked={task.completedRequiresApproval ?? false}
-                            onCheckedChange={(checked: boolean) =>
-                              handleUpdate({ completedRequiresApproval: checked })
-                            }
-                            className="cursor-pointer scale-75 origin-left"
-                          />
-                          <span className="text-[10px] text-muted-foreground">
-                            {task.completedRequiresApproval ? "Creator sign-off required" : "Mark done directly"}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="font-medium text-foreground/80">
-                          {task.completedRequiresApproval ? "Requires creator approval" : "No approval required"}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Recurrence */}
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Repeat className="size-3.5 shrink-0 text-muted-foreground/60" />
-                      <span>Recurrence</span>
-                    </div>
-                    <div>
-                      {isEditingDetails && canEditTaskDetails ? (
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          <Select
-                            value={task.recurrence?.frequency || "none"}
-                            onValueChange={(val) => {
-                              if (val === "none") {
-                                handleRemoveRecurrence()
-                              } else {
-                                handleRecurrenceChange(val)
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="h-8 w-[130px] text-xs">
-                              <SelectValue placeholder="No Recurrence" />
-                            </SelectTrigger>
-                            <SelectContent className="text-xs">
-                              <SelectItem value="none">No Recurrence</SelectItem>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="quarterly">Quarterly</SelectItem>
-                              <SelectItem value="yearly">Yearly</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          {task.recurrence && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs font-semibold px-2.5 rounded-md border-border/80"
-                                onClick={handleTogglePauseRecurrence}
-                              >
-                                {task.recurrence.isPaused ? "Resume" : "Pause"}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs font-semibold px-2.5 rounded-md border-destructive/30 hover:bg-destructive/10 text-destructive"
-                                onClick={handleRemoveRecurrence}
-                              >
-                                Remove
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      ) : task.recurrence ? (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground/80 capitalize">
-                            Repeats {task.recurrence.frequency}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`h-5 text-[9px] font-semibold px-2 rounded-full border ${
-                              task.recurrence.isPaused
-                                ? "bg-red-50 text-red-700 border-red-200/30 dark:bg-red-950/30 dark:text-red-300"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200/30 dark:bg-emerald-950/30 dark:text-emerald-300"
-                            }`}
-                          >
-                            {task.recurrence.isPaused ? "Paused" : "Active"}
-                          </Badge>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground/80 italic">One-off task</span>
-                      )}
-                    </div>
-
-                    {/* Required Custom Form Section */}
-                    {task?.formId && (
-                      <div className="col-span-2 mt-2">
-                        <TaskCompletionForm
-                          taskId={task._id}
-                          formId={task.formId}
-                          formResponseId={task.formResponseId}
-                          organizationId={task.organizationId}
-                          isAssigneeOrCollaborator={isAssignee || isCollaborator || isAdminOrOwner}
-                        />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
+                  {/* Completion Sign-off */}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Sparkles className="size-3.5 shrink-0 text-muted-foreground/60" />
+                    <span>Completion Sign-off</span>
+                  </div>
+                  <div>
+                    {isEditingDetails && canEditTaskDetails ? (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="details-completed-requires-approval"
+                          checked={task.completedRequiresApproval ?? false}
+                          onCheckedChange={(checked: boolean) =>
+                            handleUpdate({ completedRequiresApproval: checked })
+                          }
+                          className="origin-left scale-75 cursor-pointer"
+                        />
+                        <span className="text-[10px] text-muted-foreground">
+                          {task.completedRequiresApproval
+                            ? "Creator sign-off required"
+                            : "Mark done directly"}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-medium text-foreground/80">
+                        {task.completedRequiresApproval
+                          ? "Requires creator approval"
+                          : "No approval required"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Recurrence */}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Repeat className="size-3.5 shrink-0 text-muted-foreground/60" />
+                    <span>Recurrence</span>
+                  </div>
+                  <div>
+                    {isEditingDetails && canEditTaskDetails ? (
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <Select
+                          value={task.recurrence?.frequency || "none"}
+                          onValueChange={(val) => {
+                            if (val === "none") {
+                              handleRemoveRecurrence()
+                            } else {
+                              handleRecurrenceChange(val)
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 w-[130px] text-xs">
+                            <SelectValue placeholder="No Recurrence" />
+                          </SelectTrigger>
+                          <SelectContent className="text-xs">
+                            <SelectItem value="none">No Recurrence</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {task.recurrence && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-md border-border/80 px-2.5 text-xs font-semibold"
+                              onClick={handleTogglePauseRecurrence}
+                            >
+                              {task.recurrence.isPaused ? "Resume" : "Pause"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-md border-destructive/30 px-2.5 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                              onClick={handleRemoveRecurrence}
+                            >
+                              Remove
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    ) : task.recurrence ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground/80 capitalize">
+                          Repeats {task.recurrence.frequency}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`h-5 rounded-full border px-2 text-[9px] font-semibold ${
+                            task.recurrence.isPaused
+                              ? "border-red-200/30 bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300"
+                              : "border-emerald-200/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+                          }`}
+                        >
+                          {task.recurrence.isPaused ? "Paused" : "Active"}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground/80 italic">
+                        One-off task
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Required Custom Form Section */}
+                  {task?.formId && (
+                    <div className="col-span-2 mt-2">
+                      <TaskCompletionForm
+                        taskId={task._id}
+                        formId={task.formId}
+                        formResponseId={task.formResponseId}
+                        organizationId={task.organizationId}
+                        isAssigneeOrCollaborator={
+                          isAssignee || isCollaborator || isAdminOrOwner
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {/* Project Description Card */}
                 <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-4">
@@ -2044,11 +2262,11 @@ export default function TaskDetailsSheet({
                       {task.recurrence && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="inline-block align-middle mr-1.5">
-                              <Repeat className="size-3 text-blue-500 cursor-help" />
+                            <span className="mr-1.5 inline-block align-middle">
+                              <Repeat className="size-3 cursor-help text-blue-500" />
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent className="text-[10px] p-1.5 px-2 bg-popover text-popover-foreground border shadow-md rounded">
+                          <TooltipContent className="rounded border bg-popover p-1.5 px-2 text-[10px] text-popover-foreground shadow-md">
                             <span>Repeats {task.recurrence.frequency}</span>
                           </TooltipContent>
                         </Tooltip>
@@ -2208,13 +2426,21 @@ export default function TaskDetailsSheet({
 
                                     {/* Actor Avatar */}
                                     <div className="absolute top-0 left-0">
-                                      <AvatarHoverCard user={item.actor} userId={item.actorId}>
+                                      <AvatarHoverCard
+                                        user={item.actor}
+                                        userId={item.actorId}
+                                      >
                                         <Avatar className="h-6 w-6 border border-background">
                                           <AvatarImage
-                                            src={getAvatarUrl(item.actor?.image, item.actor?.name)}
+                                            src={getAvatarUrl(
+                                              item.actor?.image,
+                                              item.actor?.name
+                                            )}
                                           />
                                           <AvatarFallback className="bg-accent text-[8px] font-semibold text-accent-foreground">
-                                            {(item.actor?.name || "U").charAt(0)}
+                                            {(item.actor?.name || "U").charAt(
+                                              0
+                                            )}
                                           </AvatarFallback>
                                         </Avatar>
                                       </AvatarHoverCard>
@@ -2442,28 +2668,37 @@ export default function TaskDetailsSheet({
                         })
                       }
 
-                      const connectedUserIds = new Set([
-                        task.creatorId,
-                        ...(task.assigneeIds || []),
-                        ...(task.collaboratorIds || []),
-                        ...(task.subscriberIds || []),
-                      ].filter(Boolean))
-
-                      const filteredOrgMembers = (activeOrg?.members || []).filter(
-                        (member: any) => {
-                          if (!member.userId || connectedUserIds.has(member.userId)) return false
-                          const name = member.user?.name || ""
-                          const email = member.user?.email || ""
-                          const q = searchQuery.toLowerCase()
-                          return (
-                            name.toLowerCase().includes(q) ||
-                            email.toLowerCase().includes(q)
-                          )
-                        }
+                      const connectedUserIds = new Set(
+                        [
+                          task.creatorId,
+                          ...(task.assigneeIds || []),
+                          ...(task.collaboratorIds || []),
+                          ...(task.subscriberIds || []),
+                        ].filter(Boolean)
                       )
 
+                      const filteredOrgMembers = (
+                        activeOrg?.members || []
+                      ).filter((member: any) => {
+                        if (
+                          !member.userId ||
+                          connectedUserIds.has(member.userId)
+                        )
+                          return false
+                        const name = member.user?.name || ""
+                        const email = member.user?.email || ""
+                        const q = searchQuery.toLowerCase()
+                        return (
+                          name.toLowerCase().includes(q) ||
+                          email.toLowerCase().includes(q)
+                        )
+                      })
+
                       const canAddNewPerson =
-                        isCreator || isAssignee || isCollaborator || isAdminOrOwner
+                        isCreator ||
+                        isAssignee ||
+                        isCollaborator ||
+                        isAdminOrOwner
 
                       const getRoleBadgeStyle = (role: string) => {
                         switch (role) {
@@ -2494,16 +2729,22 @@ export default function TaskDetailsSheet({
                                 handleRoleChange(p.userId, val as any)
                               }
                             >
-                              <SelectTrigger className="h-6 w-[100px] text-[10px] ml-auto">
+                              <SelectTrigger className="ml-auto h-6 w-[100px] text-[10px]">
                                 <SelectValue placeholder={p.role} />
                               </SelectTrigger>
                               <SelectContent className="text-[10px]">
-                                <SelectItem value="Assignee">Assignee</SelectItem>
-                                <SelectItem value="Collaborator">Collaborator</SelectItem>
-                                <SelectItem value="Subscriber">Subscriber</SelectItem>
+                                <SelectItem value="Assignee">
+                                  Assignee
+                                </SelectItem>
+                                <SelectItem value="Collaborator">
+                                  Collaborator
+                                </SelectItem>
+                                <SelectItem value="Subscriber">
+                                  Subscriber
+                                </SelectItem>
                                 <SelectItem
                                   value="remove"
-                                  className="text-rose-600 dark:text-rose-400 font-semibold"
+                                  className="font-semibold text-rose-600 dark:text-rose-400"
                                 >
                                   Remove
                                 </SelectItem>
@@ -2513,7 +2754,10 @@ export default function TaskDetailsSheet({
                         }
 
                         if (isCallerAssignee) {
-                          if (p.role === "Collaborator" || p.role === "Subscriber") {
+                          if (
+                            p.role === "Collaborator" ||
+                            p.role === "Subscriber"
+                          ) {
                             return (
                               <Select
                                 value={p.role}
@@ -2521,15 +2765,19 @@ export default function TaskDetailsSheet({
                                   handleRoleChange(p.userId, val as any)
                                 }
                               >
-                                <SelectTrigger className="h-6 w-[100px] text-[10px] ml-auto">
+                                <SelectTrigger className="ml-auto h-6 w-[100px] text-[10px]">
                                   <SelectValue placeholder={p.role} />
                                 </SelectTrigger>
                                 <SelectContent className="text-[10px]">
-                                  <SelectItem value="Collaborator">Collaborator</SelectItem>
-                                  <SelectItem value="Subscriber">Subscriber</SelectItem>
+                                  <SelectItem value="Collaborator">
+                                    Collaborator
+                                  </SelectItem>
+                                  <SelectItem value="Subscriber">
+                                    Subscriber
+                                  </SelectItem>
                                   <SelectItem
                                     value="remove"
-                                    className="text-rose-600 dark:text-rose-400 font-semibold"
+                                    className="font-semibold text-rose-600 dark:text-rose-400"
                                   >
                                     Remove
                                   </SelectItem>
@@ -2554,7 +2802,7 @@ export default function TaskDetailsSheet({
                                   size="sm"
                                   variant="outline"
                                   onClick={() => setIsAddNewOpen(!isAddNewOpen)}
-                                  className="flex h-7 items-center gap-1.5 px-3 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                                  className="flex h-7 cursor-pointer items-center gap-1.5 px-3 text-xs font-semibold transition-colors hover:bg-primary/10 hover:text-primary"
                                 >
                                   <UserPlus className="h-3.5 w-3.5" />
                                   <span>Add New</span>
@@ -2562,7 +2810,7 @@ export default function TaskDetailsSheet({
                                 {isAddNewOpen && (
                                   <div className="absolute top-8 right-0 z-30 w-72 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-2xl backdrop-blur-md">
                                     <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 p-2.5">
-                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                                      <span className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
                                         Add Person to Task
                                       </span>
                                       <button
@@ -2571,94 +2819,114 @@ export default function TaskDetailsSheet({
                                           setIsAddNewOpen(false)
                                           setSearchQuery("")
                                         }}
-                                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                        className="cursor-pointer text-muted-foreground hover:text-foreground"
                                       >
                                         <X className="h-3.5 w-3.5" />
                                       </button>
                                     </div>
-                                    <div className="p-2 border-b border-border/40 bg-muted/5">
+                                    <div className="border-b border-border/40 bg-muted/5 p-2">
                                       <Input
                                         placeholder="Search by name or email..."
                                         value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="h-8 text-xs bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                                        onChange={(e) =>
+                                          setSearchQuery(e.target.value)
+                                        }
+                                        className="h-8 bg-background/50 text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
                                       />
                                     </div>
                                     <div className="max-h-[220px] space-y-0.5 overflow-y-auto p-1.5">
                                       {filteredOrgMembers.length > 0 ? (
-                                        filteredOrgMembers.map((member: any) => (
-                                          <div
-                                            key={member.id}
-                                            className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-accent/50"
-                                          >
-                                            <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
-                                              <Avatar className="h-6 w-6 shrink-0">
-                                                <AvatarImage src={getAvatarUrl(member.user?.image, member.user?.name)} />
-                                                <AvatarFallback className="text-[10px]">
-                                                  {member.user?.name?.charAt(0)}
-                                                </AvatarFallback>
-                                              </Avatar>
-                                              <div className="flex min-w-0 flex-col">
-                                                <span className="truncate text-left text-[11px] font-medium text-foreground">
-                                                  {member.user?.name}
-                                                </span>
-                                                <span className="truncate text-left text-[9px] text-muted-foreground">
-                                                  {member.user?.email}
-                                                </span>
+                                        filteredOrgMembers.map(
+                                          (member: any) => (
+                                            <div
+                                              key={member.id}
+                                              className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-accent/50"
+                                            >
+                                              <div className="mr-2 flex min-w-0 flex-1 items-center gap-2.5">
+                                                <Avatar className="h-6 w-6 shrink-0">
+                                                  <AvatarImage
+                                                    src={getAvatarUrl(
+                                                      member.user?.image,
+                                                      member.user?.name
+                                                    )}
+                                                  />
+                                                  <AvatarFallback className="text-[10px]">
+                                                    {member.user?.name?.charAt(
+                                                      0
+                                                    )}
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex min-w-0 flex-col">
+                                                  <span className="truncate text-left text-[11px] font-medium text-foreground">
+                                                    {member.user?.name}
+                                                  </span>
+                                                  <span className="truncate text-left text-[9px] text-muted-foreground">
+                                                    {member.user?.email}
+                                                  </span>
+                                                </div>
                                               </div>
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                              {(isCreator || isAdminOrOwner) && (
-                                                <Button
-                                                  size="icon-xs"
-                                                  variant="ghost"
-                                                  onClick={() => {
-                                                    handleRoleChange(member.userId, "Assignee")
-                                                    setIsAddNewOpen(false)
-                                                    setSearchQuery("")
-                                                  }}
-                                                  className="h-6 px-1.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                                                  title="Add as Assignee"
-                                                >
-                                                  Assignee
-                                                </Button>
-                                              )}
-                                              {(isCreator || isAssignee || isAdminOrOwner) && (
+                                              <div className="flex shrink-0 items-center gap-1">
+                                                {(isCreator ||
+                                                  isAdminOrOwner) && (
+                                                  <Button
+                                                    size="icon-xs"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                      handleRoleChange(
+                                                        member.userId,
+                                                        "Assignee"
+                                                      )
+                                                      setIsAddNewOpen(false)
+                                                      setSearchQuery("")
+                                                    }}
+                                                    className="h-6 px-1.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                                    title="Add as Assignee"
+                                                  >
+                                                    Assignee
+                                                  </Button>
+                                                )}
+                                                {(isCreator ||
+                                                  isAssignee ||
+                                                  isAdminOrOwner) && (
+                                                  <Button
+                                                    size="icon-xs"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                      handleRoleChange(
+                                                        member.userId,
+                                                        "Collaborator"
+                                                      )
+                                                      setIsAddNewOpen(false)
+                                                      setSearchQuery("")
+                                                    }}
+                                                    className="h-6 px-1.5 text-[9px] font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                                    title="Add as Collaborator"
+                                                  >
+                                                    Collab
+                                                  </Button>
+                                                )}
                                                 <Button
                                                   size="icon-xs"
                                                   variant="ghost"
                                                   onClick={() => {
                                                     handleRoleChange(
                                                       member.userId,
-                                                      "Collaborator"
+                                                      "Subscriber"
                                                     )
                                                     setIsAddNewOpen(false)
                                                     setSearchQuery("")
                                                   }}
-                                                  className="h-6 px-1.5 text-[9px] font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                                                  title="Add as Collaborator"
+                                                  className="h-6 px-1.5 text-[9px] font-semibold text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-950/30"
+                                                  title="Add as Subscriber"
                                                 >
-                                                  Collab
+                                                  Sub
                                                 </Button>
-                                              )}
-                                              <Button
-                                                size="icon-xs"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                  handleRoleChange(member.userId, "Subscriber")
-                                                  setIsAddNewOpen(false)
-                                                  setSearchQuery("")
-                                                }}
-                                                className="h-6 px-1.5 text-[9px] font-semibold text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-950/30"
-                                                title="Add as Subscriber"
-                                              >
-                                                Sub
-                                              </Button>
+                                              </div>
                                             </div>
-                                          </div>
-                                        ))
+                                          )
+                                        )
                                       ) : (
-                                        <p className="text-[10px] text-muted-foreground text-center py-4 italic">
+                                        <p className="py-4 text-center text-[10px] text-muted-foreground italic">
                                           No members found
                                         </p>
                                       )}
@@ -2674,18 +2942,23 @@ export default function TaskDetailsSheet({
                               participants.map((p) => (
                                 <div
                                   key={p.userId}
-                                  className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-border/40 bg-background/50 p-3 gap-2 sm:gap-3 transition-colors hover:bg-muted/5"
+                                  className="flex flex-col justify-between gap-2 rounded-xl border border-border/40 bg-background/50 p-3 transition-colors hover:bg-muted/5 sm:flex-row sm:items-center sm:gap-3"
                                 >
                                   {/* Left: Member details */}
-                                  <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="flex min-w-0 items-center gap-2.5">
                                     <Avatar className="h-7 w-7 shrink-0">
-                                      <AvatarImage src={getAvatarUrl(p.user?.image, p.user?.name)} />
+                                      <AvatarImage
+                                        src={getAvatarUrl(
+                                          p.user?.image,
+                                          p.user?.name
+                                        )}
+                                      />
                                       <AvatarFallback className="text-[10px] font-semibold">
                                         {p.user?.name?.charAt(0) || "U"}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="flex min-w-0 flex-col">
-                                      <span className="truncate font-semibold text-foreground text-xs">
+                                      <span className="truncate text-xs font-semibold text-foreground">
                                         {p.user?.name || "Unknown User"}
                                       </span>
                                       <span className="truncate text-[10px] text-muted-foreground">
@@ -2695,7 +2968,7 @@ export default function TaskDetailsSheet({
                                   </div>
 
                                   {/* Right: Role & Actions */}
-                                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/10">
+                                  <div className="flex items-center justify-between gap-3 border-t border-border/10 pt-2 sm:justify-end sm:border-t-0 sm:pt-0">
                                     <Badge
                                       className={`${getRoleBadgeStyle(p.role)} shrink-0`}
                                       variant="outline"
@@ -2707,7 +2980,7 @@ export default function TaskDetailsSheet({
                                 </div>
                               ))
                             ) : (
-                              <div className="rounded-xl border border-dashed border-border/40 py-6 text-center text-muted-foreground italic text-[11px]">
+                              <div className="rounded-xl border border-dashed border-border/40 py-6 text-center text-[11px] text-muted-foreground italic">
                                 No participants connected.
                               </div>
                             )}
@@ -2716,31 +2989,39 @@ export default function TaskDetailsSheet({
                       )
                     })()}
                   </TabsContent>
-                  <TabsContent value="chats" className="mt-0 outline-none flex flex-col min-h-0 flex-1">
-                    <div className="flex flex-col flex-1 min-h-[420px] max-h-[550px] border border-border/20 rounded-xl bg-card overflow-hidden">
+                  <TabsContent
+                    value="chats"
+                    className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
+                  >
+                    <div className="flex max-h-[550px] min-h-[420px] flex-1 flex-col overflow-hidden rounded-xl border border-border/20 bg-card">
                       {/* Chat Header */}
-                      <div className="border-b border-border/20 bg-muted/20 px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center justify-between border-b border-border/20 bg-muted/20 px-4 py-3">
                         <div className="flex items-center gap-2">
                           <MessageSquare className="h-4 w-4 text-primary" />
-                          <span className="text-xs font-semibold text-foreground">Task Discussions</span>
+                          <span className="text-xs font-semibold text-foreground">
+                            Task Discussions
+                          </span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-medium">
+                        <span className="text-[10px] font-medium text-muted-foreground">
                           {chats ? `${chats.length} messages` : "Loading..."}
                         </span>
                       </div>
 
                       {/* Messages Stream */}
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
                         {chats === undefined ? (
                           <div className="flex h-full items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           </div>
                         ) : chats.length === 0 ? (
-                          <div className="flex h-full flex-col items-center justify-center text-center p-6">
-                            <MessageSquare className="mb-2 size-8 text-muted-foreground/30 animate-bounce" />
-                            <span className="text-xs font-semibold text-foreground">No messages yet</span>
-                            <span className="text-[10px] text-muted-foreground max-w-xs mt-1">
-                              Be the first to say something or ask a question about this task.
+                          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+                            <MessageSquare className="mb-2 size-8 animate-bounce text-muted-foreground/30" />
+                            <span className="text-xs font-semibold text-foreground">
+                              No messages yet
+                            </span>
+                            <span className="mt-1 max-w-xs text-[10px] text-muted-foreground">
+                              Be the first to say something or ask a question
+                              about this task.
                             </span>
                           </div>
                         ) : (
@@ -2748,7 +3029,9 @@ export default function TaskDetailsSheet({
                             {chats.map((comm: any, idx: number) => {
                               const isOwn = comm.userId === currentUserId
                               const details = getUserDetails(comm.userId)
-                              const formattedTime = new Date(comm._creationTime).toLocaleTimeString(undefined, {
+                              const formattedTime = new Date(
+                                comm._creationTime
+                              ).toLocaleTimeString(undefined, {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })
@@ -2756,61 +3039,90 @@ export default function TaskDetailsSheet({
                               // Compute read receipts for this message
                               const readers = (readReceipts || [])
                                 .filter((receipt: any) => {
-                                  if (receipt.userId === currentUserId) return false
-                                  const hasReadThis = receipt.lastReadTime >= comm._creationTime
+                                  if (receipt.userId === currentUserId)
+                                    return false
+                                  const hasReadThis =
+                                    receipt.lastReadTime >= comm._creationTime
                                   if (!hasReadThis) return false
                                   const isLastChat = idx === chats.length - 1
-                                  const nextChat = !isLastChat ? chats[idx + 1] : null
-                                  const hasReadNext = nextChat ? receipt.lastReadTime >= nextChat._creationTime : false
+                                  const nextChat = !isLastChat
+                                    ? chats[idx + 1]
+                                    : null
+                                  const hasReadNext = nextChat
+                                    ? receipt.lastReadTime >=
+                                      nextChat._creationTime
+                                    : false
                                   return !hasReadNext
                                 })
-                                .map((receipt: any) => getUserDetails(receipt.userId))
+                                .map((receipt: any) =>
+                                  getUserDetails(receipt.userId)
+                                )
 
                               // 1. Style System Messages
                               if (comm.isSystem) {
                                 return (
                                   <div
                                     key={comm._id}
-                                    className="w-full flex flex-col items-center justify-center py-2 px-4"
+                                    className="flex w-full flex-col items-center justify-center px-4 py-2"
                                   >
-                                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 italic text-center select-text">
+                                    <div className="flex items-center gap-1.5 text-center text-[11px] text-muted-foreground/70 italic select-text">
                                       <Avatar className="h-4 w-4 shrink-0">
-                                        <AvatarImage src={getAvatarUrl(details.image, details.name)} />
+                                        <AvatarImage
+                                          src={getAvatarUrl(
+                                            details.image,
+                                            details.name
+                                          )}
+                                        />
                                         <AvatarFallback className="text-[6px] font-bold">
                                           {details.name?.charAt(0) || "U"}
                                         </AvatarFallback>
                                       </Avatar>
-                                      <span className="font-semibold text-muted-foreground">{details.name}</span>
+                                      <span className="font-semibold text-muted-foreground">
+                                        {details.name}
+                                      </span>
                                       <span>{comm.content}</span>
-                                      <span className="text-[9px] opacity-60">({formattedTime})</span>
+                                      <span className="text-[9px] opacity-60">
+                                        ({formattedTime})
+                                      </span>
                                     </div>
-                                    
+
                                     {/* System message inline attachments */}
-                                    {comm.attachmentIds && comm.attachmentIds.length > 0 && (
-                                      <div className="mt-2 flex flex-wrap gap-2 justify-center w-full max-w-[85%]">
-                                        {comm.attachmentIds.map((attId: any) => {
-                                          const att = attachments?.find((a: any) => a._id === attId)
-                                          if (!att) return null
-                                          return (
-                                            <div
-                                              key={attId}
-                                              className="flex items-center gap-2 border border-border/40 bg-card rounded-lg p-2 text-xs text-foreground shadow-sm max-w-[240px] truncate"
-                                            >
-                                              <File className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                              <span className="truncate flex-1 font-medium">{att.fileName}</span>
-                                              <Button
-                                                size="icon-xs"
-                                                variant="ghost"
-                                                className="h-6 w-6 shrink-0"
-                                                onClick={() => toast.info(`Downloading ${att.fileName}`)}
-                                              >
-                                                <Download className="h-3 w-3" />
-                                              </Button>
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
+                                    {comm.attachmentIds &&
+                                      comm.attachmentIds.length > 0 && (
+                                        <div className="mt-2 flex w-full max-w-[85%] flex-wrap justify-center gap-2">
+                                          {comm.attachmentIds.map(
+                                            (attId: any) => {
+                                              const att = attachments?.find(
+                                                (a: any) => a._id === attId
+                                              )
+                                              if (!att) return null
+                                              return (
+                                                <div
+                                                  key={attId}
+                                                  className="flex max-w-[240px] items-center gap-2 truncate rounded-lg border border-border/40 bg-card p-2 text-xs text-foreground shadow-sm"
+                                                >
+                                                  <File className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                  <span className="flex-1 truncate font-medium">
+                                                    {att.fileName}
+                                                  </span>
+                                                  <Button
+                                                    size="icon-xs"
+                                                    variant="ghost"
+                                                    className="h-6 w-6 shrink-0"
+                                                    onClick={() =>
+                                                      toast.info(
+                                                        `Downloading ${att.fileName}`
+                                                      )
+                                                    }
+                                                  >
+                                                    <Download className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
+                                              )
+                                            }
+                                          )}
+                                        </div>
+                                      )}
                                   </div>
                                 )
                               }
@@ -2819,15 +3131,25 @@ export default function TaskDetailsSheet({
                               return (
                                 <div
                                   key={comm._id}
-                                  className={`group flex items-start gap-2.5 max-w-[85%] ${
-                                    isOwn ? "self-end flex-row-reverse" : "self-start"
+                                  className={`group flex max-w-[85%] items-start gap-2.5 ${
+                                    isOwn
+                                      ? "flex-row-reverse self-end"
+                                      : "self-start"
                                   }`}
                                 >
                                   {/* Avatar */}
                                   {!isOwn && (
-                                    <AvatarHoverCard user={details} userId={comm.userId}>
-                                      <Avatar className="h-7 w-7 mt-0.5 shrink-0">
-                                        <AvatarImage src={getAvatarUrl(details.image, details.name)} />
+                                    <AvatarHoverCard
+                                      user={details}
+                                      userId={comm.userId}
+                                    >
+                                      <Avatar className="mt-0.5 h-7 w-7 shrink-0">
+                                        <AvatarImage
+                                          src={getAvatarUrl(
+                                            details.image,
+                                            details.name
+                                          )}
+                                        />
                                         <AvatarFallback className="text-[9px] font-bold">
                                           {details.name?.charAt(0) || "U"}
                                         </AvatarFallback>
@@ -2836,10 +3158,10 @@ export default function TaskDetailsSheet({
                                   )}
 
                                   {/* Message Body */}
-                                  <div className="flex flex-col gap-1 min-w-0">
+                                  <div className="flex min-w-0 flex-col gap-1">
                                     {/* Author Info */}
                                     {!isOwn && (
-                                      <span className="text-[10px] font-semibold text-muted-foreground px-1">
+                                      <span className="px-1 text-[10px] font-semibold text-muted-foreground">
                                         {details.name}
                                       </span>
                                     )}
@@ -2847,25 +3169,31 @@ export default function TaskDetailsSheet({
                                     {/* Bubble */}
                                     <div className="relative">
                                       <div
-                                        className={`rounded-2xl px-3.5 py-2.5 text-xs relative ${
+                                        className={`relative rounded-2xl px-3.5 py-2.5 text-xs ${
                                           isOwn
-                                            ? "bg-primary text-primary-foreground rounded-tr-none"
-                                            : "bg-muted/40 border border-border/10 text-foreground rounded-tl-none"
-                                        } ${comm.isDeleted ? "italic text-muted-foreground/60" : ""}`}
+                                            ? "rounded-tr-none bg-primary text-primary-foreground"
+                                            : "rounded-tl-none border border-border/10 bg-muted/40 text-foreground"
+                                        } ${comm.isDeleted ? "text-muted-foreground/60 italic" : ""}`}
                                       >
                                         {editingChatId === comm._id ? (
-                                          <div className="flex flex-col gap-2 min-w-[200px] py-1">
+                                          <div className="flex min-w-[200px] flex-col gap-2 py-1">
                                             <Input
                                               value={editingContent}
-                                              onChange={(e) => setEditingContent(e.target.value)}
-                                              className="h-7 text-xs bg-background/50 border-border/40 text-foreground focus-visible:ring-1 focus-visible:ring-primary"
+                                              onChange={(e) =>
+                                                setEditingContent(
+                                                  e.target.value
+                                                )
+                                              }
+                                              className="h-7 border-border/40 bg-background/50 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-primary"
                                               autoFocus
                                             />
                                             <div className="flex justify-end gap-1.5">
                                               <Button
                                                 size="sm"
                                                 className="h-6 px-2.5 text-[10px] font-semibold"
-                                                onClick={() => handleEditChat(comm._id)}
+                                                onClick={() =>
+                                                  handleEditChat(comm._id)
+                                                }
                                               >
                                                 Save
                                               </Button>
@@ -2884,136 +3212,188 @@ export default function TaskDetailsSheet({
                                           </div>
                                         ) : (
                                           <>
-                                            <p className="whitespace-pre-wrap leading-relaxed select-text font-normal">
+                                            <p className="leading-relaxed font-normal whitespace-pre-wrap select-text">
                                               {comm.content}
                                             </p>
 
                                             {/* Status Change Tag */}
                                             {comm.statusChange && (
-                                              <div className={`mt-2 flex items-center gap-1 w-fit py-0.5 px-2 rounded-full border text-[9px] ${
-                                                isOwn 
-                                                  ? "bg-primary-foreground/15 border-primary-foreground/10 text-primary-foreground" 
-                                                  : "bg-background/80 border-border/20 text-muted-foreground"
-                                              }`}>
+                                              <div
+                                                className={`mt-2 flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] ${
+                                                  isOwn
+                                                    ? "border-primary-foreground/10 bg-primary-foreground/15 text-primary-foreground"
+                                                    : "border-border/20 bg-background/80 text-muted-foreground"
+                                                }`}
+                                              >
                                                 <Sparkles className="h-2.5 w-2.5 shrink-0" />
-                                                <span>Status: <strong>{comm.statusChange}</strong></span>
+                                                <span>
+                                                  Status:{" "}
+                                                  <strong>
+                                                    {comm.statusChange}
+                                                  </strong>
+                                                </span>
                                               </div>
                                             )}
 
                                             {/* Subtask completed tags */}
-                                            {comm.completedSubtaskIds && comm.completedSubtaskIds.length > 0 && (
-                                              <div className="mt-2 space-y-1">
-                                                {comm.completedSubtaskIds.map((subId: any) => {
-                                                  const sub = subtasks?.find((s: any) => s._id === subId)
-                                                  return (
-                                                    <div
-                                                      key={subId}
-                                                      className={`flex items-center gap-1.5 text-[9px] py-0.5 px-2 rounded-md ${
-                                                        isOwn
-                                                          ? "bg-primary-foreground/15 text-primary-foreground"
-                                                          : "bg-background/80 border border-border/20 text-muted-foreground"
-                                                      }`}
-                                                    >
-                                                      <Check className="h-2.5 w-2.5 shrink-0 text-emerald-500" />
-                                                      <span className="truncate">Checklist: {sub?.title || "Completed Item"}</span>
-                                                    </div>
-                                                  )
-                                                })}
-                                              </div>
-                                            )}
+                                            {comm.completedSubtaskIds &&
+                                              comm.completedSubtaskIds.length >
+                                                0 && (
+                                                <div className="mt-2 space-y-1">
+                                                  {comm.completedSubtaskIds.map(
+                                                    (subId: any) => {
+                                                      const sub =
+                                                        subtasks?.find(
+                                                          (s: any) =>
+                                                            s._id === subId
+                                                        )
+                                                      return (
+                                                        <div
+                                                          key={subId}
+                                                          className={`flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[9px] ${
+                                                            isOwn
+                                                              ? "bg-primary-foreground/15 text-primary-foreground"
+                                                              : "border border-border/20 bg-background/80 text-muted-foreground"
+                                                          }`}
+                                                        >
+                                                          <Check className="h-2.5 w-2.5 shrink-0 text-emerald-500" />
+                                                          <span className="truncate">
+                                                            Checklist:{" "}
+                                                            {sub?.title ||
+                                                              "Completed Item"}
+                                                          </span>
+                                                        </div>
+                                                      )
+                                                    }
+                                                  )}
+                                                </div>
+                                              )}
 
                                             {/* Attached Documents in Bubble */}
-                                            {comm.attachmentIds && comm.attachmentIds.length > 0 && (
-                                              <div className="mt-2.5 space-y-1.5 border-t border-border/10 pt-2">
-                                                {comm.attachmentIds.map((attId: any) => {
-                                                  const att = attachments?.find((a: any) => a._id === attId)
-                                                  if (!att) return null
-                                                  return (
-                                                    <div
-                                                      key={attId}
-                                                      className={`flex items-center gap-2 border rounded-lg p-2 text-[10px] ${
-                                                        isOwn 
-                                                          ? "bg-primary-foreground/15 border-primary-foreground/10 text-primary-foreground" 
-                                                          : "bg-muted/80 border-border/20 text-foreground"
-                                                      }`}
-                                                    >
-                                                      <File className="h-3 w-3 shrink-0" />
-                                                      <span className="truncate flex-1 font-medium">{att.fileName}</span>
-                                                      <Button
-                                                        size="icon-xs"
-                                                        variant="ghost"
-                                                        className={`h-5 w-5 shrink-0 ${
-                                                          isOwn ? "hover:bg-primary-foreground/10" : "hover:bg-muted"
-                                                        }`}
-                                                        onClick={() => toast.info(`Downloading ${att.fileName}`)}
-                                                      >
-                                                        <Download className="h-2.5 w-2.5" />
-                                                      </Button>
-                                                    </div>
-                                                  )
-                                                })}
-                                              </div>
-                                            )}
+                                            {comm.attachmentIds &&
+                                              comm.attachmentIds.length > 0 && (
+                                                <div className="mt-2.5 space-y-1.5 border-t border-border/10 pt-2">
+                                                  {comm.attachmentIds.map(
+                                                    (attId: any) => {
+                                                      const att =
+                                                        attachments?.find(
+                                                          (a: any) =>
+                                                            a._id === attId
+                                                        )
+                                                      if (!att) return null
+                                                      return (
+                                                        <div
+                                                          key={attId}
+                                                          className={`flex items-center gap-2 rounded-lg border p-2 text-[10px] ${
+                                                            isOwn
+                                                              ? "border-primary-foreground/10 bg-primary-foreground/15 text-primary-foreground"
+                                                              : "border-border/20 bg-muted/80 text-foreground"
+                                                          }`}
+                                                        >
+                                                          <File className="h-3 w-3 shrink-0" />
+                                                          <span className="flex-1 truncate font-medium">
+                                                            {att.fileName}
+                                                          </span>
+                                                          <Button
+                                                            size="icon-xs"
+                                                            variant="ghost"
+                                                            className={`h-5 w-5 shrink-0 ${
+                                                              isOwn
+                                                                ? "hover:bg-primary-foreground/10"
+                                                                : "hover:bg-muted"
+                                                            }`}
+                                                            onClick={() =>
+                                                              toast.info(
+                                                                `Downloading ${att.fileName}`
+                                                              )
+                                                            }
+                                                          >
+                                                            <Download className="h-2.5 w-2.5" />
+                                                          </Button>
+                                                        </div>
+                                                      )
+                                                    }
+                                                  )}
+                                                </div>
+                                              )}
 
-                                            <span className="text-[9px] text-muted-foreground/60 mt-1.5 block text-right select-none">
+                                            <span className="mt-1.5 block text-right text-[9px] text-muted-foreground/60 select-none">
                                               {formattedTime}
-                                              {comm.isEdited && !comm.isDeleted && " (edited)"}
+                                              {comm.isEdited &&
+                                                !comm.isDeleted &&
+                                                " (edited)"}
                                             </span>
                                           </>
                                         )}
                                       </div>
 
                                       {/* Message Hover Actions */}
-                                      {!comm.isDeleted && isOwn && editingChatId !== comm._id && (
-                                        <div
-                                          className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-popover border border-border/60 rounded-md p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
-                                            isOwn ? "-left-16" : "-right-16"
-                                          }`}
-                                        >
-                                          <Button
-                                            size="icon-xs"
-                                            variant="ghost"
-                                            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/20"
-                                            onClick={() => {
-                                              setEditingChatId(comm._id)
-                                              setEditingContent(comm.content)
-                                            }}
-                                            title="Edit Message"
+                                      {!comm.isDeleted &&
+                                        isOwn &&
+                                        editingChatId !== comm._id && (
+                                          <div
+                                            className={`absolute top-1/2 z-10 flex -translate-y-1/2 items-center gap-1 rounded-md border border-border/60 bg-popover p-1 opacity-0 shadow-md transition-opacity group-hover:opacity-100 ${
+                                              isOwn ? "-left-16" : "-right-16"
+                                            }`}
                                           >
-                                            <Pencil className="h-3 w-3" />
-                                          </Button>
-                                          <Button
-                                            size="icon-xs"
-                                            variant="ghost"
-                                            className="h-5 w-5 rounded text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={() => handleDeleteChat(comm)}
-                                            title="Delete Message"
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      )}
+                                            <Button
+                                              size="icon-xs"
+                                              variant="ghost"
+                                              className="h-5 w-5 rounded text-muted-foreground hover:bg-muted/20 hover:text-foreground"
+                                              onClick={() => {
+                                                setEditingChatId(comm._id)
+                                                setEditingContent(comm.content)
+                                              }}
+                                              title="Edit Message"
+                                            >
+                                              <Pencil className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="icon-xs"
+                                              variant="ghost"
+                                              className="h-5 w-5 rounded text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                              onClick={() =>
+                                                handleDeleteChat(comm)
+                                              }
+                                              title="Delete Message"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
                                     </div>
 
                                     {/* Read Receipts Avatars */}
                                     {readers.length > 0 && (
-                                      <div className={`flex items-center gap-1 mt-1 ${isOwn ? "justify-end" : "justify-start px-1"}`}>
+                                      <div
+                                        className={`mt-1 flex items-center gap-1 ${isOwn ? "justify-end" : "justify-start px-1"}`}
+                                      >
                                         <div className="flex -space-x-1 overflow-hidden">
-                                          {readers.map((reader: any, rIdx: number) => (
-                                            <Tooltip key={rIdx}>
-                                              <TooltipTrigger asChild>
-                                                <Avatar className="h-4.5 w-4.5 border border-background shrink-0 select-none">
-                                                  <AvatarImage src={getAvatarUrl(reader.image, reader.name)} />
-                                                  <AvatarFallback className="text-[6px] font-bold">
-                                                    {reader.name?.charAt(0) || "U"}
-                                                  </AvatarFallback>
-                                                </Avatar>
-                                              </TooltipTrigger>
-                                              <TooltipContent className="bg-popover text-popover-foreground border shadow-md p-1 px-1.5 text-[9px] z-50">
-                                                <span>Seen by {reader.name}</span>
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          ))}
+                                          {readers.map(
+                                            (reader: any, rIdx: number) => (
+                                              <Tooltip key={rIdx}>
+                                                <TooltipTrigger asChild>
+                                                  <Avatar className="h-4.5 w-4.5 shrink-0 border border-background select-none">
+                                                    <AvatarImage
+                                                      src={getAvatarUrl(
+                                                        reader.image,
+                                                        reader.name
+                                                      )}
+                                                    />
+                                                    <AvatarFallback className="text-[6px] font-bold">
+                                                      {reader.name?.charAt(0) ||
+                                                        "U"}
+                                                    </AvatarFallback>
+                                                  </Avatar>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="z-50 border bg-popover p-1 px-1.5 text-[9px] text-popover-foreground shadow-md">
+                                                  <span>
+                                                    Seen by {reader.name}
+                                                  </span>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            )
+                                          )}
                                         </div>
                                       </div>
                                     )}
@@ -3041,7 +3421,7 @@ export default function TaskDetailsSheet({
                           formResponseId={task.formResponseId}
                         />
                       ) : task.isArchived ? (
-                        <div className="border-t border-border/40 p-4 bg-muted/5 text-center text-xs text-muted-foreground italic">
+                        <div className="border-t border-border/40 bg-muted/5 p-4 text-center text-xs text-muted-foreground italic">
                           New messages cannot be added to archived tasks.
                         </div>
                       ) : null}
@@ -3062,65 +3442,83 @@ export default function TaskDetailsSheet({
                 Close Panel
               </Button>
             </div>
-        <AlertDialog open={!!chatToDelete} onOpenChange={(open) => !open && setChatToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete message?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this message? This action cannot be undone.
-                {chatToDelete?.attachmentIds && chatToDelete.attachmentIds.length > 0 && (
-                  <span className="mt-2 block font-medium text-foreground">
-                    This message has {chatToDelete.attachmentIds.length} file attachment(s). Do you want to delete them from the task as well?
-                  </span>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              {chatToDelete?.attachmentIds && chatToDelete.attachmentIds.length > 0 ? (
-                <>
+            <AlertDialog
+              open={!!chatToDelete}
+              onOpenChange={(open) => !open && setChatToDelete(null)}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete message?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this message? This action
+                    cannot be undone.
+                    {chatToDelete?.attachmentIds &&
+                      chatToDelete.attachmentIds.length > 0 && (
+                        <span className="mt-2 block font-medium text-foreground">
+                          This message has {chatToDelete.attachmentIds.length}{" "}
+                          file attachment(s). Do you want to delete them from
+                          the task as well?
+                        </span>
+                      )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  {chatToDelete?.attachmentIds &&
+                  chatToDelete.attachmentIds.length > 0 ? (
+                    <>
+                      <AlertDialogAction
+                        variant="outline"
+                        onClick={() => handleDeleteChatConfirm(false)}
+                      >
+                        Delete Message Only
+                      </AlertDialogAction>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={() => handleDeleteChatConfirm(true)}
+                      >
+                        Delete Both
+                      </AlertDialogAction>
+                    </>
+                  ) : (
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={() => handleDeleteChatConfirm(false)}
+                    >
+                      Delete Message
+                    </AlertDialogAction>
+                  )}
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog
+              open={isDeleteDialogOpen}
+              onOpenChange={setIsDeleteDialogOpen}
+            >
+              <AlertDialogContent className="sm:max-w-[400px]">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-sm font-bold text-destructive">
+                    Delete Task?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-xs text-muted-foreground">
+                    This action is permanent and cannot be undone. All chats,
+                    subtasks, and files associated with this task will be
+                    permanently deleted.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="mt-2">
+                  <AlertDialogCancel className="h-8 text-xs">
+                    Cancel
+                  </AlertDialogCancel>
                   <AlertDialogAction
-                    variant="outline"
-                    onClick={() => handleDeleteChatConfirm(false)}
+                    className="text-destructive-foreground h-8 bg-destructive text-xs hover:bg-destructive/95"
+                    onClick={handleDeleteTask}
                   >
-                    Delete Message Only
+                    Delete Task
                   </AlertDialogAction>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={() => handleDeleteChatConfirm(true)}
-                  >
-                    Delete Both
-                  </AlertDialogAction>
-                </>
-              ) : (
-                <AlertDialogAction
-                  variant="destructive"
-                  onClick={() => handleDeleteChatConfirm(false)}
-                >
-                  Delete Message
-                </AlertDialogAction>
-              )}
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent className="sm:max-w-[400px]">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-sm font-bold flex items-center gap-2 text-destructive">
-                Delete Task?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-xs text-muted-foreground">
-                This action is permanent and cannot be undone. All chats, subtasks, and files associated with this task will be permanently deleted.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-2">
-              <AlertDialogCancel className="text-xs h-8">Cancel</AlertDialogCancel>
-              <AlertDialogAction className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/95" onClick={handleDeleteTask}>
-                Delete Task
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
       </SheetContent>
@@ -3154,9 +3552,13 @@ function ChatInputForm({
   formResponseId,
 }: ChatInputFormProps) {
   const [newChat, setNewChat] = useState("")
-  const [draftAttachmentFiles, setDraftAttachmentFiles] = useState<{ file: File; id?: string }[]>([])
+  const [draftAttachmentFiles, setDraftAttachmentFiles] = useState<
+    { file: File; id?: string }[]
+  >([])
   const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<string[]>([])
-  const [statusChangeOnSend, setStatusChangeOnSend] = useState<string | null>(null)
+  const [statusChangeOnSend, setStatusChangeOnSend] = useState<string | null>(
+    null
+  )
   const [isChatSending, setIsChatSending] = useState(false)
 
   const draftsRef = useRef<{ file: File; id?: string }[]>([])
@@ -3198,14 +3600,21 @@ function ChatInputForm({
     e.preventDefault()
 
     const content = newChat.trim()
-    const allUploadingFinished = draftAttachmentFiles.every((d) => d.id !== undefined)
+    const allUploadingFinished = draftAttachmentFiles.every(
+      (d) => d.id !== undefined
+    )
 
     if (!allUploadingFinished) {
       toast.error("Please wait for all attachments to finish uploading.")
       return
     }
 
-    if (!content && draftAttachmentFiles.length === 0 && !statusChangeOnSend && selectedSubtaskIds.length === 0) {
+    if (
+      !content &&
+      draftAttachmentFiles.length === 0 &&
+      !statusChangeOnSend &&
+      selectedSubtaskIds.length === 0
+    ) {
       return
     }
 
@@ -3220,16 +3629,19 @@ function ChatInputForm({
       // Call addChat mutation
       await addChat({
         taskId,
-        content: content || (
-          statusChangeOnSend 
-            ? `updated task status to ${statusChangeOnSend}` 
-            : selectedSubtaskIds.length > 0 
-              ? `completed ${selectedSubtaskIds.length} checklist item(s)` 
-              : ""
-        ),
+        content:
+          content ||
+          (statusChangeOnSend
+            ? `updated task status to ${statusChangeOnSend}`
+            : selectedSubtaskIds.length > 0
+              ? `completed ${selectedSubtaskIds.length} checklist item(s)`
+              : ""),
         attachmentIds,
         statusChange: statusChangeOnSend || undefined,
-        completedSubtaskIds: selectedSubtaskIds.length > 0 ? (selectedSubtaskIds as any) : undefined,
+        completedSubtaskIds:
+          selectedSubtaskIds.length > 0
+            ? (selectedSubtaskIds as any)
+            : undefined,
       })
 
       // To keep client state in sync optimistically
@@ -3264,7 +3676,9 @@ function ChatInputForm({
     }
   }
 
-  const handleChatFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChatFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = e.target.files
     if (!files || files.length === 0 || !taskId) return
 
@@ -3299,14 +3713,21 @@ function ChatInputForm({
         console.error(err)
         toast.error(`Failed to upload ${draft.file.name}`)
         // Remove from list
-        setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
+        setDraftAttachmentFiles((prev) =>
+          prev.filter((d) => d.file !== draft.file)
+        )
       }
     }
     e.target.value = ""
   }
 
-  const handleRemoveDraftAttachment = async (draftToRemove: { file: File; id?: string }) => {
-    setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draftToRemove.file))
+  const handleRemoveDraftAttachment = async (draftToRemove: {
+    file: File
+    id?: string
+  }) => {
+    setDraftAttachmentFiles((prev) =>
+      prev.filter((d) => d.file !== draftToRemove.file)
+    )
     if (draftToRemove.id) {
       try {
         await deleteAttach({ attachmentId: draftToRemove.id as any })
@@ -3317,7 +3738,7 @@ function ChatInputForm({
   }
 
   return (
-    <div className="border-t border-border/20 bg-muted/20 p-3 flex flex-col gap-2">
+    <div className="flex flex-col gap-2 border-t border-border/20 bg-muted/20 p-3">
       {/* Floating Toolbar above message text input */}
       <div className="flex flex-wrap items-center gap-1.5 pb-1 select-none">
         {/* Attach File Button */}
@@ -3332,7 +3753,7 @@ function ChatInputForm({
           <Button
             type="button"
             variant="outline"
-            className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+            className="flex h-7 items-center gap-1.5 rounded-full border-border/30 bg-background/60 px-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:border-border/60 hover:bg-muted hover:text-foreground"
             onClick={() => document.getElementById("chat-file-upload")?.click()}
             title="Attach Document"
           >
@@ -3347,24 +3768,24 @@ function ChatInputForm({
             <Button
               type="button"
               variant="outline"
-              className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+              className="flex h-7 items-center gap-1.5 rounded-full border-border/30 bg-background/60 px-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:border-border/60 hover:bg-muted hover:text-foreground"
               title="Mark Checklist Item Completed"
             >
               <ListTodo className="h-3 w-3 shrink-0" />
               <span>Mark Done</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2 bg-popover text-popover-foreground border shadow-md rounded-lg z-50">
-            <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-wider border-b border-border/20 mb-1">
+          <PopoverContent className="z-50 w-56 rounded-lg border bg-popover p-2 text-popover-foreground shadow-md">
+            <div className="mb-1 border-b border-border/20 px-2 py-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
               Complete Checklist Item
             </div>
-            <div className="space-y-0.5 max-h-40 overflow-y-auto">
+            <div className="max-h-40 space-y-0.5 overflow-y-auto">
               {subtasks === undefined ? (
                 <div className="flex justify-center p-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               ) : subtasks.filter((s: any) => !s.isCompleted).length === 0 ? (
-                <div className="text-[10px] text-muted-foreground italic p-2 text-center">
+                <div className="p-2 text-center text-[10px] text-muted-foreground italic">
                   No incomplete items
                 </div>
               ) : (
@@ -3376,21 +3797,23 @@ function ChatInputForm({
                       <button
                         key={sub._id}
                         type="button"
-                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted"
                         onClick={() => {
                           if (isChecked) {
-                            setSelectedSubtaskIds((prev) => prev.filter((id) => id !== sub._id))
+                            setSelectedSubtaskIds((prev) =>
+                              prev.filter((id) => id !== sub._id)
+                            )
                           } else {
                             setSelectedSubtaskIds((prev) => [...prev, sub._id])
                           }
                         }}
                       >
                         {isChecked ? (
-                          <CheckSquare className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <CheckSquare className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
                         ) : (
-                          <Square className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                          <Square className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                         )}
-                        <span className="truncate flex-1">{sub.title}</span>
+                        <span className="flex-1 truncate">{sub.title}</span>
                       </button>
                     )
                   })
@@ -3405,28 +3828,39 @@ function ChatInputForm({
             <Button
               type="button"
               variant="outline"
-              className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+              className="flex h-7 items-center gap-1.5 rounded-full border-border/30 bg-background/60 px-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:border-border/60 hover:bg-muted hover:text-foreground"
               title="Change Task Status"
             >
               <Sparkles className="h-3 w-3 shrink-0" />
               <span>Change Status</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-40 p-1 bg-popover text-popover-foreground border shadow-md rounded-lg z-50">
-            <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-wider border-b border-border/20 mb-1">
+          <DropdownMenuContent className="z-50 w-40 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
+            <div className="mb-1 border-b border-border/20 px-2 py-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
               Change Status
             </div>
-            {["Pending", "In Progress", "Under Review", "Completed", "Cancelled"].map((status) => {
-              const isDisabled = !!formId && !formResponseId && (status === "Completed" || status === "Pending Approval")
+            {[
+              "Pending",
+              "In Progress",
+              "Under Review",
+              "Completed",
+              "Cancelled",
+            ].map((status) => {
+              const isDisabled =
+                !!formId &&
+                !formResponseId &&
+                (status === "Completed" || status === "Pending Approval")
               return (
                 <DropdownMenuItem
                   key={status}
                   disabled={isDisabled}
-                  className="text-xs px-2 py-1.5 rounded-md focus:bg-muted cursor-pointer font-medium text-foreground flex items-center justify-between disabled:opacity-45 disabled:pointer-events-none"
+                  className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-foreground focus:bg-muted disabled:pointer-events-none disabled:opacity-45"
                   onClick={() => setStatusChangeOnSend(status)}
                 >
                   <span>{status}</span>
-                  {statusChangeOnSend === status && <Check className="h-3.5 w-3.5 text-primary" />}
+                  {statusChangeOnSend === status && (
+                    <Check className="h-3.5 w-3.5 text-primary" />
+                  )}
                 </DropdownMenuItem>
               )
             })}
@@ -3435,13 +3869,15 @@ function ChatInputForm({
       </div>
 
       {/* Draft Previews */}
-      {(draftAttachmentFiles.length > 0 || statusChangeOnSend || selectedSubtaskIds.length > 0) && (
+      {(draftAttachmentFiles.length > 0 ||
+        statusChangeOnSend ||
+        selectedSubtaskIds.length > 0) && (
         <div className="flex flex-wrap gap-1.5 pb-1 select-none">
           {/* Status Change draft tag */}
           {statusChangeOnSend && (
             <Badge
               variant="outline"
-              className="flex items-center gap-1 bg-primary/10 text-primary border-primary/20 text-[10px] pl-2 pr-1 h-6"
+              className="flex h-6 items-center gap-1 border-primary/20 bg-primary/10 pr-1 pl-2 text-[10px] text-primary"
             >
               <Sparkles className="h-2.5 w-2.5 shrink-0" />
               <span>
@@ -3450,7 +3886,7 @@ function ChatInputForm({
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-4 w-4 p-0 hover:bg-primary/20 rounded-full"
+                className="h-4 w-4 rounded-full p-0 hover:bg-primary/20"
                 onClick={() => setStatusChangeOnSend(null)}
               >
                 <X className="h-2.5 w-2.5 text-primary" />
@@ -3465,15 +3901,21 @@ function ChatInputForm({
               <Badge
                 key={subId}
                 variant="outline"
-                className="flex items-center gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] pl-2 pr-1 h-6 dark:text-emerald-400"
+                className="flex h-6 items-center gap-1 border-emerald-500/20 bg-emerald-500/10 pr-1 pl-2 text-[10px] text-emerald-600 dark:text-emerald-400"
               >
                 <Check className="h-2.5 w-2.5 shrink-0" />
-                <span className="truncate max-w-[120px]">Checklist: {sub?.title || "Item"}</span>
+                <span className="max-w-[120px] truncate">
+                  Checklist: {sub?.title || "Item"}
+                </span>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-4 w-4 p-0 hover:bg-emerald-500/20 rounded-full"
-                  onClick={() => setSelectedSubtaskIds((prev) => prev.filter((id) => id !== subId))}
+                  className="h-4 w-4 rounded-full p-0 hover:bg-emerald-500/20"
+                  onClick={() =>
+                    setSelectedSubtaskIds((prev) =>
+                      prev.filter((id) => id !== subId)
+                    )
+                  }
                 >
                   <X className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
                 </Button>
@@ -3488,18 +3930,20 @@ function ChatInputForm({
               <Badge
                 key={dIdx}
                 variant="outline"
-                className="flex items-center gap-1.5 bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] pl-2 pr-1 h-6 dark:text-blue-400"
+                className="flex h-6 items-center gap-1.5 border-blue-500/20 bg-blue-500/10 pr-1 pl-2 text-[10px] text-blue-600 dark:text-blue-400"
               >
                 {isUploading ? (
                   <Loader2 className="h-2.5 w-2.5 animate-spin" />
                 ) : (
                   <File className="h-2.5 w-2.5 shrink-0" />
                 )}
-                <span className="truncate max-w-[120px]">{draft.file.name}</span>
+                <span className="max-w-[120px] truncate">
+                  {draft.file.name}
+                </span>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-4 w-4 p-0 hover:bg-blue-500/20 rounded-full"
+                  className="h-4 w-4 rounded-full p-0 hover:bg-blue-500/20"
                   onClick={() => handleRemoveDraftAttachment(draft)}
                 >
                   <X className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
@@ -3511,13 +3955,13 @@ function ChatInputForm({
       )}
 
       {/* Text input area */}
-      <form onSubmit={handleAddChat} className="flex gap-2 items-center">
+      <form onSubmit={handleAddChat} className="flex items-center gap-2">
         <Input
           placeholder="Write a message..."
           value={newChat}
           onChange={(e) => setNewChat(e.target.value)}
           disabled={isChatSending}
-          className="flex-1 h-9 text-xs bg-background/50 border-border/40 focus-visible:border-primary"
+          className="h-9 flex-1 border-border/40 bg-background/50 text-xs focus-visible:border-primary"
         />
 
         <Button
@@ -3530,7 +3974,7 @@ function ChatInputForm({
               !statusChangeOnSend &&
               selectedSubtaskIds.length === 0)
           }
-          className="h-9 w-9 p-0 flex items-center justify-center shrink-0 rounded-md bg-primary hover:bg-primary/95 text-primary-foreground"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary p-0 text-primary-foreground hover:bg-primary/95"
         >
           {isChatSending ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -3548,7 +3992,7 @@ function TaskCompletionForm({
   formId,
   formResponseId,
   organizationId,
-  isAssigneeOrCollaborator
+  isAssigneeOrCollaborator,
 }: {
   taskId: any
   formId: any
@@ -3584,7 +4028,7 @@ function TaskCompletionForm({
 
   if (form === undefined) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground p-3">
+      <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin text-primary" />
         <span>Loading form questions...</span>
       </div>
@@ -3594,32 +4038,40 @@ function TaskCompletionForm({
   if (form === null) return null
 
   const handleTextChange = (fieldId: string, val: string) => {
-    setAnswers(prev => ({ ...prev, [fieldId]: val }))
+    setAnswers((prev) => ({ ...prev, [fieldId]: val }))
   }
 
-  const handleCheckboxChange = (fieldId: string, option: string, checked: boolean) => {
+  const handleCheckboxChange = (
+    fieldId: string,
+    option: string,
+    checked: boolean
+  ) => {
     const current = answers[fieldId] || []
-    const updated = checked 
-      ? [...current, option] 
+    const updated = checked
+      ? [...current, option]
       : current.filter((o: string) => o !== option)
-    setAnswers(prev => ({ ...prev, [fieldId]: updated }))
+    setAnswers((prev) => ({ ...prev, [fieldId]: updated }))
   }
 
-  const handleFileUpload = (fieldId: string, type: "file" | "image", file: File | null) => {
+  const handleFileUpload = (
+    fieldId: string,
+    type: "file" | "image",
+    file: File | null
+  ) => {
     if (!file) {
-      setAnswers(prev => ({ ...prev, [fieldId]: "" }))
+      setAnswers((prev) => ({ ...prev, [fieldId]: "" }))
       return
     }
-    
+
     if (type === "image") {
-      setAnswers(prev => ({ 
-        ...prev, 
-        [fieldId]: `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`
+      setAnswers((prev) => ({
+        ...prev,
+        [fieldId]: `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`,
       }))
     } else {
-      setAnswers(prev => ({ 
-        ...prev, 
-        [fieldId]: `https://ground-control.mock/attachments/${Date.now()}-${file.name}` 
+      setAnswers((prev) => ({
+        ...prev,
+        [fieldId]: `https://ground-control.mock/attachments/${Date.now()}-${file.name}`,
       }))
     }
     toast.success(`${file.name} uploaded successfully (mock)`)
@@ -3644,16 +4096,18 @@ function TaskCompletionForm({
 
     setIsSubmitting(true)
     try {
-      const payloadAnswers = Object.entries(answers).map(([fieldId, value]) => ({
-        fieldId,
-        value
-      }))
+      const payloadAnswers = Object.entries(answers).map(
+        ([fieldId, value]) => ({
+          fieldId,
+          value,
+        })
+      )
 
       await submitFormResponse({
         formId: form._id,
         answers: payloadAnswers,
         taskId,
-        organizationId
+        organizationId,
       })
 
       toast.success("Required form submitted successfully!")
@@ -3666,14 +4120,17 @@ function TaskCompletionForm({
 
   if (formResponseId) {
     return (
-      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
+      <div className="space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
         <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2 select-none">
-          <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
             <span>Completion Form Submitted</span>
           </div>
           {response && (
-            <Badge variant="outline" className="text-[9px] font-semibold text-emerald-600 bg-emerald-500/5 border-emerald-500/15">
+            <Badge
+              variant="outline"
+              className="border-emerald-500/15 bg-emerald-500/5 text-[9px] font-semibold text-emerald-600"
+            >
               Verified Response
             </Badge>
           )}
@@ -3687,16 +4144,31 @@ function TaskCompletionForm({
 
               return (
                 <div key={f.id} className="flex flex-col gap-0.5">
-                  <span className="font-semibold text-foreground/80">{f.label}</span>
-                  <div className="text-muted-foreground pl-2 border-l border-border/80 text-[11px] py-0.5 leading-relaxed font-medium">
+                  <span className="font-semibold text-foreground/80">
+                    {f.label}
+                  </span>
+                  <div className="border-l border-border/80 py-0.5 pl-2 text-[11px] leading-relaxed font-medium text-muted-foreground">
                     {val === undefined || val === "" ? (
-                      <span className="italic text-muted-foreground/50 text-[10px]">No answer provided</span>
+                      <span className="text-[10px] text-muted-foreground/50 italic">
+                        No answer provided
+                      </span>
                     ) : Array.isArray(val) ? (
                       val.join(", ")
                     ) : f.type === "file" || f.type === "image" ? (
-                      <a href={val} target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold flex items-center gap-1">
-                        {f.type === "image" ? <ImageIcon className="h-3 w-3" /> : <FileIcon className="h-3 w-3" />}
-                        <span className="truncate max-w-[180px]">{val.split("/").pop() || "Attachment Link"}</span>
+                      <a
+                        href={val}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 font-semibold text-primary hover:underline"
+                      >
+                        {f.type === "image" ? (
+                          <ImageIcon className="h-3 w-3" />
+                        ) : (
+                          <FileIcon className="h-3 w-3" />
+                        )}
+                        <span className="max-w-[180px] truncate">
+                          {val.split("/").pop() || "Attachment Link"}
+                        </span>
                       </a>
                     ) : (
                       String(val)
@@ -3705,26 +4177,33 @@ function TaskCompletionForm({
                 </div>
               )
             })}
-            <div className="pt-2 border-t border-emerald-500/10 flex items-center justify-between text-[10px] text-muted-foreground/75 font-semibold">
-              <span>Submitted by: {activeOrg?.members?.find((m: any) => m.userId === response.submitterId)?.user?.name || "Assignee"}</span>
+            <div className="flex items-center justify-between border-t border-emerald-500/10 pt-2 text-[10px] font-semibold text-muted-foreground/75">
+              <span>
+                Submitted by:{" "}
+                {activeOrg?.members?.find(
+                  (m: any) => m.userId === response.submitterId
+                )?.user?.name || "Assignee"}
+              </span>
               <span>{new Date(response.submittedAt).toLocaleDateString()}</span>
             </div>
           </div>
         ) : (
-          <p className="text-[10px] text-muted-foreground italic">Loading submitted responses...</p>
+          <p className="text-[10px] text-muted-foreground italic">
+            Loading submitted responses...
+          </p>
         )}
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4 space-y-4 shadow-2xs">
+    <div className="space-y-4 rounded-xl border border-border/70 bg-card p-4 shadow-2xs">
       <div className="border-b border-border/40 pb-2">
-        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 animate-pulse">
+        <h4 className="flex animate-pulse items-center gap-1.5 text-xs font-bold text-foreground">
           <FileText className="h-4 w-4 text-primary" />
           <span>Required Completion Form: {form.title}</span>
         </h4>
-        <p className="text-[10px] text-muted-foreground mt-0.5">
+        <p className="mt-0.5 text-[10px] text-muted-foreground">
           You must fill out this form to complete this task.
         </p>
       </div>
@@ -3735,9 +4214,11 @@ function TaskCompletionForm({
 
           return (
             <div key={f.id} className="flex flex-col gap-1.5 text-xs">
-              <label className="font-semibold text-foreground/80 flex items-center gap-1">
+              <label className="flex items-center gap-1 font-semibold text-foreground/80">
                 <span>{f.label}</span>
-                {f.required && <span className="text-red-500 font-bold">*</span>}
+                {f.required && (
+                  <span className="font-bold text-red-500">*</span>
+                )}
               </label>
 
               {/* Text Field */}
@@ -3748,7 +4229,7 @@ function TaskCompletionForm({
                   onChange={(e) => handleTextChange(f.id, e.target.value)}
                   required={f.required}
                   disabled={isSubmitting || !isAssigneeOrCollaborator}
-                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                  className="h-8.5 border-input/60 bg-muted/5 text-xs"
                 />
               )}
 
@@ -3761,7 +4242,7 @@ function TaskCompletionForm({
                   required={f.required}
                   disabled={isSubmitting || !isAssigneeOrCollaborator}
                   rows={3}
-                  className="flex w-full rounded-md border border-input/60 bg-muted/5 px-3 py-1.5 text-xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full rounded-md border border-input/60 bg-muted/5 px-3 py-1.5 text-xs transition-colors placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                 />
               )}
 
@@ -3769,7 +4250,10 @@ function TaskCompletionForm({
               {f.type === "radio" && (
                 <div className="flex flex-col gap-1.5 pl-1.5">
                   {f.options?.map((opt: string, oIdx: number) => (
-                    <label key={oIdx} className="flex items-center gap-2 font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                    <label
+                      key={oIdx}
+                      className="flex cursor-pointer items-center gap-2 font-medium text-muted-foreground select-none hover:text-foreground"
+                    >
                       <input
                         type="radio"
                         name={f.id}
@@ -3777,7 +4261,7 @@ function TaskCompletionForm({
                         onChange={() => handleTextChange(f.id, opt)}
                         required={f.required && !val}
                         disabled={isSubmitting || !isAssigneeOrCollaborator}
-                        className="size-3 border-input accent-primary cursor-pointer"
+                        className="size-3 cursor-pointer border-input accent-primary"
                       />
                       <span>{opt}</span>
                     </label>
@@ -3791,13 +4275,18 @@ function TaskCompletionForm({
                   {f.options?.map((opt: string, oIdx: number) => {
                     const isChecked = (val || []).includes(opt)
                     return (
-                      <label key={oIdx} className="flex items-center gap-2 font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                      <label
+                        key={oIdx}
+                        className="flex cursor-pointer items-center gap-2 font-medium text-muted-foreground select-none hover:text-foreground"
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={(e) => handleCheckboxChange(f.id, opt, e.target.checked)}
+                          onChange={(e) =>
+                            handleCheckboxChange(f.id, opt, e.target.checked)
+                          }
                           disabled={isSubmitting || !isAssigneeOrCollaborator}
-                          className="size-3 rounded-sm border-input accent-primary cursor-pointer"
+                          className="size-3 cursor-pointer rounded-sm border-input accent-primary"
                         />
                         <span>{opt}</span>
                       </label>
@@ -3812,12 +4301,14 @@ function TaskCompletionForm({
                   value={val || ""}
                   onValueChange={(value) => handleTextChange(f.id, value)}
                 >
-                  <SelectTrigger className="h-8.5 w-full text-xs font-semibold bg-background border-border/60">
+                  <SelectTrigger className="h-8.5 w-full border-border/60 bg-background text-xs font-semibold">
                     <SelectValue placeholder="Select option..." />
                   </SelectTrigger>
-                  <SelectContent className="text-xs bg-popover z-50">
+                  <SelectContent className="z-50 bg-popover text-xs">
                     {f.options?.map((opt: string, oIdx: number) => (
-                      <SelectItem key={oIdx} value={opt}>{opt}</SelectItem>
+                      <SelectItem key={oIdx} value={opt}>
+                        {opt}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -3831,7 +4322,7 @@ function TaskCompletionForm({
                   onChange={(e) => handleTextChange(f.id, e.target.value)}
                   required={f.required}
                   disabled={isSubmitting || !isAssigneeOrCollaborator}
-                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                  className="h-8.5 border-input/60 bg-muted/5 text-xs"
                 />
               )}
 
@@ -3844,7 +4335,7 @@ function TaskCompletionForm({
                   onChange={(e) => handleTextChange(f.id, e.target.value)}
                   required={f.required}
                   disabled={isSubmitting || !isAssigneeOrCollaborator}
-                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                  className="h-8.5 border-input/60 bg-muted/5 text-xs"
                 />
               )}
 
@@ -3853,13 +4344,19 @@ function TaskCompletionForm({
                 <div className="flex flex-col gap-1.5">
                   <Input
                     type="file"
-                    onChange={(e) => handleFileUpload(f.id, "file", e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileUpload(
+                        f.id,
+                        "file",
+                        e.target.files?.[0] || null
+                      )
+                    }
                     required={f.required && !val}
                     disabled={isSubmitting || !isAssigneeOrCollaborator}
-                    className="text-xs h-8.5 bg-background border-input/60 cursor-pointer"
+                    className="h-8.5 cursor-pointer border-input/60 bg-background text-xs"
                   />
                   {val && (
-                    <div className="flex items-center gap-1 text-[10px] text-primary font-semibold">
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-primary">
                       <FileIcon className="h-3 w-3" />
                       <span>Uploaded File Mock</span>
                     </div>
@@ -3873,21 +4370,27 @@ function TaskCompletionForm({
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleFileUpload(f.id, "image", e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileUpload(
+                        f.id,
+                        "image",
+                        e.target.files?.[0] || null
+                      )
+                    }
                     required={f.required && !val}
                     disabled={isSubmitting || !isAssigneeOrCollaborator}
-                    className="text-xs h-8.5 bg-background border-input/60 cursor-pointer"
+                    className="h-8.5 cursor-pointer border-input/60 bg-background text-xs"
                   />
                   {val && (
-                    <div className="mt-1 flex flex-col gap-1 items-start">
-                      <div className="flex items-center gap-1 text-[10px] text-primary font-semibold mb-1">
+                    <div className="mt-1 flex flex-col items-start gap-1">
+                      <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-primary">
                         <ImageIcon className="h-3 w-3" />
                         <span>Image uploaded</span>
                       </div>
-                      <img 
-                        src={val} 
-                        alt="Uploaded mockup" 
-                        className="h-16 w-16 object-cover rounded-lg border border-border"
+                      <img
+                        src={val}
+                        alt="Uploaded mockup"
+                        className="h-16 w-16 rounded-lg border border-border object-cover"
                       />
                     </div>
                   )}
@@ -3898,10 +4401,10 @@ function TaskCompletionForm({
         })}
 
         {isAssigneeOrCollaborator ? (
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSubmitting}
-            className="h-8.5 text-xs font-bold w-full rounded-xl flex items-center justify-center gap-1 shadow-xs hover:shadow-sm cursor-pointer"
+            className="flex h-8.5 w-full cursor-pointer items-center justify-center gap-1 rounded-xl text-xs font-bold shadow-xs hover:shadow-sm"
           >
             {isSubmitting ? (
               <>
@@ -3913,7 +4416,7 @@ function TaskCompletionForm({
             )}
           </Button>
         ) : (
-          <div className="text-[10px] text-muted-foreground/75 font-semibold bg-muted/20 border border-border/40 p-2.5 rounded-lg text-center select-none">
+          <div className="rounded-lg border border-border/40 bg-muted/20 p-2.5 text-center text-[10px] font-semibold text-muted-foreground/75 select-none">
             Only assignees or collaborators can submit this completion form.
           </div>
         )}
@@ -3921,4 +4424,3 @@ function TaskCompletionForm({
     </div>
   )
 }
-

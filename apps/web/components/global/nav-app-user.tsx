@@ -106,7 +106,10 @@ export function NavAppUser({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Avatar className="h-8 w-8 cursor-pointer rounded-lg">
-            <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
+            <AvatarImage
+              src={getAvatarUrl(user.image ?? user.avatar, user.name)}
+              alt={user.name}
+            />
             <AvatarFallback className="rounded-lg">
               {user.name
                 ?.split(" ")
@@ -125,7 +128,10 @@ export function NavAppUser({
           <DropdownMenuLabel className="p-0 font-normal">
             <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
+                <AvatarImage
+                  src={getAvatarUrl(user.image ?? user.avatar, user.name)}
+                  alt={user.name}
+                />
                 <AvatarFallback className="rounded-lg">
                   {user.name
                     ?.split(" ")

@@ -1,31 +1,31 @@
-import { ArrowDownRight, Star } from "lucide-react";
-import { Avatar, AvatarImage } from "@workspace/ui/components/avatar";
-import { Button } from "@workspace/ui/components/button";
-import { cn } from "@workspace/ui/lib/utils";
+import { ArrowDownRight, Star } from "lucide-react"
+import { Avatar, AvatarImage } from "@workspace/ui/components/avatar"
+import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 
 interface Hero3Props {
-  heading?: string;
-  description?: string;
+  heading?: string
+  description?: string
   buttons?: {
     primary?: {
-      text: string;
-      url: string;
-      className?: string;
-    };
+      text: string
+      url: string
+      className?: string
+    }
     secondary?: {
-      text: string;
-      url: string;
-    };
-  };
+      text: string
+      url: string
+    }
+  }
   reviews?: {
-    count: number;
+    count: number
     avatars: {
-      src: string;
-      alt: string;
-    }[];
-    rating?: number;
-  };
-  className?: string;
+      src: string
+      alt: string
+    }[]
+    rating?: number
+  }
+  className?: string
 }
 
 const Hero3 = ({
@@ -129,7 +129,7 @@ const Hero3 = ({
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
-export { Hero3 };
+export { Hero3 }

@@ -212,7 +212,8 @@ export default defineSchema({
     submittedAt: v.number(),
     taskId: v.optional(v.id("tasks")),
     approvalId: v.optional(v.id("approvals")),
-  }).index("by_form", ["formId"])
+  })
+    .index("by_form", ["formId"])
     .index("by_task", ["taskId"])
     .index("by_approval", ["approvalId"]),
 

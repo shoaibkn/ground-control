@@ -5,12 +5,28 @@ import { components } from "./_generated/api"
 
 export const DEFAULT_PERMISSIONS = {
   owner: {
-    tasks: ["create", "read_all", "assign", "delete", "archive", "cancel", "complete"],
+    tasks: [
+      "create",
+      "read_all",
+      "assign",
+      "delete",
+      "archive",
+      "cancel",
+      "complete",
+    ],
     approvals: ["create", "read_all", "delete", "archive"],
     forms: ["create", "read_all", "update", "delete", "attach"],
   },
   admin: {
-    tasks: ["create", "read_all", "assign", "delete", "archive", "cancel", "complete"],
+    tasks: [
+      "create",
+      "read_all",
+      "assign",
+      "delete",
+      "archive",
+      "cancel",
+      "complete",
+    ],
     approvals: ["create", "read_all", "delete", "archive"],
     forms: ["create", "read_all", "update", "delete", "attach"],
   },
@@ -71,7 +87,10 @@ export const setPermissions = mutation({
 
     const activeMember = activeMemberResult?.page?.[0]
 
-    if (!activeMember || (activeMember.role !== "admin" && activeMember.role !== "owner")) {
+    if (
+      !activeMember ||
+      (activeMember.role !== "admin" && activeMember.role !== "owner")
+    ) {
       throw new Error("Unauthorized to modify permissions")
     }
 

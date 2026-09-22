@@ -4,13 +4,27 @@ import * as React from "react"
 import { useQuery } from "convex/react"
 import { api } from "../../../packages/backend/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
-import { HoverCard, HoverCardTrigger, HoverCardContent } from "@workspace/ui/components/hover-card"
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@workspace/ui/components/hover-card"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
 
 interface AvatarHoverCardProps {
   userId?: string
-  user?: { name?: string; email?: string; image?: string; id?: string; _id?: string }
+  user?: {
+    name?: string
+    email?: string
+    image?: string
+    id?: string
+    _id?: string
+  }
   children: React.ReactNode
   tooltipSide?: "top" | "bottom" | "left" | "right"
 }
@@ -50,7 +64,9 @@ export function AvatarHoverCard({
       )
     })
     if (member) {
-      const profile = profiles.find((p: any) => p.memberId === member.userId || p.memberId === member.id)
+      const profile = profiles.find(
+        (p: any) => p.memberId === member.userId || p.memberId === member.id
+      )
       if (profile) {
         position = profile.position
         department = profile.department
@@ -73,7 +89,13 @@ export function AvatarHoverCard({
           (rEmail && mEmail === rEmail)
         )
       })
-      const profile = member && profiles ? profiles.find((p: any) => p.memberId === member.userId || p.memberId === member.id) : null
+      const profile =
+        member && profiles
+          ? profiles.find(
+              (p: any) =>
+                p.memberId === member.userId || p.memberId === member.id
+            )
+          : null
       console.log("Hovered memberProfile Data:", {
         userId,
         name,
@@ -86,38 +108,36 @@ export function AvatarHoverCard({
 
   return (
     <HoverCard openDelay={200} closeDelay={150} onOpenChange={handleOpenChange}>
-      <HoverCardTrigger asChild>
-        {children}
-      </HoverCardTrigger>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
       <HoverCardContent
         side={tooltipSide}
-        className="w-48 p-2 border border-border/60 shadow-md z-50 bg-popover/95 backdrop-blur-md text-popover-foreground rounded-xl"
+        className="z-50 w-48 rounded-xl border border-border/60 bg-popover/95 p-2 text-popover-foreground shadow-md backdrop-blur-md"
       >
-        <div className="flex gap-2 items-start">
-          <Avatar className="h-7 w-7 border border-card shadow-xs shrink-0 select-none mt-0.5">
+        <div className="flex items-start gap-2">
+          <Avatar className="mt-0.5 h-7 w-7 shrink-0 border border-card shadow-xs select-none">
             <AvatarImage src={getAvatarUrl(resolvedUser?.image, name)} />
-            <AvatarFallback className="text-[10px] bg-accent text-accent-foreground font-semibold">
+            <AvatarFallback className="bg-accent text-[10px] font-semibold text-accent-foreground">
               {name.charAt(0) || "U"}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1 flex flex-col">
-            <span className="text-xs font-semibold text-foreground truncate leading-tight">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-xs leading-tight font-semibold text-foreground">
               {name}
             </span>
             {email && (
-              <span className="text-[9px] text-muted-foreground/90 truncate leading-normal mt-0.5">
+              <span className="mt-0.5 truncate text-[9px] leading-normal text-muted-foreground/90">
                 {email}
               </span>
             )}
             {(position || department) && (
-              <div className="mt-1.5 pt-1 border-t border-border/40 flex flex-col gap-0.5 leading-normal">
+              <div className="mt-1.5 flex flex-col gap-0.5 border-t border-border/40 pt-1 leading-normal">
                 {position && (
-                  <span className="text-[9.5px] font-semibold text-primary truncate">
+                  <span className="truncate text-[9.5px] font-semibold text-primary">
                     {position}
                   </span>
                 )}
                 {department && (
-                  <span className="text-[8.5px] font-medium text-muted-foreground/80 truncate">
+                  <span className="truncate text-[8.5px] font-medium text-muted-foreground/80">
                     {department}
                   </span>
                 )}

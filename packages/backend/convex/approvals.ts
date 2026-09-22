@@ -54,14 +54,22 @@ export const createApproval = mutation({
     const user = await requireAuth(ctx)
     const member = await requireMember(ctx, user._id, args.organizationId)
 
-    const canCreate = await hasPermission(ctx, args.organizationId, member.role, "approvals", "create")
+    const canCreate = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "approvals",
+      "create"
+    )
     if (!canCreate) {
       throw new Error("Permission denied to create approvals")
     }
 
     const cleanApprovers = Array.from(new Set(args.approverIds))
     const cleanSubscribers = Array.from(
-      new Set((args.subscriberIds || []).filter((id) => !cleanApprovers.includes(id)))
+      new Set(
+        (args.subscriberIds || []).filter((id) => !cleanApprovers.includes(id))
+      )
     )
 
     const approvalId = await ctx.db.insert("approvals", {
@@ -93,18 +101,22 @@ export const createApproval = mutation({
     // Send notifications to approvers
     for (const approverId of cleanApprovers) {
       if (approverId !== user._id) {
-        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
-          userId: approverId,
-          organizationId: args.organizationId,
-          templateName: "approval_requested",
-          parameters: {
-            approvalTitle: args.title,
-            requesterName: user.name || user.email || "Someone",
-            dueDate: args.dueDate
-              ? new Date(args.dueDate).toLocaleDateString()
-              : "No due date",
-          },
-        })
+        await ctx.scheduler.runAfter(
+          0,
+          internal.notifications.sendNotification,
+          {
+            userId: approverId,
+            organizationId: args.organizationId,
+            templateName: "approval_requested",
+            parameters: {
+              approvalTitle: args.title,
+              requesterName: user.name || user.email || "Someone",
+              dueDate: args.dueDate
+                ? new Date(args.dueDate).toLocaleDateString()
+                : "No due date",
+            },
+          }
+        )
       }
     }
 
@@ -118,8 +130,20 @@ export const getApprovals = query({
     const user = await requireAuth(ctx)
     const member = await requireMember(ctx, user._id, args.organizationId)
 
-    const canReadAll = await hasPermission(ctx, args.organizationId, member.role, "approvals", "read_all")
-    const canReadOwn = await hasPermission(ctx, args.organizationId, member.role, "approvals", "read_own")
+    const canReadAll = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "approvals",
+      "read_all"
+    )
+    const canReadOwn = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "approvals",
+      "read_own"
+    )
 
     if (!canReadAll && !canReadOwn) {
       throw new Error("Permission denied to read approvals")
@@ -127,10 +151,14 @@ export const getApprovals = query({
 
     let approvalsQuery = ctx.db
       .query("approvals")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
 
     if (!args.showArchived) {
-      approvalsQuery = approvalsQuery.filter((q) => q.eq(q.field("isArchived"), false))
+      approvalsQuery = approvalsQuery.filter((q) =>
+        q.eq(q.field("isArchived"), false)
+      )
     }
 
     const approvals = await approvalsQuery.collect()
@@ -165,7 +193,9 @@ export const getApprovals = query({
       // Unread chats count
       const readReceipt = await ctx.db
         .query("approvalReadReceipts")
-        .withIndex("by_approval_user", (q) => q.eq("approvalId", approval._id).eq("userId", user._id))
+        .withIndex("by_approval_user", (q) =>
+          q.eq("approvalId", approval._id).eq("userId", user._id)
+        )
         .first()
 
       const lastReadTime = readReceipt?.lastReadTime ?? 0
@@ -197,10 +227,13 @@ export const getApprovals = query({
               actor = {
                 name: userRecord.name,
                 image: userRecord.image,
-              };
+              }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for audit log actor: ${latestAuditLog.actorId}`, e);
+            console.error(
+              `Failed to find user profile for audit log actor: ${latestAuditLog.actorId}`,
+              e
+            )
           }
         }
         lastActivity = {
@@ -208,7 +241,7 @@ export const getApprovals = query({
           timestamp: latestAuditLog.timestamp,
           actor: actor || { name: "System" },
           actorId: latestAuditLog.actorId,
-        };
+        }
       }
 
       enrichedApprovals.push({
@@ -256,7 +289,8 @@ export const updateApprovalDetails = mutation({
     const user = await requireAuth(ctx)
     const approval = await ctx.db.get(args.approvalId)
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot edit archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot edit archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -298,7 +332,8 @@ export const updateApprovalStatus = mutation({
     const user = await requireAuth(ctx)
     const approval = await ctx.db.get(args.approvalId)
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot update archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot update archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -320,7 +355,11 @@ export const updateApprovalStatus = mutation({
       approvalId: args.approvalId,
       actorId: user._id,
       action: "STATUS_CHANGED",
-      details: { previous: previousStatus, new: args.status, comment: args.comment },
+      details: {
+        previous: previousStatus,
+        new: args.status,
+        comment: args.comment,
+      },
       timestamp: Date.now(),
     })
 
@@ -335,7 +374,7 @@ export const updateApprovalStatus = mutation({
         if (args.status === "Approved") {
           nextTaskStatus = "Completed"
           chatMessage = `approved the task completion request. Task marked as Completed.`
-          
+
           // Spawn next instance if recurring
           if (task.recurrence) {
             await spawnNextRecurringInstance(ctx, task)
@@ -350,12 +389,17 @@ export const updateApprovalStatus = mutation({
 
         if (nextTaskStatus !== prevTaskStatus) {
           await ctx.db.patch(approval.taskId, { status: nextTaskStatus })
-          
+
           await ctx.db.insert("taskAuditLogs", {
             taskId: approval.taskId,
             actorId: user._id,
             action: "STATUS_CHANGED",
-            details: { previous: prevTaskStatus, new: nextTaskStatus, approvalId: approval._id, comment: args.comment },
+            details: {
+              previous: prevTaskStatus,
+              new: nextTaskStatus,
+              approvalId: approval._id,
+              comment: args.comment,
+            },
             timestamp: Date.now(),
           })
 
@@ -375,7 +419,15 @@ export const updateApprovalStatus = mutation({
       if (args.status === "Rework") {
         const now = new Date()
         // EOD timestamp
-        const eod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+        const eod = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59,
+          999
+        ).getTime()
 
         const taskId = await ctx.db.insert("tasks", {
           title: `Rework: ${approval.title}`,
@@ -444,7 +496,8 @@ export const inviteApprovers = mutation({
     const user = await requireAuth(ctx)
     const approval = await ctx.db.get(args.approvalId)
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot modify archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot modify archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -457,7 +510,9 @@ export const inviteApprovers = mutation({
     const cleanApprovers = Array.from(new Set(args.approverIds))
     // Remove from subscribers if they are now approvers
     const currentSubscribers = approval.subscriberIds || []
-    const cleanSubscribers = currentSubscribers.filter((id) => !cleanApprovers.includes(id))
+    const cleanSubscribers = currentSubscribers.filter(
+      (id) => !cleanApprovers.includes(id)
+    )
 
     await ctx.db.patch(args.approvalId, {
       approverIds: cleanApprovers,
@@ -486,7 +541,8 @@ export const inviteSubscribers = mutation({
     const user = await requireAuth(ctx)
     const approval = await ctx.db.get(args.approvalId)
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot modify archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot modify archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -499,7 +555,9 @@ export const inviteSubscribers = mutation({
 
     // Filter subscribers to exclude anyone who is already an approver
     const cleanSubscribers = Array.from(
-      new Set(args.subscriberIds.filter((id) => !approval.approverIds.includes(id)))
+      new Set(
+        args.subscriberIds.filter((id) => !approval.approverIds.includes(id))
+      )
     )
 
     await ctx.db.patch(args.approvalId, {
@@ -566,7 +624,9 @@ export const getApprovalAuditLogs = query({
     const isSubscriber = approval.subscriberIds?.includes(user._id) || false
 
     if (!isAdminOrOwner && !isCreator && !isApprover && !isSubscriber) {
-      throw new Error("Permission denied to read audit logs for this approval request")
+      throw new Error(
+        "Permission denied to read audit logs for this approval request"
+      )
     }
 
     return await ctx.db

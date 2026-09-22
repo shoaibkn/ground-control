@@ -39,14 +39,28 @@ export const getInboxThreads = query({
     const member = await requireMember(ctx, user._id, args.organizationId)
 
     // 1. Fetch Tasks if readable
-    const canReadAllTasks = await hasPermission(ctx, args.organizationId, member.role, "tasks", "read_all")
-    const canReadOwnTasks = await hasPermission(ctx, args.organizationId, member.role, "tasks", "read_own")
+    const canReadAllTasks = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "tasks",
+      "read_all"
+    )
+    const canReadOwnTasks = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "tasks",
+      "read_own"
+    )
 
     let filteredTasks: any[] = []
     if (canReadAllTasks || canReadOwnTasks) {
       const allTasks = await ctx.db
         .query("tasks")
-        .withIndex("by_organization", (q: any) => q.eq("organizationId", args.organizationId))
+        .withIndex("by_organization", (q: any) =>
+          q.eq("organizationId", args.organizationId)
+        )
         .filter((q: any) => q.eq(q.field("isArchived"), false))
         .collect()
 
@@ -62,14 +76,28 @@ export const getInboxThreads = query({
     }
 
     // 2. Fetch Approvals if readable
-    const canReadAllApprovals = await hasPermission(ctx, args.organizationId, member.role, "approvals", "read_all")
-    const canReadOwnApprovals = await hasPermission(ctx, args.organizationId, member.role, "approvals", "read_own")
+    const canReadAllApprovals = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "approvals",
+      "read_all"
+    )
+    const canReadOwnApprovals = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "approvals",
+      "read_own"
+    )
 
     let filteredApprovals: any[] = []
     if (canReadAllApprovals || canReadOwnApprovals) {
       const allApprovals = await ctx.db
         .query("approvals")
-        .withIndex("by_organization", (q: any) => q.eq("organizationId", args.organizationId))
+        .withIndex("by_organization", (q: any) =>
+          q.eq("organizationId", args.organizationId)
+        )
         .filter((q: any) => q.eq(q.field("isArchived"), false))
         .collect()
 
@@ -100,7 +128,9 @@ export const getInboxThreads = query({
       // Get unread count
       const readReceipt = await ctx.db
         .query("taskReadReceipts")
-        .withIndex("by_task_user", (q: any) => q.eq("taskId", task._id).eq("userId", user._id))
+        .withIndex("by_task_user", (q: any) =>
+          q.eq("taskId", task._id).eq("userId", user._id)
+        )
         .first()
       const lastReadTime = readReceipt?.lastReadTime ?? 0
       const unreadChatCount = activeChats.filter(
@@ -127,7 +157,10 @@ export const getInboxThreads = query({
               }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for chat: ${latestChat.userId}`, e)
+            console.error(
+              `Failed to find user profile for chat: ${latestChat.userId}`,
+              e
+            )
           }
         }
         latestMessage = {
@@ -141,7 +174,9 @@ export const getInboxThreads = query({
       }
 
       // Last activity timestamp: latest chat creation time, otherwise task creation time
-      const lastActivityTimestamp = latestChat ? latestChat._creationTime : task._creationTime
+      const lastActivityTimestamp = latestChat
+        ? latestChat._creationTime
+        : task._creationTime
 
       threads.push({
         id: task._id,
@@ -177,7 +212,9 @@ export const getInboxThreads = query({
       // Get unread count
       const readReceipt = await ctx.db
         .query("approvalReadReceipts")
-        .withIndex("by_approval_user", (q: any) => q.eq("approvalId", approval._id).eq("userId", user._id))
+        .withIndex("by_approval_user", (q: any) =>
+          q.eq("approvalId", approval._id).eq("userId", user._id)
+        )
         .first()
       const lastReadTime = readReceipt?.lastReadTime ?? 0
       const unreadChatCount = activeChats.filter(
@@ -204,7 +241,10 @@ export const getInboxThreads = query({
               }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for chat: ${latestChat.userId}`, e)
+            console.error(
+              `Failed to find user profile for chat: ${latestChat.userId}`,
+              e
+            )
           }
         }
         latestMessage = {
@@ -218,7 +258,9 @@ export const getInboxThreads = query({
       }
 
       // Last activity timestamp: latest chat creation time, otherwise approval creation time
-      const lastActivityTimestamp = latestChat ? latestChat._creationTime : approval._creationTime
+      const lastActivityTimestamp = latestChat
+        ? latestChat._creationTime
+        : approval._creationTime
 
       threads.push({
         id: approval._id,
@@ -238,7 +280,9 @@ export const getInboxThreads = query({
     }
 
     // 5. Sort threads by lastActivityTimestamp descending
-    threads.sort((a: any, b: any) => b.lastActivityTimestamp - a.lastActivityTimestamp)
+    threads.sort(
+      (a: any, b: any) => b.lastActivityTimestamp - a.lastActivityTimestamp
+    )
 
     return threads
   },

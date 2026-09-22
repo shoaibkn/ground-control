@@ -154,47 +154,55 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6 p-1">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl border bg-linear-to-r from-neutral-900 via-neutral-800 to-neutral-900 p-6 text-white dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 shadow-xl">
-        <div className="absolute top-0 right-0 h-40 w-40 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-24 w-40 bg-blue-500/10 rounded-full blur-2xl" />
-        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="relative overflow-hidden rounded-2xl border bg-linear-to-r from-neutral-900 via-neutral-800 to-neutral-900 p-6 text-white shadow-xl dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950">
+        <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-24 w-40 rounded-full bg-blue-500/10 blur-2xl" />
+        <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="border-primary/50 text-primary-foreground bg-primary/10 text-xs px-2.5 py-0.5 rounded-full backdrop-blur-xs">
-                <Sparkles className="size-3.5 mr-1 animate-pulse text-amber-400" />
+            <div className="mb-1 flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="rounded-full border-primary/50 bg-primary/10 px-2.5 py-0.5 text-xs text-primary-foreground backdrop-blur-xs"
+              >
+                <Sparkles className="mr-1 size-3.5 animate-pulse text-amber-400" />
                 V2 Layout Active
               </Badge>
             </div>
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight">
+            <h2 className="text-xl font-bold tracking-tight md:text-2xl">
               Welcome back, John!
             </h2>
-            <p className="text-sm text-neutral-400 mt-1">
+            <p className="mt-1 text-sm text-neutral-400">
               Here is what is happening across your projects today.
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/95 text-primary-foreground font-medium rounded-xl shadow-lg hover:shadow-primary/20 transition-all gap-1 text-xs">
+          <Button className="gap-1 rounded-xl bg-primary text-xs font-medium text-primary-foreground shadow-lg transition-all hover:bg-primary/95 hover:shadow-primary/20">
             <Plus className="size-3.5" /> Quick Action
           </Button>
         </div>
       </div>
 
       {/* Metrics Section */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
-            <Card key={stat.title} className="overflow-hidden border border-border/60 hover:border-border transition-all duration-300 shadow-xs hover:shadow-md">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <div className="flex justify-between items-center">
+            <Card
+              key={stat.title}
+              className="overflow-hidden border border-border/60 shadow-xs transition-all duration-300 hover:border-border hover:shadow-md"
+            >
+              <CardContent className="flex flex-col gap-2 p-4">
+                <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-muted-foreground">
                     {stat.title}
                   </span>
-                  <div className={`p-2 rounded-xl ${stat.bg}`}>
+                  <div className={`rounded-xl p-2 ${stat.bg}`}>
                     <Icon className={`size-4 ${stat.color}`} />
                   </div>
                 </div>
                 <div>
-                  <span className="text-2xl font-bold tracking-tight">{stat.value}</span>
+                  <span className="text-2xl font-bold tracking-tight">
+                    {stat.value}
+                  </span>
                 </div>
                 <span className="text-[10px] text-muted-foreground">
                   {stat.description}
@@ -206,12 +214,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Grid: Tasks & Activities */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
         {/* Task List (Left column group) */}
-        <Card className="md:col-span-7 border border-border/60 shadow-xs">
-          <CardHeader className="p-4 flex flex-row items-center justify-between">
+        <Card className="border border-border/60 shadow-xs md:col-span-7">
+          <CardHeader className="flex flex-row items-center justify-between p-4">
             <div>
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-bold">
                 <CheckCircle2 className="size-4 text-primary" />
                 Action Items Checklist
               </CardTitle>
@@ -219,38 +227,50 @@ export default function DashboardPage() {
                 Your assignments and active work requests.
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" className="h-8 text-[11px] font-medium gap-1 text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+            >
               View All <ArrowRight className="size-3" />
             </Button>
           </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0 space-y-3">
+          <CardContent className="space-y-3 px-4 pt-0 pb-4">
             {tasks.map((task) => (
               <div
                 key={task.id}
                 onClick={() => handleToggleTask(task.id)}
-                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all select-none ${
                   task.status === "Completed"
                     ? "border-muted/50 bg-muted/20 opacity-70"
                     : "border-border/60 bg-card hover:border-border"
                 }`}
               >
                 <div className="mt-0.5">
-                  <div className={`flex size-4 items-center justify-center rounded-sm border ${
-                    task.status === "Completed"
-                      ? "border-emerald-500 bg-emerald-500 text-white"
-                      : "border-muted-foreground/40 hover:border-primary"
-                  }`}>
-                    {task.status === "Completed" && <CheckCircle2 className="size-3 fill-emerald-500 text-white" />}
+                  <div
+                    className={`flex size-4 items-center justify-center rounded-sm border ${
+                      task.status === "Completed"
+                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        : "border-muted-foreground/40 hover:border-primary"
+                    }`}
+                  >
+                    {task.status === "Completed" && (
+                      <CheckCircle2 className="size-3 fill-emerald-500 text-white" />
+                    )}
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-semibold leading-tight truncate ${
-                    task.status === "Completed" ? "line-through text-muted-foreground" : "text-foreground"
-                  }`}>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate text-xs leading-tight font-semibold ${
+                      task.status === "Completed"
+                        ? "text-muted-foreground line-through"
+                        : "text-foreground"
+                    }`}
+                  >
                     {task.title}
                   </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                       <Calendar className="size-3" />
                       {task.dueDate}
                     </span>
@@ -262,7 +282,7 @@ export default function DashboardPage() {
                             ? "default"
                             : "secondary"
                       }
-                      className="text-[9px] px-1.5 py-0 rounded-md"
+                      className="rounded-md px-1.5 py-0 text-[9px]"
                     >
                       {task.priority}
                     </Badge>
@@ -274,9 +294,9 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Activity Feed (Right column group) */}
-        <Card className="md:col-span-5 border border-border/60 shadow-xs flex flex-col justify-between">
+        <Card className="flex flex-col justify-between border border-border/60 shadow-xs md:col-span-5">
           <CardHeader className="p-4">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-bold">
               <Activity className="size-4 text-primary" />
               Recent Feed
             </CardTitle>
@@ -284,32 +304,41 @@ export default function DashboardPage() {
               Updates from members of your organization.
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0 flex-1 space-y-4">
+          <CardContent className="flex-1 space-y-4 px-4 pt-0 pb-4">
             {activities.map((item, idx) => (
               <div key={item.id} className="relative flex gap-3 text-xs">
                 {idx !== activities.length - 1 && (
-                  <div className="absolute left-[9px] top-6 bottom-[-20px] w-0.5 bg-border" />
+                  <div className="absolute top-6 bottom-[-20px] left-[9px] w-0.5 bg-border" />
                 )}
-                <div className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-muted border text-[9px] font-semibold">
+                <div className="mt-0.5 flex size-5 items-center justify-center rounded-full border bg-muted text-[9px] font-semibold">
                   {item.user[0]}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-muted-foreground text-xs leading-normal">
-                    <span className="font-semibold text-foreground">{item.user}</span>{" "}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs leading-normal text-muted-foreground">
+                    <span className="font-semibold text-foreground">
+                      {item.user}
+                    </span>{" "}
                     {item.action}{" "}
-                    <span className="font-semibold text-foreground">{item.target}</span>
+                    <span className="font-semibold text-foreground">
+                      {item.target}
+                    </span>
                   </p>
-                  <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  <span className="mt-0.5 block text-[10px] text-muted-foreground">
                     {item.time}
                   </span>
                 </div>
               </div>
             ))}
           </CardContent>
-          <CardFooter className="p-4 border-t bg-muted/10">
-            <div className="flex items-center justify-between w-full text-xs">
-              <span className="text-muted-foreground text-[10px]">3 connected integrations</span>
-              <Badge variant="outline" className="text-[9px] text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+          <CardFooter className="border-t bg-muted/10 p-4">
+            <div className="flex w-full items-center justify-between text-xs">
+              <span className="text-[10px] text-muted-foreground">
+                3 connected integrations
+              </span>
+              <Badge
+                variant="outline"
+                className="border-emerald-500/20 bg-emerald-500/5 text-[9px] text-emerald-500"
+              >
                 All Systems Normal
               </Badge>
             </div>

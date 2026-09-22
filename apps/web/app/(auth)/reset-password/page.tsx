@@ -65,7 +65,8 @@ export default function ResetPasswordPage() {
       if (error) {
         setStatus("error")
         setErrorMessage(
-          error.message || "Failed to reset password. The link may have expired."
+          error.message ||
+            "Failed to reset password. The link may have expired."
         )
       } else {
         setStatus("success")
@@ -90,34 +91,35 @@ export default function ResetPasswordPage() {
             <CardContent className="grid p-0 md:grid-cols-2">
               <div className="p-6 md:p-8">
                 {status === "success" ? (
-                  <div className="flex flex-col items-center justify-center space-y-4 text-center py-6">
+                  <div className="flex flex-col items-center justify-center space-y-4 py-6 text-center">
                     <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/30">
                       <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <h2 className="text-2xl font-bold">Password Reset</h2>
-                    <p className="text-sm text-muted-foreground text-balance">
+                    <p className="text-sm text-balance text-muted-foreground">
                       Your password has been reset successfully. Redirecting you
                       to the sign-in page...
                     </p>
                     <Link
                       href="/sign-in"
-                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-4"
+                      className="mt-4 inline-flex items-center gap-2 text-sm text-primary hover:underline"
                     >
-                      Go to Login now <ArrowLeft className="h-4 w-4 rotate-180" />
+                      Go to Login now{" "}
+                      <ArrowLeft className="h-4 w-4 rotate-180" />
                     </Link>
                   </div>
                 ) : !token ? (
-                  <div className="flex flex-col items-center justify-center space-y-4 text-center py-6">
+                  <div className="flex flex-col items-center justify-center space-y-4 py-6 text-center">
                     <div className="rounded-full bg-rose-100 p-3 dark:bg-rose-900/30">
                       <AlertTriangle className="h-6 w-6 text-rose-600 dark:text-rose-400" />
                     </div>
                     <h2 className="text-2xl font-bold">Invalid Link</h2>
-                    <p className="text-sm text-muted-foreground text-balance">
+                    <p className="text-sm text-balance text-muted-foreground">
                       {errorMessage}
                     </p>
                     <Link
                       href="/forgot-password"
-                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-4"
+                      className="mt-4 inline-flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       Request a new link
                     </Link>
@@ -133,7 +135,7 @@ export default function ResetPasswordPage() {
                       </div>
 
                       {status === "error" && (
-                        <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                        <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
                           {errorMessage}
                         </div>
                       )}

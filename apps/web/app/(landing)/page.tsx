@@ -33,7 +33,14 @@ import {
 
 import { Navbar1 } from "@/components/landing/header"
 import { Button } from "@workspace/ui/components/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@workspace/ui/components/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
 import Link from "next/link"
 
@@ -43,10 +50,28 @@ if (typeof window !== "undefined") {
 }
 
 // Simulated User Data for Comments & Actions
-const USER_PROFILES: Record<string, { name: string; image: string; role: string }> = {
-  sarah: { name: "Sarah Connor", image: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-1.webp", role: "Flight Director" },
-  john: { name: "John Doe", image: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-2.webp", role: "Mission Control" },
-  operator: { name: "System Operator", image: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-3.webp", role: "Astronaut" }
+const USER_PROFILES: Record<
+  string,
+  { name: string; image: string; role: string }
+> = {
+  sarah: {
+    name: "Sarah Connor",
+    image:
+      "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-1.webp",
+    role: "Flight Director",
+  },
+  john: {
+    name: "John Doe",
+    image:
+      "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-2.webp",
+    role: "Mission Control",
+  },
+  operator: {
+    name: "System Operator",
+    image:
+      "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/avatar-3.webp",
+    role: "Astronaut",
+  },
 }
 
 // Features data
@@ -114,7 +139,7 @@ const TIMELINE_STEPS = [
   },
   {
     stage: "04",
-    icon: <CheckCircle2 className="size-4 text-zinc-400 animate-pulse" />,
+    icon: <CheckCircle2 className="size-4 animate-pulse text-zinc-400" />,
     title: "Track, Audit & Notify",
     description:
       "Every action is logged to immutable audit tables. Overdue tasks trigger notifications automatically. The dashboard gives real-time visibility across all workspace activity.",
@@ -128,24 +153,47 @@ export default function LandingPage() {
   const statsSectionRef = useRef<HTMLDivElement>(null)
 
   // Interactive demo state (preserved from existing page)
-  const [userRole, setUserRole] = useState<"guest" | "member" | "admin">("member")
-  const [taskStatus, setTaskStatus] = useState<"Pending" | "In Progress" | "Under Review" | "Completed" | "Cancelled">("Pending")
+  const [userRole, setUserRole] = useState<"guest" | "member" | "admin">(
+    "member"
+  )
+  const [taskStatus, setTaskStatus] = useState<
+    "Pending" | "In Progress" | "Under Review" | "Completed" | "Cancelled"
+  >("Pending")
   const [stateLogs, setStateLogs] = useState<string[]>([
     "[14:40:02] DB_INIT: Convex connection stable.",
     "[14:40:05] AUTH_SYNC: betterAuth resolved active session.",
     "[14:40:08] SYSTEM: task_0x9a23 loaded in workspace organization context.",
-    ""
+    "",
   ])
 
   // Subtask & Comments
   const [subtasks, setSubtasks] = useState([
-    { id: 1, title: "Initialize telemetry antenna calibration", completed: true },
-    { id: 2, title: "Check hydraulic thruster chamber pressure", completed: false },
-    { id: 3, title: "Run diagnostic system sweeps", completed: false }
+    {
+      id: 1,
+      title: "Initialize telemetry antenna calibration",
+      completed: true,
+    },
+    {
+      id: 2,
+      title: "Check hydraulic thruster chamber pressure",
+      completed: false,
+    },
+    { id: 3, title: "Run diagnostic system sweeps", completed: false },
   ])
   const [comments, setComments] = useState([
-    { id: 1, author: USER_PROFILES.sarah, content: "Reactor cooling loops show solid metrics. Proceed with antenna alignment.", time: "10m ago" },
-    { id: 2, author: USER_PROFILES.john, content: "Standing by for the hydraulic verification check logs.", time: "4m ago" }
+    {
+      id: 1,
+      author: USER_PROFILES.sarah,
+      content:
+        "Reactor cooling loops show solid metrics. Proceed with antenna alignment.",
+      time: "10m ago",
+    },
+    {
+      id: 2,
+      author: USER_PROFILES.john,
+      content: "Standing by for the hydraulic verification check logs.",
+      time: "4m ago",
+    },
   ])
   const [newComment, setNewComment] = useState("")
 
@@ -172,10 +220,30 @@ export default function LandingPage() {
     const ctx = gsap.context(() => {
       // Hero elements reveal
       const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } })
-      heroTl.fromTo(".hero-badge", { opacity: 0, y: -15 }, { opacity: 1, y: 0, duration: 0.5 })
-        .fromTo(".hero-heading", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7 }, "-=0.3")
-        .fromTo(".hero-desc", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, "-=0.4")
-        .fromTo(".hero-buttons", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5 }, "-=0.3")
+      heroTl
+        .fromTo(
+          ".hero-badge",
+          { opacity: 0, y: -15 },
+          { opacity: 1, y: 0, duration: 0.5 }
+        )
+        .fromTo(
+          ".hero-heading",
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.7 },
+          "-=0.3"
+        )
+        .fromTo(
+          ".hero-desc",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.5 },
+          "-=0.4"
+        )
+        .fromTo(
+          ".hero-buttons",
+          { opacity: 0, y: 15 },
+          { opacity: 1, y: 0, duration: 0.5 },
+          "-=0.3"
+        )
 
       // Stats numbers reveal tween
       const statTarget = { tasks: 0, orgs: 0, uptime: 0 }
@@ -193,9 +261,9 @@ export default function LandingPage() {
           setStatCounts({
             tasks: Math.floor(statTarget.tasks),
             orgs: Math.floor(statTarget.orgs),
-            uptime: Math.round(statTarget.uptime * 10) / 10
+            uptime: Math.round(statTarget.uptime * 10) / 10,
           })
-        }
+        },
       })
 
       // Staggered feature card reveals
@@ -212,7 +280,7 @@ export default function LandingPage() {
               trigger: card,
               start: "top 85%",
               toggleActions: "play none none reverse",
-            }
+            },
           }
         )
       })
@@ -230,7 +298,7 @@ export default function LandingPage() {
             start: "top 60%",
             end: "bottom 70%",
             scrub: true,
-          }
+          },
         }
       )
 
@@ -247,7 +315,7 @@ export default function LandingPage() {
               trigger: card,
               start: "top 80%",
               toggleActions: "play none none reverse",
-            }
+            },
           }
         )
       })
@@ -257,15 +325,17 @@ export default function LandingPage() {
         ".beta-section",
         { opacity: 0, y: 50, scale: 0.98 },
         {
-          opacity: 1, y: 0, scale: 1, duration: 0.8,
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.8,
           scrollTrigger: {
             trigger: ".beta-section",
             start: "top 80%",
             toggleActions: "play none none reverse",
-          }
+          },
         }
       )
-
     }, containerRef)
 
     return () => ctx.revert()
@@ -289,7 +359,7 @@ export default function LandingPage() {
       transformPerspective: 800,
       ease: "power2.out",
       duration: 0.3,
-      overwrite: "auto"
+      overwrite: "auto",
     })
 
     const glow = card.querySelector(".card-radial-glow") as HTMLDivElement
@@ -299,7 +369,7 @@ export default function LandingPage() {
         left: `${x}px`,
         top: `${y}px`,
         duration: 0.2,
-        overwrite: "auto"
+        overwrite: "auto",
       })
     }
   }
@@ -311,7 +381,7 @@ export default function LandingPage() {
       rotateY: 0,
       ease: "power3.out",
       duration: 0.5,
-      overwrite: "auto"
+      overwrite: "auto",
     })
 
     const glow = card.querySelector(".card-radial-glow") as HTMLDivElement
@@ -319,7 +389,7 @@ export default function LandingPage() {
       gsap.to(glow, {
         opacity: 0,
         duration: 0.4,
-        overwrite: "auto"
+        overwrite: "auto",
       })
     }
   }
@@ -327,7 +397,7 @@ export default function LandingPage() {
   // State Machine handlers
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString("en-GB", { hour12: false })
-    setStateLogs(prev => [...prev, `[${time}] ${msg}`])
+    setStateLogs((prev) => [...prev, `[${time}] ${msg}`])
   }
 
   const triggerWidgetWarning = () => {
@@ -341,24 +411,34 @@ export default function LandingPage() {
   const handleStatusTransition = (targetStatus: typeof taskStatus) => {
     if (userRole === "guest") {
       triggerWidgetWarning()
-      addLog(`⚠ ACCESS_DENIED: Guest role has read_only permission scope. Mutation blocked.`)
+      addLog(
+        `⚠ ACCESS_DENIED: Guest role has read_only permission scope. Mutation blocked.`
+      )
       return
     }
 
     if (userRole === "member") {
       if (targetStatus === "In Progress") {
         setTaskStatus("In Progress")
-        addLog(`MUTATION: task_0x9a23 status patched to IN_PROGRESS by Member_Sarah (assignee).`)
+        addLog(
+          `MUTATION: task_0x9a23 status patched to IN_PROGRESS by Member_Sarah (assignee).`
+        )
       } else if (targetStatus === "Under Review") {
         setTaskStatus("Under Review")
-        addLog(`MUTATION: task_0x9a23 status patched to UNDER_REVIEW by Member_Sarah (submitted for approval).`)
+        addLog(
+          `MUTATION: task_0x9a23 status patched to UNDER_REVIEW by Member_Sarah (submitted for approval).`
+        )
       } else if (targetStatus === "Completed") {
         setTaskStatus("Under Review")
         triggerWidgetWarning()
-        addLog(`⚠ INTERCEPT: Member requested COMPLETE. Redirecting task status to UNDER_REVIEW for Admin audit.`)
+        addLog(
+          `⚠ INTERCEPT: Member requested COMPLETE. Redirecting task status to UNDER_REVIEW for Admin audit.`
+        )
       } else if (targetStatus === "Cancelled") {
         triggerWidgetWarning()
-        addLog(`⚠ PERMISSION_DENIED: Member role lacks permission to cancel task. Scope restricted to Owner/Admin.`)
+        addLog(
+          `⚠ PERMISSION_DENIED: Member role lacks permission to cancel task. Scope restricted to Owner/Admin.`
+        )
       } else if (targetStatus === "Pending") {
         setTaskStatus("Pending")
         addLog(`MUTATION: task_0x9a23 reset to PENDING by assignee Sarah.`)
@@ -369,25 +449,31 @@ export default function LandingPage() {
     if (userRole === "admin") {
       setTaskStatus(targetStatus)
       if (targetStatus === "Completed") {
-        addLog(`MUTATION: task_0x9a23 status resolved to COMPLETED by Admin_John. Telemetry locked.`)
+        addLog(
+          `MUTATION: task_0x9a23 status resolved to COMPLETED by Admin_John. Telemetry locked.`
+        )
       } else if (targetStatus === "Cancelled") {
-        addLog(`MUTATION: task_0x9a23 status resolved to CANCELLED by Admin_John. Cron flags purged.`)
+        addLog(
+          `MUTATION: task_0x9a23 status resolved to CANCELLED by Admin_John. Cron flags purged.`
+        )
       } else {
-        addLog(`MUTATION: task_0x9a23 status updated to ${targetStatus.toUpperCase()} by Admin_John.`)
+        addLog(
+          `MUTATION: task_0x9a23 status updated to ${targetStatus.toUpperCase()} by Admin_John.`
+        )
       }
     }
   }
 
   // Subtask toggle
   const handleToggleSubtask = (id: number) => {
-    setSubtasks(prev =>
-      prev.map(st => {
+    setSubtasks((prev) =>
+      prev.map((st) => {
         if (st.id === id) {
           const nextState = !st.completed
           const time = new Date().toLocaleTimeString("en-GB", { hour12: false })
-          setStateLogs(prevLogs => [
+          setStateLogs((prevLogs) => [
             ...prevLogs,
-            `[${time}] MUTATION: Subtask "${st.title}" toggled to ${nextState.toString().toUpperCase()} by active operator.`
+            `[${time}] MUTATION: Subtask "${st.title}" toggled to ${nextState.toString().toUpperCase()} by active operator.`,
           ])
           return { ...st, completed: nextState }
         }
@@ -405,10 +491,10 @@ export default function LandingPage() {
       id: Date.now(),
       author: USER_PROFILES.operator,
       content: newComment.trim(),
-      time: "Just now"
+      time: "Just now",
     }
 
-    setComments(prev => [...prev, commentObj])
+    setComments((prev) => [...prev, commentObj])
     const commentText = newComment.trim()
     setNewComment("")
 
@@ -419,12 +505,17 @@ export default function LandingPage() {
         { opacity: 1, y: 0, duration: 0.3 }
       )
       const time = new Date().toLocaleTimeString("en-GB", { hour12: false })
-      setStateLogs(prev => [...prev, `[${time}] MUTATION: Comment thread appended. actorId: operator, content: "${commentText}"`])
+      setStateLogs((prev) => [
+        ...prev,
+        `[${time}] MUTATION: Comment thread appended. actorId: operator, content: "${commentText}"`,
+      ])
     }, 50)
   }
 
-  const completedSubtasksCount = subtasks.filter(s => s.completed).length
-  const progressPercent = Math.round((completedSubtasksCount / subtasks.length) * 100)
+  const completedSubtasksCount = subtasks.filter((s) => s.completed).length
+  const progressPercent = Math.round(
+    (completedSubtasksCount / subtasks.length) * 100
+  )
 
   // Beta form submit
   const handleBetaSubmit = (e: React.FormEvent) => {
@@ -449,63 +540,75 @@ export default function LandingPage() {
   return (
     <div
       ref={containerRef}
-      className="relative min-h-screen w-full bg-zinc-950 text-zinc-100 overflow-x-hidden font-sans antialiased"
+      className="relative min-h-screen w-full overflow-x-hidden bg-zinc-950 font-sans text-zinc-100 antialiased"
     >
       {/* Grid Pattern Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:40px_40px]" />
 
       {/* Floating decorative blurs */}
-      <div className="absolute top-[20%] left-[-15%] w-[450px] h-[450px] bg-zinc-800/10 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="absolute top-[55%] right-[-15%] w-[500px] h-[500px] bg-zinc-800/10 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="pointer-events-none absolute top-[20%] left-[-15%] z-0 h-[450px] w-[450px] rounded-full bg-zinc-800/10 blur-[120px]" />
+      <div className="pointer-events-none absolute top-[55%] right-[-15%] z-0 h-[500px] w-[500px] rounded-full bg-zinc-800/10 blur-[140px]" />
 
-      <div className="relative z-10 flex flex-col min-h-screen">
+      <div className="relative z-10 flex min-h-screen flex-col">
         {/* Navbar */}
-        <Navbar1 className="border-b border-zinc-900 bg-zinc-950/70 backdrop-blur-md sticky top-0 z-40" />
+        <Navbar1 className="sticky top-0 z-40 border-b border-zinc-900 bg-zinc-950/70 backdrop-blur-md" />
 
         {/* =============== HERO SECTION =============== */}
         <section
           ref={heroSectionRef}
-          className="container mx-auto px-6 pt-20 pb-24 lg:pt-32 lg:pb-36 flex flex-col items-center text-center"
+          className="container mx-auto flex flex-col items-center px-6 pt-20 pb-24 text-center lg:pt-32 lg:pb-36"
         >
-          <div className="hero-badge inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs font-mono select-none backdrop-blur-sm mb-6">
+          <div className="hero-badge mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 font-mono text-xs text-zinc-400 backdrop-blur-sm select-none">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
             </span>
             Now in Beta — Join Early Access
           </div>
 
-          <h1 className="hero-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-heading tracking-tight leading-[1.05] text-white max-w-4xl">
+          <h1 className="hero-heading max-w-4xl font-heading text-4xl leading-[1.05] font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
             Ground Control.
             <br />
-            <span className="text-zinc-500 font-light">Task Management, Reinvented.</span>
+            <span className="font-light text-zinc-500">
+              Task Management, Reinvented.
+            </span>
           </h1>
 
-          <p className="hero-desc text-zinc-400 text-base md:text-lg font-light leading-relaxed max-w-2xl mt-6">
-            A collaborative project management platform with real-time task tracking, approval workflows, dynamic forms, role-based permissions, and comprehensive audit trails — all powered by a reactive backend.
+          <p className="hero-desc mt-6 max-w-2xl text-base leading-relaxed font-light text-zinc-400 md:text-lg">
+            A collaborative project management platform with real-time task
+            tracking, approval workflows, dynamic forms, role-based permissions,
+            and comprehensive audit trails — all powered by a reactive backend.
           </p>
 
-          <div className="hero-buttons flex flex-col sm:flex-row gap-3 mt-8">
-            <Button size="lg" className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-medium group h-12 px-8" asChild>
+          <div className="hero-buttons mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button
+              size="lg"
+              className="group h-12 bg-zinc-100 px-8 font-medium text-zinc-900 hover:bg-zinc-200"
+              asChild
+            >
               <a
                 href="#beta"
                 onClick={(e) => {
                   e.preventDefault()
-                  document.getElementById("beta")?.scrollIntoView({ behavior: "smooth" })
+                  document
+                    .getElementById("beta")
+                    ?.scrollIntoView({ behavior: "smooth" })
                 }}
                 className="flex items-center justify-center gap-2"
               >
                 <Sparkles className="size-4" />
                 Join the Beta
-                <ChevronRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Button>
             <Button
               variant="outline"
               size="lg"
-              className="border-zinc-800 hover:bg-zinc-900 text-zinc-300 h-12 px-8"
+              className="h-12 border-zinc-800 px-8 text-zinc-300 hover:bg-zinc-900"
               onClick={() => {
-                document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })
+                document
+                  .getElementById("features")
+                  ?.scrollIntoView({ behavior: "smooth" })
               }}
             >
               Explore Features
@@ -518,55 +621,76 @@ export default function LandingPage() {
           ref={statsSectionRef}
           className="border-y border-zinc-900 bg-zinc-900/10 backdrop-blur-sm"
         >
-          <div className="container mx-auto px-6 py-10 max-w-5xl">
+          <div className="container mx-auto max-w-5xl px-6 py-10">
             <div className="grid grid-cols-3 gap-8">
               <div className="text-center font-mono">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Tasks Managed</span>
-                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.tasks.toLocaleString()}+</span>
+                <span className="block text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+                  Tasks Managed
+                </span>
+                <span className="mt-1 block text-3xl font-bold text-white sm:text-4xl">
+                  {statCounts.tasks.toLocaleString()}+
+                </span>
               </div>
               <div className="text-center font-mono">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Organizations</span>
-                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.orgs}+</span>
+                <span className="block text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+                  Organizations
+                </span>
+                <span className="mt-1 block text-3xl font-bold text-white sm:text-4xl">
+                  {statCounts.orgs}+
+                </span>
               </div>
               <div className="text-center font-mono">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-semibold">Uptime</span>
-                <span className="text-3xl sm:text-4xl font-bold text-white mt-1 block">{statCounts.uptime}%</span>
+                <span className="block text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+                  Uptime
+                </span>
+                <span className="mt-1 block text-3xl font-bold text-white sm:text-4xl">
+                  {statCounts.uptime}%
+                </span>
               </div>
             </div>
           </div>
         </section>
 
         {/* =============== FEATURES GRID =============== */}
-        <section id="features" className="container mx-auto px-6 py-20 lg:py-28 max-w-6xl">
-          <div className="text-center space-y-4 mb-16">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+        <section
+          id="features"
+          className="container mx-auto max-w-6xl px-6 py-20 lg:py-28"
+        >
+          <div className="mb-16 space-y-4 text-center">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
               <Layers className="size-3" />
               Platform Features
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">Everything You Need to Ship</h2>
-            <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-              Ground Control brings together task management, approvals, forms, and team collaboration into one unified workspace.
+            <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl">
+              Everything You Need to Ship
+            </h2>
+            <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-400 md:text-base">
+              Ground Control brings together task management, approvals, forms,
+              and team collaboration into one unified workspace.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="feature-card group relative flex flex-col p-6 rounded-xl bg-zinc-900/10 border border-zinc-900 hover:border-zinc-800 overflow-hidden cursor-default transition-all duration-300 transform-gpu"
+                className="feature-card group relative flex transform-gpu cursor-default flex-col overflow-hidden rounded-xl border border-zinc-900 bg-zinc-900/10 p-6 transition-all duration-300 hover:border-zinc-800"
                 style={{ transformStyle: "preserve-3d" }}
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
               >
-                <div className="card-radial-glow absolute -left-20 -top-20 w-40 h-40 rounded-full bg-zinc-300 opacity-0 blur-3xl pointer-events-none transition-all duration-200" />
-                <div className="space-y-4" style={{ transform: "translateZ(15px)" }}>
-                  <div className="p-2.5 w-fit rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 group-hover:border-zinc-700 transition-colors">
+                <div className="card-radial-glow pointer-events-none absolute -top-20 -left-20 h-40 w-40 rounded-full bg-zinc-300 opacity-0 blur-3xl transition-all duration-200" />
+                <div
+                  className="space-y-4"
+                  style={{ transform: "translateZ(15px)" }}
+                >
+                  <div className="w-fit rounded-lg border border-zinc-800 bg-zinc-900 p-2.5 text-zinc-300 transition-colors group-hover:border-zinc-700">
                     {feature.icon}
                   </div>
-                  <h3 className="text-sm font-bold uppercase text-white tracking-wide font-mono">
+                  <h3 className="font-mono text-sm font-bold tracking-wide text-white uppercase">
                     {feature.title}
                   </h3>
-                  <p className="text-[12px] text-zinc-400 leading-relaxed">
+                  <p className="text-[12px] leading-relaxed text-zinc-400">
                     {feature.description}
                   </p>
                 </div>
@@ -577,45 +701,56 @@ export default function LandingPage() {
 
         {/* =============== INTERACTIVE DEMO =============== */}
         <section className="border-t border-zinc-900 bg-zinc-900/5">
-          <div className="container mx-auto px-6 py-20 lg:py-28 max-w-6xl">
-            <div className="text-center space-y-4 mb-12">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+          <div className="container mx-auto max-w-6xl px-6 py-20 lg:py-28">
+            <div className="mb-12 space-y-4 text-center">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
                 <Terminal className="size-3" />
                 Interactive Demo
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">Try the Permission Engine</h2>
-              <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-                Switch between roles and see how Ground Control&apos;s permission system controls task state transitions in real-time.
+              <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl">
+                Try the Permission Engine
+              </h2>
+              <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-400 md:text-base">
+                Switch between roles and see how Ground Control&apos;s
+                permission system controls task state transitions in real-time.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
               {/* State Machine Widget */}
-              <div className="lg:col-span-7 state-machine-widget bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md">
+              <div className="state-machine-widget overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl backdrop-blur-md lg:col-span-7">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/40 border-b border-zinc-900 text-[10px] font-mono text-zinc-500 select-none">
+                <div className="flex items-center justify-between border-b border-zinc-900 bg-zinc-900/40 px-4 py-2.5 font-mono text-[10px] text-zinc-500 select-none">
                   <div className="flex items-center gap-1.5 font-semibold">
                     <Activity className="size-3 text-zinc-400" />
                     <span>MUTATION_STATE_MACHINE</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="uppercase text-[9px] tracking-wide text-zinc-400 bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">task_0x9a23</span>
+                    <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                    <span className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 text-[9px] tracking-wide text-zinc-400 uppercase">
+                      task_0x9a23
+                    </span>
                   </div>
                 </div>
 
                 {/* Role Toggler */}
-                <div className="p-4 border-b border-zinc-900 bg-zinc-900/10 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-zinc-500 font-semibold uppercase">Actor Permission Role:</span>
-                  <div className="flex border border-zinc-800 rounded overflow-hidden">
+                <div className="flex items-center justify-between border-b border-zinc-900 bg-zinc-900/10 p-4 font-mono text-[11px]">
+                  <span className="font-semibold text-zinc-500 uppercase">
+                    Actor Permission Role:
+                  </span>
+                  <div className="flex overflow-hidden rounded border border-zinc-800">
                     <button
                       onClick={() => {
                         setUserRole("guest")
-                        addLog("ROLE_CHANGE: telemetry profile set to guest (READ_ONLY).")
+                        addLog(
+                          "ROLE_CHANGE: telemetry profile set to guest (READ_ONLY)."
+                        )
                       }}
                       className={cn(
-                        "px-2.5 py-1 transition-colors font-semibold",
-                        userRole === "guest" ? "bg-zinc-200 text-zinc-950" : "text-zinc-500 hover:text-zinc-300 bg-zinc-950"
+                        "px-2.5 py-1 font-semibold transition-colors",
+                        userRole === "guest"
+                          ? "bg-zinc-200 text-zinc-950"
+                          : "bg-zinc-950 text-zinc-500 hover:text-zinc-300"
                       )}
                     >
                       GUEST
@@ -623,11 +758,15 @@ export default function LandingPage() {
                     <button
                       onClick={() => {
                         setUserRole("member")
-                        addLog("ROLE_CHANGE: telemetry profile set to member (READ_OWN, IN_PROGRESS, REVIEW).")
+                        addLog(
+                          "ROLE_CHANGE: telemetry profile set to member (READ_OWN, IN_PROGRESS, REVIEW)."
+                        )
                       }}
                       className={cn(
-                        "px-2.5 py-1 border-x border-zinc-900 transition-colors font-semibold",
-                        userRole === "member" ? "bg-zinc-200 text-zinc-950" : "text-zinc-500 hover:text-zinc-300 bg-zinc-950"
+                        "border-x border-zinc-900 px-2.5 py-1 font-semibold transition-colors",
+                        userRole === "member"
+                          ? "bg-zinc-200 text-zinc-950"
+                          : "bg-zinc-950 text-zinc-500 hover:text-zinc-300"
                       )}
                     >
                       MEMBER
@@ -635,11 +774,15 @@ export default function LandingPage() {
                     <button
                       onClick={() => {
                         setUserRole("admin")
-                        addLog("ROLE_CHANGE: telemetry profile set to admin (ALL ACTIONS [*]).")
+                        addLog(
+                          "ROLE_CHANGE: telemetry profile set to admin (ALL ACTIONS [*])."
+                        )
                       }}
                       className={cn(
-                        "px-2.5 py-1 transition-colors font-semibold",
-                        userRole === "admin" ? "bg-zinc-200 text-zinc-950" : "text-zinc-500 hover:text-zinc-300 bg-zinc-950"
+                        "px-2.5 py-1 font-semibold transition-colors",
+                        userRole === "admin"
+                          ? "bg-zinc-200 text-zinc-950"
+                          : "bg-zinc-950 text-zinc-500 hover:text-zinc-300"
                       )}
                     >
                       ADMIN
@@ -648,31 +791,58 @@ export default function LandingPage() {
                 </div>
 
                 {/* Status Graph */}
-                <div className="p-5 flex flex-col space-y-5">
-                  <div className="flex items-center justify-between relative px-2">
-                    <div className="absolute top-3.5 left-6 right-6 h-0.5 bg-zinc-800 z-0" />
-                    {["Pending", "In Progress", "Under Review", "Completed"].map((status, index) => {
-                      const isCompleted = ["Pending", "In Progress", "Under Review", "Completed"].indexOf(taskStatus) >= index && taskStatus !== "Cancelled"
+                <div className="flex flex-col space-y-5 p-5">
+                  <div className="relative flex items-center justify-between px-2">
+                    <div className="absolute top-3.5 right-6 left-6 z-0 h-0.5 bg-zinc-800" />
+                    {[
+                      "Pending",
+                      "In Progress",
+                      "Under Review",
+                      "Completed",
+                    ].map((status, index) => {
+                      const isCompleted =
+                        [
+                          "Pending",
+                          "In Progress",
+                          "Under Review",
+                          "Completed",
+                        ].indexOf(taskStatus) >= index &&
+                        taskStatus !== "Cancelled"
                       const isActive = taskStatus === status
                       return (
-                        <div key={status} className="flex flex-col items-center z-10 font-mono">
+                        <div
+                          key={status}
+                          className="z-10 flex flex-col items-center font-mono"
+                        >
                           <button
-                            onClick={() => handleStatusTransition(status as typeof taskStatus)}
+                            onClick={() =>
+                              handleStatusTransition(
+                                status as typeof taskStatus
+                              )
+                            }
                             className={cn(
-                              "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all text-[11px]",
+                              "flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition-all sm:h-8 sm:w-8",
                               isActive
-                                ? "bg-zinc-100 text-zinc-950 border-zinc-100 shadow-[0_0_8px_rgba(255,255,255,0.3)] font-bold scale-110"
+                                ? "scale-110 border-zinc-100 bg-zinc-100 font-bold text-zinc-950 shadow-[0_0_8px_rgba(255,255,255,0.3)]"
                                 : isCompleted
-                                ? "bg-zinc-900 text-zinc-300 border-zinc-700"
-                                : "bg-zinc-950 text-zinc-600 border-zinc-800 hover:border-zinc-700"
+                                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
+                                  : "border-zinc-800 bg-zinc-950 text-zinc-600 hover:border-zinc-700"
                             )}
                           >
-                            {isCompleted && !isActive ? <Check className="size-3.5" /> : index + 1}
+                            {isCompleted && !isActive ? (
+                              <Check className="size-3.5" />
+                            ) : (
+                              index + 1
+                            )}
                           </button>
-                          <span className={cn(
-                            "text-[7px] sm:text-[8px] uppercase tracking-wide mt-2 font-semibold",
-                            isActive ? "text-zinc-200 font-bold" : "text-zinc-600"
-                          )}>
+                          <span
+                            className={cn(
+                              "mt-2 text-[7px] font-semibold tracking-wide uppercase sm:text-[8px]",
+                              isActive
+                                ? "font-bold text-zinc-200"
+                                : "text-zinc-600"
+                            )}
+                          >
                             {status}
                           </span>
                         </div>
@@ -681,12 +851,13 @@ export default function LandingPage() {
                   </div>
 
                   {/* Transition Buttons */}
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="grid grid-cols-2 gap-2 font-mono text-xs">
                     <button
                       onClick={() => handleStatusTransition("In Progress")}
                       className={cn(
-                        "py-2 border border-zinc-800 rounded bg-zinc-950 hover:bg-zinc-900/60 transition-colors font-medium flex items-center justify-center gap-1.5",
-                        taskStatus === "In Progress" && "border-zinc-300 text-white bg-zinc-900/50"
+                        "flex items-center justify-center gap-1.5 rounded border border-zinc-800 bg-zinc-950 py-2 font-medium transition-colors hover:bg-zinc-900/60",
+                        taskStatus === "In Progress" &&
+                          "border-zinc-300 bg-zinc-900/50 text-white"
                       )}
                     >
                       Start Work
@@ -694,8 +865,9 @@ export default function LandingPage() {
                     <button
                       onClick={() => handleStatusTransition("Under Review")}
                       className={cn(
-                        "py-2 border border-zinc-800 rounded bg-zinc-950 hover:bg-zinc-900/60 transition-colors font-medium flex items-center justify-center gap-1.5",
-                        taskStatus === "Under Review" && "border-zinc-300 text-white bg-zinc-900/50"
+                        "flex items-center justify-center gap-1.5 rounded border border-zinc-800 bg-zinc-950 py-2 font-medium transition-colors hover:bg-zinc-900/60",
+                        taskStatus === "Under Review" &&
+                          "border-zinc-300 bg-zinc-900/50 text-white"
                       )}
                     >
                       Submit Review
@@ -703,8 +875,9 @@ export default function LandingPage() {
                     <button
                       onClick={() => handleStatusTransition("Completed")}
                       className={cn(
-                        "py-2 border border-zinc-800 rounded bg-zinc-950 hover:bg-zinc-900/60 transition-colors font-medium flex items-center justify-center gap-1.5",
-                        taskStatus === "Completed" && "border-zinc-300 text-white bg-zinc-900/50"
+                        "flex items-center justify-center gap-1.5 rounded border border-zinc-800 bg-zinc-950 py-2 font-medium transition-colors hover:bg-zinc-900/60",
+                        taskStatus === "Completed" &&
+                          "border-zinc-300 bg-zinc-900/50 text-white"
                       )}
                     >
                       Approve & Complete
@@ -712,8 +885,9 @@ export default function LandingPage() {
                     <button
                       onClick={() => handleStatusTransition("Cancelled")}
                       className={cn(
-                        "py-2 border border-zinc-800 rounded bg-zinc-950 hover:bg-zinc-900/60 transition-colors font-medium text-red-500/80 hover:text-red-400 flex items-center justify-center gap-1.5",
-                        taskStatus === "Cancelled" && "border-red-900 text-red-400 bg-red-950/20"
+                        "flex items-center justify-center gap-1.5 rounded border border-zinc-800 bg-zinc-950 py-2 font-medium text-red-500/80 transition-colors hover:bg-zinc-900/60 hover:text-red-400",
+                        taskStatus === "Cancelled" &&
+                          "border-red-900 bg-red-950/20 text-red-400"
                       )}
                     >
                       Cancel Task
@@ -721,16 +895,23 @@ export default function LandingPage() {
                   </div>
 
                   {/* Audit Logs */}
-                  <div className="border border-zinc-900 bg-zinc-950 rounded-lg overflow-hidden flex flex-col">
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900/40 border-b border-zinc-900 text-[9px] font-mono text-zinc-500 select-none">
+                  <div className="flex flex-col overflow-hidden rounded-lg border border-zinc-900 bg-zinc-950">
+                    <div className="flex items-center justify-between border-b border-zinc-900 bg-zinc-900/40 px-3 py-1.5 font-mono text-[9px] text-zinc-500 select-none">
                       <span>CONVEX_AUDIT_LOG_TELEMETRY</span>
                       <span>ROLLING FEED</span>
                     </div>
-                    <div className="p-3 h-[85px] overflow-y-auto font-mono text-[9px] text-zinc-400 space-y-1.5 leading-relaxed bg-zinc-950/50 select-text">
+                    <div className="h-[85px] space-y-1.5 overflow-y-auto bg-zinc-950/50 p-3 font-mono text-[9px] leading-relaxed text-zinc-400 select-text">
                       {stateLogs.map((log, idx) => (
-                        <div key={idx} className={cn(
-                          log.includes("⚠") ? "text-amber-500/90" : log.includes("ROLE_CHANGE") ? "text-zinc-400" : "text-zinc-500"
-                        )}>
+                        <div
+                          key={idx}
+                          className={cn(
+                            log.includes("⚠")
+                              ? "text-amber-500/90"
+                              : log.includes("ROLE_CHANGE")
+                                ? "text-zinc-400"
+                                : "text-zinc-500"
+                          )}
+                        >
                           {log}
                         </div>
                       ))}
@@ -741,37 +922,52 @@ export default function LandingPage() {
               </div>
 
               {/* Subtask & Comments Widget */}
-              <div className="lg:col-span-5 flex flex-col space-y-4">
+              <div className="flex flex-col space-y-4 lg:col-span-5">
                 {/* Subtask progress */}
-                <Card className="bg-zinc-950 border-zinc-800 shadow-xl overflow-hidden">
-                  <CardHeader className="p-4 border-b border-zinc-900 bg-zinc-900/20">
+                <Card className="overflow-hidden border-zinc-800 bg-zinc-950 shadow-xl">
+                  <CardHeader className="border-b border-zinc-900 bg-zinc-900/20 p-4">
                     <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 select-none">
-                      <span className="font-semibold uppercase flex items-center gap-1"><CheckCircle2 className="size-3 text-zinc-400" /> SUBTASK_MATRIX</span>
-                      <span className="text-zinc-300 font-semibold">{progressPercent}%</span>
+                      <span className="flex items-center gap-1 font-semibold uppercase">
+                        <CheckCircle2 className="size-3 text-zinc-400" />{" "}
+                        SUBTASK_MATRIX
+                      </span>
+                      <span className="font-semibold text-zinc-300">
+                        {progressPercent}%
+                      </span>
                     </div>
-                    <CardTitle className="text-xs font-semibold text-zinc-200 mt-2">Calibrate Telemetry Antenna Cores</CardTitle>
+                    <CardTitle className="mt-2 text-xs font-semibold text-zinc-200">
+                      Calibrate Telemetry Antenna Cores
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 space-y-2 text-[11px] font-mono">
-                    {subtasks.map(st => (
+                  <CardContent className="space-y-2 p-4 font-mono text-[11px]">
+                    {subtasks.map((st) => (
                       <div
                         key={st.id}
                         onClick={() => handleToggleSubtask(st.id)}
-                        className="flex items-center gap-2 p-1.5 rounded hover:bg-zinc-900/50 cursor-pointer select-none transition-colors border border-transparent hover:border-zinc-900"
+                        className="flex cursor-pointer items-center gap-2 rounded border border-transparent p-1.5 transition-colors select-none hover:border-zinc-900 hover:bg-zinc-900/50"
                       >
-                        <div className={cn(
-                          "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                          st.completed ? "bg-zinc-100 border-zinc-100 text-zinc-950" : "border-zinc-800 text-transparent"
-                        )}>
+                        <div
+                          className={cn(
+                            "flex h-4 w-4 items-center justify-center rounded border transition-colors",
+                            st.completed
+                              ? "border-zinc-100 bg-zinc-100 text-zinc-950"
+                              : "border-zinc-800 text-transparent"
+                          )}
+                        >
                           <Check className="size-3" />
                         </div>
-                        <span className={cn(
-                          st.completed ? "text-zinc-500 line-through" : "text-zinc-300"
-                        )}>
+                        <span
+                          className={cn(
+                            st.completed
+                              ? "text-zinc-500 line-through"
+                              : "text-zinc-300"
+                          )}
+                        >
                           {st.title}
                         </span>
                       </div>
                     ))}
-                    <div className="h-1 bg-zinc-900 rounded overflow-hidden mt-3">
+                    <div className="mt-3 h-1 overflow-hidden rounded bg-zinc-900">
                       <div
                         className="h-full bg-zinc-100 transition-all duration-300"
                         style={{ width: `${progressPercent}%` }}
@@ -781,21 +977,30 @@ export default function LandingPage() {
                 </Card>
 
                 {/* Comments */}
-                <Card className="bg-zinc-950 border-zinc-800 shadow-xl overflow-hidden flex flex-col flex-1">
-                  <CardHeader className="p-4 border-b border-zinc-900 bg-zinc-900/20">
-                    <span className="font-mono text-[10px] text-zinc-500 font-semibold uppercase flex items-center gap-1 select-none">
+                <Card className="flex flex-1 flex-col overflow-hidden border-zinc-800 bg-zinc-950 shadow-xl">
+                  <CardHeader className="border-b border-zinc-900 bg-zinc-900/20 p-4">
+                    <span className="flex items-center gap-1 font-mono text-[10px] font-semibold text-zinc-500 uppercase select-none">
                       <Users className="size-3 text-zinc-400" /> TASK_COMMENTS
                     </span>
                   </CardHeader>
-                  <CardContent className="p-3 max-h-[140px] overflow-y-auto space-y-2.5 bg-zinc-950/20 scrollbar-thin select-text">
-                    {comments.map(c => (
-                      <div key={c.id} className="comment-item flex items-start gap-2.5 text-[10px] font-mono leading-relaxed">
+                  <CardContent className="max-h-[140px] scrollbar-thin space-y-2.5 overflow-y-auto bg-zinc-950/20 p-3 select-text">
+                    {comments.map((c) => (
+                      <div
+                        key={c.id}
+                        className="comment-item flex items-start gap-2.5 font-mono text-[10px] leading-relaxed"
+                      >
                         {c.author && (
-                          <img src={c.author.image} alt={c.author.name} className="w-5 h-5 rounded border border-zinc-800" />
+                          <img
+                            src={c.author.image}
+                            alt={c.author.name}
+                            className="h-5 w-5 rounded border border-zinc-800"
+                          />
                         )}
                         <div className="flex-1 space-y-0.5">
                           <div className="flex items-center justify-between text-zinc-500">
-                            <span className="text-zinc-300 font-semibold">{c.author?.name || "Operator"}</span>
+                            <span className="font-semibold text-zinc-300">
+                              {c.author?.name || "Operator"}
+                            </span>
                             <span>{c.time}</span>
                           </div>
                           <p className="text-zinc-400">{c.content}</p>
@@ -803,19 +1008,22 @@ export default function LandingPage() {
                       </div>
                     ))}
                   </CardContent>
-                  <CardFooter className="p-2 border-t border-zinc-900 bg-zinc-950/90">
-                    <form onSubmit={handleAddComment} className="flex items-center w-full gap-1.5 px-2">
+                  <CardFooter className="border-t border-zinc-900 bg-zinc-950/90 p-2">
+                    <form
+                      onSubmit={handleAddComment}
+                      className="flex w-full items-center gap-1.5 px-2"
+                    >
                       <input
                         type="text"
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Add updates..."
-                        className="flex-1 bg-transparent text-[10px] font-mono outline-none border-none py-1 text-slate-200 placeholder-zinc-700"
+                        className="flex-1 border-none bg-transparent py-1 font-mono text-[10px] text-slate-200 placeholder-zinc-700 outline-none"
                       />
                       <button
                         type="submit"
                         disabled={!newComment.trim()}
-                        className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800 text-zinc-300 transition-colors"
+                        className="rounded bg-zinc-800 p-1 text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800"
                       >
                         <Send className="size-3.5" />
                       </button>
@@ -831,33 +1039,41 @@ export default function LandingPage() {
         <section
           id="how-it-works"
           ref={timelineRef}
-          className="container mx-auto px-6 py-20 border-t border-zinc-900"
+          className="container mx-auto border-t border-zinc-900 px-6 py-20"
         >
-          <div className="max-w-4xl mx-auto space-y-12">
-            <div className="text-center space-y-4 mb-16">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+          <div className="mx-auto max-w-4xl space-y-12">
+            <div className="mb-16 space-y-4 text-center">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
                 <Compass className="size-3" />
                 Workflow
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">How It Works</h2>
-              <p className="text-zinc-400 max-w-xl mx-auto text-sm leading-relaxed">
-                From task creation to completion, every step is tracked, permission-gated, and audited in real-time.
+              <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl">
+                How It Works
+              </h2>
+              <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-400">
+                From task creation to completion, every step is tracked,
+                permission-gated, and audited in real-time.
               </p>
             </div>
 
-            <div className="relative pl-8 sm:pl-32 space-y-12">
-              <div className="absolute top-2 left-6 sm:left-20 bottom-2 w-0.5 bg-zinc-800" />
-              <div className="timeline-connector-progress absolute top-2 left-6 sm:left-20 bottom-2 w-0.5 bg-zinc-200 scale-y-0" />
+            <div className="relative space-y-12 pl-8 sm:pl-32">
+              <div className="absolute top-2 bottom-2 left-6 w-0.5 bg-zinc-800 sm:left-20" />
+              <div className="timeline-connector-progress absolute top-2 bottom-2 left-6 w-0.5 scale-y-0 bg-zinc-200 sm:left-20" />
 
               {TIMELINE_STEPS.map((step) => (
-                <div key={step.stage} className="timeline-card relative flex flex-col sm:flex-row items-start gap-4 sm:gap-8 group">
-                  <div className="absolute left-[-26px] sm:left-[-116px] top-1.5 w-4 h-4 rounded-full border border-zinc-800 bg-zinc-950 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-300" />
-                  <span className="sm:w-20 text-zinc-500 font-mono text-xs uppercase tracking-widest pt-1">Stage {step.stage}</span>
+                <div
+                  key={step.stage}
+                  className="timeline-card group relative flex flex-col items-start gap-4 sm:flex-row sm:gap-8"
+                >
+                  <div className="absolute top-1.5 left-[-26px] h-4 w-4 rounded-full border border-zinc-800 bg-zinc-950 transition-all duration-300 group-hover:border-zinc-300 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)] sm:left-[-116px]" />
+                  <span className="pt-1 font-mono text-xs tracking-widest text-zinc-500 uppercase sm:w-20">
+                    Stage {step.stage}
+                  </span>
                   <div className="flex-1 space-y-1">
-                    <h3 className="text-sm font-bold font-heading uppercase tracking-wide text-zinc-200 flex items-center gap-2">
+                    <h3 className="flex items-center gap-2 font-heading text-sm font-bold tracking-wide text-zinc-200 uppercase">
                       {step.icon} {step.title}
                     </h3>
-                    <p className="text-xs text-zinc-400 leading-relaxed">
+                    <p className="text-xs leading-relaxed text-zinc-400">
                       {step.description}
                     </p>
                   </div>
@@ -870,38 +1086,43 @@ export default function LandingPage() {
         {/* =============== BETA PROGRAMME CTA =============== */}
         <section
           id="beta"
-          className="container mx-auto px-6 py-20 border-t border-zinc-900 flex justify-center"
+          className="container mx-auto flex justify-center border-t border-zinc-900 px-6 py-20"
         >
           <div className="beta-section w-full max-w-2xl">
-            <div className="border border-zinc-800 rounded-2xl bg-zinc-900/10 p-8 sm:p-12 backdrop-blur-md relative overflow-hidden">
+            <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/10 p-8 backdrop-blur-md sm:p-12">
               {/* Grid decoration */}
-              <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.005)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:12px_12px] pointer-events-none" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.005)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:12px_12px]" />
               {/* Glassmorphism glow */}
-              <div className="absolute -top-20 -right-20 w-60 h-60 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-zinc-500/5 rounded-full blur-[100px] pointer-events-none" />
+              <div className="pointer-events-none absolute -top-20 -right-20 h-60 w-60 rounded-full bg-emerald-500/5 blur-[100px]" />
+              <div className="pointer-events-none absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-zinc-500/5 blur-[100px]" />
 
               {!betaSubmitted ? (
-                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+                <div className="relative z-10 flex flex-col items-center space-y-6 text-center">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
                     <Sparkles className="size-3 text-emerald-400" />
                     Beta Programme
                   </div>
-                  <h2 className="text-3xl sm:text-4xl font-bold font-heading text-white">
+                  <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl">
                     Get Early Access
                   </h2>
-                  <p className="text-zinc-400 max-w-sm mx-auto text-sm leading-relaxed">
-                    Join the Ground Control Beta Programme and be among the first to experience the future of team task management. Get priority access and help shape the product.
+                  <p className="mx-auto max-w-sm text-sm leading-relaxed text-zinc-400">
+                    Join the Ground Control Beta Programme and be among the
+                    first to experience the future of team task management. Get
+                    priority access and help shape the product.
                   </p>
 
-                  <form onSubmit={handleBetaSubmit} className="w-full max-w-md space-y-3 mt-2">
-                    <div className="flex flex-col sm:flex-row gap-3">
+                  <form
+                    onSubmit={handleBetaSubmit}
+                    className="mt-2 w-full max-w-md space-y-3"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <input
                         type="text"
                         value={betaName}
                         onChange={(e) => setBetaName(e.target.value)}
                         placeholder="Your name"
                         required
-                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors font-mono"
+                        className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-sm text-zinc-200 placeholder-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none"
                       />
                       <input
                         type="email"
@@ -909,18 +1130,18 @@ export default function LandingPage() {
                         onChange={(e) => setBetaEmail(e.target.value)}
                         placeholder="you@email.com"
                         required
-                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors font-mono"
+                        className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-sm text-zinc-200 placeholder-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none"
                       />
                     </div>
                     <Button
                       type="submit"
                       disabled={betaSubmitting}
                       size="lg"
-                      className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold h-12"
+                      className="h-12 w-full bg-zinc-100 font-semibold text-zinc-900 hover:bg-zinc-200"
                     >
                       {betaSubmitting ? (
                         <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin" />
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-400 border-t-zinc-900" />
                           Processing...
                         </span>
                       ) : (
@@ -932,40 +1153,53 @@ export default function LandingPage() {
                     </Button>
                   </form>
 
-                  <p className="text-[10px] text-zinc-600 font-mono">
+                  <p className="font-mono text-[10px] text-zinc-600">
                     By joining, you agree to our{" "}
-                    <Link href="/privacy" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-300 transition-colors">
+                    <Link
+                      href="/privacy"
+                      className="text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-300"
+                    >
                       Privacy Policy
-                    </Link>
-                    {" "}and{" "}
-                    <Link href="/terms" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-300 transition-colors">
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href="/terms"
+                      className="text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-300"
+                    >
                       Terms of Service
                     </Link>
                     .
                   </p>
                 </div>
               ) : (
-                <div className="beta-success relative z-10 flex flex-col items-center text-center space-y-6 py-8">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                <div className="beta-success relative z-10 flex flex-col items-center space-y-6 py-8 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10">
                     <Check className="size-8 text-emerald-400" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-white">You&apos;re on the List!</h3>
-                    <p className="text-zinc-400 text-sm max-w-xs mx-auto">
-                      Thanks, {betaName}! We&apos;ll send early access details to <span className="text-zinc-300 font-medium">{betaEmail}</span> when we&apos;re ready to launch.
+                    <h3 className="text-2xl font-bold text-white">
+                      You&apos;re on the List!
+                    </h3>
+                    <p className="mx-auto max-w-xs text-sm text-zinc-400">
+                      Thanks, {betaName}! We&apos;ll send early access details
+                      to{" "}
+                      <span className="font-medium text-zinc-300">
+                        {betaEmail}
+                      </span>{" "}
+                      when we&apos;re ready to launch.
                     </p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-zinc-800 hover:bg-zinc-900 text-zinc-300"
+                    className="border-zinc-800 text-zinc-300 hover:bg-zinc-900"
                     onClick={() => {
                       setBetaSubmitted(false)
                       setBetaName("")
                       setBetaEmail("")
                     }}
                   >
-                    <RotateCcw className="size-3.5 mr-2" />
+                    <RotateCcw className="mr-2 size-3.5" />
                     Submit Another
                   </Button>
                 </div>
@@ -975,47 +1209,87 @@ export default function LandingPage() {
         </section>
 
         {/* =============== FOOTER =============== */}
-        <footer className="mt-auto border-t border-zinc-900 py-10 bg-zinc-950/40">
+        <footer className="mt-auto border-t border-zinc-900 bg-zinc-950/40 py-10">
           <div className="container mx-auto px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
+            <div className="mb-8 grid grid-cols-1 gap-8 sm:grid-cols-3">
               {/* Brand */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-sm font-semibold tracking-tight text-zinc-200">Ground Control</span>
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                  <span className="text-sm font-semibold tracking-tight text-zinc-200">
+                    Ground Control
+                  </span>
                 </div>
-                <p className="text-[11px] text-zinc-500 leading-relaxed max-w-xs">
-                  Collaborative project management with real-time task tracking, approval workflows, and comprehensive audit trails.
+                <p className="max-w-xs text-[11px] leading-relaxed text-zinc-500">
+                  Collaborative project management with real-time task tracking,
+                  approval workflows, and comprehensive audit trails.
                 </p>
               </div>
 
               {/* Product Links */}
               <div className="space-y-3">
-                <h4 className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-semibold">Product</h4>
+                <h4 className="font-mono text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+                  Product
+                </h4>
                 <div className="flex flex-col gap-2">
-                  <a href="#features" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Features</a>
-                  <a href="#how-it-works" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">How It Works</a>
-                  <a href="#beta" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Join Beta</a>
+                  <a
+                    href="#features"
+                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                  >
+                    Features
+                  </a>
+                  <a
+                    href="#how-it-works"
+                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                  >
+                    How It Works
+                  </a>
+                  <a
+                    href="#beta"
+                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                  >
+                    Join Beta
+                  </a>
                 </div>
               </div>
 
               {/* Legal Links */}
               <div className="space-y-3">
-                <h4 className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-semibold">Legal</h4>
+                <h4 className="font-mono text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+                  Legal
+                </h4>
                 <div className="flex flex-col gap-2">
-                  <Link href="/privacy" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Privacy Policy</Link>
-                  <Link href="/terms" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Terms of Service</Link>
-                  <Link href="/data-deletion" className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors">Data Deletion</Link>
+                  <Link
+                    href="/privacy"
+                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <Link
+                    href="/terms"
+                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                  >
+                    Terms of Service
+                  </Link>
+                  <Link
+                    href="/data-deletion"
+                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                  >
+                    Data Deletion
+                  </Link>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-zinc-900 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-zinc-600">
+            <div className="flex flex-col items-center justify-between gap-4 border-t border-zinc-900 pt-6 font-mono text-[10px] text-zinc-600 sm:flex-row">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                 <span>All systems operational</span>
               </div>
-              <span>© {new Date().getFullYear()} Ground Control. All rights reserved.</span>
+              <span>
+                © {new Date().getFullYear()} Ground Control. All rights
+                reserved.
+              </span>
             </div>
           </div>
         </footer>

@@ -38,10 +38,15 @@ import {
   Check,
   Trash2,
   Info,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FileText,
 } from "lucide-react"
 
 export default function NotificationSettings() {
-  const { data: activeOrg, isPending: isOrgPending } = authClient.useActiveOrganization()
+  const { data: activeOrg, isPending: isOrgPending } =
+    authClient.useActiveOrganization()
   const orgId = activeOrg?.id || ""
 
   const profile = useQuery(
@@ -86,42 +91,183 @@ export default function NotificationSettings() {
   const [resendApiKeyInput, setResendApiKeyInput] = useState("")
   const [resendFromEmailInput, setResendFromEmailInput] = useState("")
   const [sentDmApiKeyInput, setSentDmApiKeyInput] = useState("")
+  const [templateIds, setTemplateIds] = useState({
+    task_assigned: "",
+    task_status_changed: "",
+    task_due_soon: "",
+    task_overdue: "",
+    task_comment: "",
+    approval_requested: "",
+    approval_status_changed: "",
+    approval_comment: "",
+    form_response_submitted: "",
+  })
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [isSavingOrgKeys, setIsSavingOrgKeys] = useState(false)
+
+  const TEMPLATE_CONFIGS = [
+    {
+      key: "task_assigned" as const,
+      label: "Task Assigned",
+      description: "Dispatched to users when they are assigned to a task",
+      parameters: ["taskTitle", "assignerName", "dueDate"],
+      recommendedCopy:
+        'Ground Control: You have been assigned to "{{taskTitle}}" by {{assignerName}}. Due date: {{dueDate}}. Check your dashboard for details.',
+    },
+    {
+      key: "task_status_changed" as const,
+      label: "Task Status Changed",
+      description: "Dispatched when a task's status is updated",
+      parameters: ["taskTitle", "updaterName", "newStatus"],
+      recommendedCopy:
+        'Ground Control Task Update: "{{taskTitle}}" status changed to {{newStatus}} by {{updaterName}}. View updates in Ground Control.',
+    },
+    {
+      key: "task_due_soon" as const,
+      label: "Task Due Soon (<24h)",
+      description: "Automated reminder for tasks approaching deadline",
+      parameters: ["taskTitle", "dueDate"],
+      recommendedCopy:
+        'Ground Control Reminder: Your assigned task "{{taskTitle}}" is due soon on {{dueDate}}. Please review on your dashboard.',
+    },
+    {
+      key: "task_overdue" as const,
+      label: "Task Overdue Alert",
+      description: "Automated alert for tasks past their due date",
+      parameters: ["taskTitle", "dueDate"],
+      recommendedCopy:
+        'Ground Control URGENT: Your assigned task "{{taskTitle}}" was due on {{dueDate}} and is now overdue. Please take action immediately.',
+    },
+    {
+      key: "task_comment" as const,
+      label: "Task Comment",
+      description: "Dispatched when someone comments on a task discussion",
+      parameters: ["taskTitle", "authorName", "commentPreview"],
+      recommendedCopy:
+        'Ground Control: {{authorName}} commented on "{{taskTitle}}": "{{commentPreview}}". Reply on Ground Control.',
+    },
+    {
+      key: "approval_requested" as const,
+      label: "Approval Requested",
+      description: "Dispatched to designated approvers for a new approval",
+      parameters: ["approvalTitle", "requesterName", "dueDate"],
+      recommendedCopy:
+        'Ground Control: {{requesterName}} requested your approval for "{{approvalTitle}}". Due date: {{dueDate}}. Review and decide on Ground Control.',
+    },
+    {
+      key: "approval_status_changed" as const,
+      label: "Approval Decision Made",
+      description:
+        "Dispatched when an approval is approved, declined, or reworked",
+      parameters: ["approvalTitle", "updaterName", "newStatus", "comment"],
+      recommendedCopy:
+        'Ground Control: Approval request "{{approvalTitle}}" was marked as {{newStatus}} by {{updaterName}}. Note: {{comment}}.',
+    },
+    {
+      key: "approval_comment" as const,
+      label: "Approval Comment",
+      description: "Dispatched when someone comments on an approval discussion",
+      parameters: ["approvalTitle", "authorName", "commentPreview"],
+      recommendedCopy:
+        'Ground Control: {{authorName}} commented on approval "{{approvalTitle}}": "{{commentPreview}}". View conversation on Ground Control.',
+    },
+    {
+      key: "form_response_submitted" as const,
+      label: "Form Response Submitted",
+      description: "Dispatched to form creator upon new submission",
+      parameters: ["formTitle", "submitterName"],
+      recommendedCopy:
+        'Ground Control: {{submitterName}} submitted a response for form "{{formTitle}}". Review submissions on Ground Control.',
+    },
+  ]
 
   // Test notification state
   const [testChannel, setTestChannel] = useState<string>("in_app")
   const [isTesting, setIsTesting] = useState(false)
-  const [testResults, setTestResults] = useState<Record<string, any> | null>(null)
+  const [testResults, setTestResults] = useState<Record<string, any> | null>(
+    null
+  )
 
   // Sync state when profile loads
   useEffect(() => {
     if (profile) {
       setPhoneNumber(profile.phoneNumber || "")
       setIntegrations({
-        inApp: profile.integrations?.inApp !== undefined ? profile.integrations.inApp : true,
-        push: profile.integrations?.push !== undefined ? profile.integrations.push : true,
-        email: profile.integrations?.email !== undefined ? profile.integrations.email : true,
+        inApp:
+          profile.integrations?.inApp !== undefined
+            ? profile.integrations.inApp
+            : true,
+        push:
+          profile.integrations?.push !== undefined
+            ? profile.integrations.push
+            : true,
+        email:
+          profile.integrations?.email !== undefined
+            ? profile.integrations.email
+            : true,
         whatsapp: profile.integrations?.whatsapp || false,
         sms: profile.integrations?.sms || false,
         rcs: profile.integrations?.rcs || false,
       })
       setEventPreferences({
-        taskAssigned: profile.notificationPreferences?.taskAssigned !== undefined ? profile.notificationPreferences.taskAssigned : true,
-        taskStatusChanged: profile.notificationPreferences?.taskStatusChanged !== undefined ? profile.notificationPreferences.taskStatusChanged : true,
-        taskDueReminder: profile.notificationPreferences?.taskDueReminder !== undefined ? profile.notificationPreferences.taskDueReminder : true,
-        taskComments: profile.notificationPreferences?.taskComments !== undefined ? profile.notificationPreferences.taskComments : true,
-        approvalRequested: profile.notificationPreferences?.approvalRequested !== undefined ? profile.notificationPreferences.approvalRequested : true,
-        approvalDecided: profile.notificationPreferences?.approvalDecided !== undefined ? profile.notificationPreferences.approvalDecided : true,
-        approvalComments: profile.notificationPreferences?.approvalComments !== undefined ? profile.notificationPreferences.approvalComments : true,
-        formResponses: profile.notificationPreferences?.formResponses !== undefined ? profile.notificationPreferences.formResponses : true,
+        taskAssigned:
+          profile.notificationPreferences?.taskAssigned !== undefined
+            ? profile.notificationPreferences.taskAssigned
+            : true,
+        taskStatusChanged:
+          profile.notificationPreferences?.taskStatusChanged !== undefined
+            ? profile.notificationPreferences.taskStatusChanged
+            : true,
+        taskDueReminder:
+          profile.notificationPreferences?.taskDueReminder !== undefined
+            ? profile.notificationPreferences.taskDueReminder
+            : true,
+        taskComments:
+          profile.notificationPreferences?.taskComments !== undefined
+            ? profile.notificationPreferences.taskComments
+            : true,
+        approvalRequested:
+          profile.notificationPreferences?.approvalRequested !== undefined
+            ? profile.notificationPreferences.approvalRequested
+            : true,
+        approvalDecided:
+          profile.notificationPreferences?.approvalDecided !== undefined
+            ? profile.notificationPreferences.approvalDecided
+            : true,
+        approvalComments:
+          profile.notificationPreferences?.approvalComments !== undefined
+            ? profile.notificationPreferences.approvalComments
+            : true,
+        formResponses:
+          profile.notificationPreferences?.formResponses !== undefined
+            ? profile.notificationPreferences.formResponses
+            : true,
       })
     }
   }, [profile])
 
-  // Sync custom sender address when orgApiKeys load
+  // Sync custom sender address and template IDs when orgApiKeys load
   useEffect(() => {
     if (orgApiKeys?.resendFromEmail) {
       setResendFromEmailInput(orgApiKeys.resendFromEmail)
+    }
+    if (orgApiKeys?.sentDmTemplateIds) {
+      setTemplateIds({
+        task_assigned: orgApiKeys.sentDmTemplateIds.task_assigned || "",
+        task_status_changed:
+          orgApiKeys.sentDmTemplateIds.task_status_changed || "",
+        task_due_soon: orgApiKeys.sentDmTemplateIds.task_due_soon || "",
+        task_overdue: orgApiKeys.sentDmTemplateIds.task_overdue || "",
+        task_comment: orgApiKeys.sentDmTemplateIds.task_comment || "",
+        approval_requested:
+          orgApiKeys.sentDmTemplateIds.approval_requested || "",
+        approval_status_changed:
+          orgApiKeys.sentDmTemplateIds.approval_status_changed || "",
+        approval_comment: orgApiKeys.sentDmTemplateIds.approval_comment || "",
+        form_response_submitted:
+          orgApiKeys.sentDmTemplateIds.form_response_submitted || "",
+      })
     }
   }, [orgApiKeys])
 
@@ -170,7 +316,9 @@ export default function NotificationSettings() {
         clearResendKey: true,
       })
       setResendApiKeyInput("")
-      toast.success("Custom Resend key removed. Organization now uses platform credentials.")
+      toast.success(
+        "Custom Resend key removed. Organization now uses platform credentials."
+      )
     } catch (err: any) {
       toast.error(err.message || "Failed to clear Resend key.")
     } finally {
@@ -204,12 +352,51 @@ export default function NotificationSettings() {
         clearSentDmKey: true,
       })
       setSentDmApiKeyInput("")
-      toast.success("Custom Sent.dm key removed. Organization now uses platform credentials.")
+      toast.success(
+        "Custom Sent.dm key removed. Organization now uses platform credentials."
+      )
     } catch (err: any) {
       toast.error(err.message || "Failed to clear Sent.dm key.")
     } finally {
       setIsSavingOrgKeys(false)
     }
+  }
+
+  const handleSaveTemplateIds = async () => {
+    if (!orgId) return
+    setIsSavingOrgKeys(true)
+    try {
+      await updateOrgKeys({
+        organizationId: orgId,
+        sentDmTemplateIds: {
+          task_assigned: templateIds.task_assigned.trim() || undefined,
+          task_status_changed:
+            templateIds.task_status_changed.trim() || undefined,
+          task_due_soon: templateIds.task_due_soon.trim() || undefined,
+          task_overdue: templateIds.task_overdue.trim() || undefined,
+          task_comment: templateIds.task_comment.trim() || undefined,
+          approval_requested:
+            templateIds.approval_requested.trim() || undefined,
+          approval_status_changed:
+            templateIds.approval_status_changed.trim() || undefined,
+          approval_comment: templateIds.approval_comment.trim() || undefined,
+          form_response_submitted:
+            templateIds.form_response_submitted.trim() || undefined,
+        },
+      })
+      toast.success("Sent.dm Template IDs saved successfully.")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save Sent.dm Template IDs.")
+    } finally {
+      setIsSavingOrgKeys(false)
+    }
+  }
+
+  const handleCopyTemplate = (key: string, text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedKey(key)
+    toast.success("Template text copied to clipboard.")
+    setTimeout(() => setCopiedKey(null), 2500)
   }
 
   const handleRunTest = async () => {
@@ -245,20 +432,23 @@ export default function NotificationSettings() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="max-w-4xl space-y-6">
       {/* Header Banner */}
       <div className="rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-muted/20 p-5 shadow-sm">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold tracking-tight">Notification Center</h3>
-              <Badge variant="outline" className="text-xs font-mono">
+              <h3 className="text-lg font-semibold tracking-tight">
+                Notification Center
+              </h3>
+              <Badge variant="outline" className="font-mono text-xs">
                 Multi-Channel Router
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Configure how and where you receive alerts for tasks, approvals, comments, and reminders.
+              Configure how and where you receive alerts for tasks, approvals,
+              comments, and reminders.
             </p>
           </div>
           <Button
@@ -279,12 +469,13 @@ export default function NotificationSettings() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                   <Key className="h-4 w-4 text-primary" />
                   External API Setup & Provider Billing
                 </CardTitle>
                 <CardDescription>
-                  Choose whether to use Ground Control managed credentials or Bring Your Own Keys (BYOK) for direct provider billing.
+                  Choose whether to use Ground Control managed credentials or
+                  Bring Your Own Keys (BYOK) for direct provider billing.
                 </CardDescription>
               </div>
               <Badge variant="secondary" className="text-xs">
@@ -294,46 +485,61 @@ export default function NotificationSettings() {
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Transparent Pricing Disclosure Banner */}
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-2">
+            <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs">
               <div className="flex items-center gap-2 font-semibold text-amber-600 dark:text-amber-400">
                 <Coins className="h-4 w-4 shrink-0" />
                 <span>Transparent Usage & Pricing Notice</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-muted-foreground pt-1">
-                <div className="rounded-md border border-amber-500/20 bg-background/50 p-3 space-y-1">
-                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+              <div className="grid grid-cols-1 gap-3 pt-1 text-muted-foreground md:grid-cols-2">
+                <div className="space-y-1 rounded-md border border-amber-500/20 bg-background/50 p-3">
+                  <p className="flex items-center gap-1.5 font-semibold text-foreground">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                     Platform Managed Keys (Default)
                   </p>
                   <p>
-                    Emails and SMS/WhatsApp messages are sent using Ground Control's shared provider accounts. Standard carrier & message usage rates will be added directly to your monthly organization bill.
+                    Emails and SMS/WhatsApp messages are sent using Ground
+                    Control's shared provider accounts. Standard carrier &
+                    message usage rates will be added directly to your monthly
+                    organization bill.
                   </p>
                 </div>
-                <div className="rounded-md border border-emerald-500/20 bg-background/50 p-3 space-y-1">
-                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <div className="space-y-1 rounded-md border border-emerald-500/20 bg-background/50 p-3">
+                  <p className="flex items-center gap-1.5 font-semibold text-foreground">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     Bring Your Own Key (BYOK)
                   </p>
                   <p>
-                    Provide your own Resend or Sent.dm API keys to enjoy <strong>0% platform markup</strong> and pay your provider directly. You can also use your own verified custom sender domains (e.g. <span className="font-mono text-foreground">alerts@yourcompany.com</span>).
+                    Provide your own Resend or Sent.dm API keys to enjoy{" "}
+                    <strong>0% platform markup</strong> and pay your provider
+                    directly. You can also use your own verified custom sender
+                    domains (e.g.{" "}
+                    <span className="font-mono text-foreground">
+                      alerts@yourcompany.com
+                    </span>
+                    ).
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Resend BYOK Card */}
-            <div className="rounded-lg border p-4 space-y-3 bg-card/50">
+            <div className="space-y-3 rounded-lg border bg-card/50 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-emerald-500" />
                   <div>
                     <p className="text-sm font-semibold">Resend Email API</p>
-                    <p className="text-xs text-muted-foreground">Transactional email delivery</p>
+                    <p className="text-xs text-muted-foreground">
+                      Transactional email delivery
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {orgApiKeys.hasCustomResendKey ? (
-                    <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30 text-[11px]">
+                    <Badge
+                      variant="default"
+                      className="border-emerald-500/30 bg-emerald-500/15 text-[11px] text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                    >
                       Custom Key Active (BYOK)
                     </Badge>
                   ) : orgApiKeys.isPlatformResendAvailable ? (
@@ -349,24 +555,30 @@ export default function NotificationSettings() {
                     href="https://resend.com/api-keys"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 ml-1"
+                    className="ml-1 flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
                   >
                     Resend Console <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 gap-3 pt-1 md:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor="resendApiKey" className="text-xs">
-                    Resend API Key {orgApiKeys.hasCustomResendKey && `(${orgApiKeys.resendApiKeyMasked})`}
+                    Resend API Key{" "}
+                    {orgApiKeys.hasCustomResendKey &&
+                      `(${orgApiKeys.resendApiKeyMasked})`}
                   </Label>
                   <Input
                     id="resendApiKey"
                     type="password"
                     value={resendApiKeyInput}
                     onChange={(e) => setResendApiKeyInput(e.target.value)}
-                    placeholder={orgApiKeys.hasCustomResendKey ? "Enter new key to replace..." : "re_123456789..."}
+                    placeholder={
+                      orgApiKeys.hasCustomResendKey
+                        ? "Enter new key to replace..."
+                        : "re_123456789..."
+                    }
                     className="font-mono text-xs"
                   />
                 </div>
@@ -378,15 +590,21 @@ export default function NotificationSettings() {
                     id="resendFromEmail"
                     value={resendFromEmailInput}
                     onChange={(e) => setResendFromEmailInput(e.target.value)}
-                    placeholder={orgApiKeys.platformFromEmail || "Acme <notifications@acme.com>"}
-                    className="text-xs font-mono"
+                    placeholder={
+                      orgApiKeys.platformFromEmail ||
+                      "Acme <notifications@acme.com>"
+                    }
+                    className="font-mono text-xs"
                   />
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-1">
                 <p className="text-[11px] text-muted-foreground">
-                  Default sender fallback: <span className="font-mono text-foreground">{orgApiKeys.platformFromEmail}</span>
+                  Default sender fallback:{" "}
+                  <span className="font-mono text-foreground">
+                    {orgApiKeys.platformFromEmail}
+                  </span>
                 </p>
                 <div className="flex items-center gap-2">
                   {orgApiKeys.hasCustomResendKey && (
@@ -395,19 +613,26 @@ export default function NotificationSettings() {
                       size="sm"
                       onClick={handleClearResendKey}
                       disabled={isSavingOrgKeys}
-                      className="text-destructive hover:text-destructive text-xs h-8"
+                      className="h-8 text-xs text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
                       Reset to Platform
                     </Button>
                   )}
                   <Button
                     size="sm"
                     onClick={handleSaveResendKeys}
-                    disabled={isSavingOrgKeys || (!resendApiKeyInput && resendFromEmailInput === (orgApiKeys.resendFromEmail || ""))}
+                    disabled={
+                      isSavingOrgKeys ||
+                      (!resendApiKeyInput &&
+                        resendFromEmailInput ===
+                          (orgApiKeys.resendFromEmail || ""))
+                    }
                     className="h-8 text-xs"
                   >
-                    {isSavingOrgKeys && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    {isSavingOrgKeys && (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    )}
                     Save Resend Config
                   </Button>
                 </div>
@@ -415,18 +640,23 @@ export default function NotificationSettings() {
             </div>
 
             {/* Sent.dm BYOK Card */}
-            <div className="rounded-lg border p-4 space-y-3 bg-card/50">
+            <div className="space-y-3 rounded-lg border bg-card/50 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-green-500" />
                   <div>
                     <p className="text-sm font-semibold">Sent.dm API</p>
-                    <p className="text-xs text-muted-foreground">WhatsApp, SMS, and RCS multi-channel messaging</p>
+                    <p className="text-xs text-muted-foreground">
+                      WhatsApp, SMS, and RCS multi-channel messaging
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {orgApiKeys.hasCustomSentDmKey ? (
-                    <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30 text-[11px]">
+                    <Badge
+                      variant="default"
+                      className="border-emerald-500/30 bg-emerald-500/15 text-[11px] text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                    >
                       Custom Key Active (BYOK)
                     </Badge>
                   ) : orgApiKeys.isPlatformSentDmAvailable ? (
@@ -442,7 +672,7 @@ export default function NotificationSettings() {
                     href="https://sent.dm"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 ml-1"
+                    className="ml-1 flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
                   >
                     Sent.dm Console <ExternalLink className="h-3 w-3" />
                   </a>
@@ -451,7 +681,9 @@ export default function NotificationSettings() {
 
               <div className="space-y-1 pt-1">
                 <Label htmlFor="sentDmApiKey" className="text-xs">
-                  Sent.dm API Key {orgApiKeys.hasCustomSentDmKey && `(${orgApiKeys.sentDmApiKeyMasked})`}
+                  Sent.dm API Key{" "}
+                  {orgApiKeys.hasCustomSentDmKey &&
+                    `(${orgApiKeys.sentDmApiKeyMasked})`}
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -459,8 +691,12 @@ export default function NotificationSettings() {
                     type="password"
                     value={sentDmApiKeyInput}
                     onChange={(e) => setSentDmApiKeyInput(e.target.value)}
-                    placeholder={orgApiKeys.hasCustomSentDmKey ? "Enter new key to replace..." : "sent_123456789..."}
-                    className="font-mono text-xs max-w-md"
+                    placeholder={
+                      orgApiKeys.hasCustomSentDmKey
+                        ? "Enter new key to replace..."
+                        : "sent_123456789..."
+                    }
+                    className="max-w-md font-mono text-xs"
                   />
                   <Button
                     size="sm"
@@ -468,7 +704,9 @@ export default function NotificationSettings() {
                     disabled={isSavingOrgKeys || !sentDmApiKeyInput}
                     className="h-8 text-xs"
                   >
-                    {isSavingOrgKeys && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    {isSavingOrgKeys && (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    )}
                     Save Sent.dm Key
                   </Button>
                   {orgApiKeys.hasCustomSentDmKey && (
@@ -477,13 +715,136 @@ export default function NotificationSettings() {
                       size="sm"
                       onClick={handleClearSentDmKey}
                       disabled={isSavingOrgKeys}
-                      className="text-destructive hover:text-destructive text-xs h-8"
+                      className="h-8 text-xs text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
                       Reset to Platform
                     </Button>
                   )}
                 </div>
+              </div>
+
+              {/* Sent.dm Template IDs Sub-section */}
+              <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-sky-500" />
+                    <div>
+                      <h4 className="text-xs font-semibold">
+                        Sent.dm Message Templates
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        Configure template IDs for WhatsApp, RCS, and SMS
+                        delivery.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className="h-7 gap-1 text-xs"
+                  >
+                    {showTemplates
+                      ? "Hide Templates"
+                      : "Configure Templates (9)"}
+                    {showTemplates ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </div>
+
+                {showTemplates && (
+                  <div className="space-y-3 border-t pt-2">
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
+                      Enter the corresponding Template ID from your Sent.dm
+                      console for each event. Ensure the template in Sent.dm
+                      uses the exact placeholder variable names shown.
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {TEMPLATE_CONFIGS.map((tmpl) => (
+                        <div
+                          key={tmpl.key}
+                          className="space-y-2 rounded-md border bg-card p-2.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <div>
+                              <span className="font-semibold text-foreground">
+                                {tmpl.label}
+                              </span>
+                              <code className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                                {tmpl.key}
+                              </code>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleCopyTemplate(
+                                  tmpl.key,
+                                  tmpl.recommendedCopy
+                                )
+                              }
+                              title="Copy recommended template text"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            >
+                              {copiedKey === tmpl.key ? (
+                                <Check className="h-3 w-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+
+                          <p className="text-[11px] text-muted-foreground">
+                            {tmpl.description}
+                          </p>
+
+                          <div className="flex flex-wrap gap-1">
+                            {tmpl.parameters.map((param) => (
+                              <Badge
+                                key={param}
+                                variant="outline"
+                                className="border-sky-200 bg-sky-50 px-1 py-0 font-mono text-[10px] text-sky-600 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-400"
+                              >
+                                {`{{${param}}}`}
+                              </Badge>
+                            ))}
+                          </div>
+
+                          <Input
+                            placeholder="tmpl_..."
+                            value={templateIds[tmpl.key]}
+                            onChange={(e) =>
+                              setTemplateIds((prev) => ({
+                                ...prev,
+                                [tmpl.key]: e.target.value,
+                              }))
+                            }
+                            className="h-7 font-mono text-xs"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end gap-2 border-t pt-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveTemplateIds}
+                        disabled={isSavingOrgKeys}
+                        className="h-8 text-xs"
+                      >
+                        {isSavingOrgKeys && (
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        )}
+                        Save Sent.dm Template IDs
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -493,141 +854,182 @@ export default function NotificationSettings() {
       {/* 2. Delivery Channels Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Zap className="h-4 w-4 text-amber-500" />
             Delivery Channels
           </CardTitle>
           <CardDescription>
-            Choose the endpoints Ground Control uses to deliver your notifications.
+            Choose the endpoints Ground Control uses to deliver your
+            notifications.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* In-App */}
-          <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card/50">
+          <div className="flex items-center justify-between rounded-lg border bg-card/50 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20">
+              <div className="rounded-md border border-blue-500/20 bg-blue-500/10 p-2 text-blue-500">
                 <Bell className="h-4 w-4" />
               </div>
               <div>
                 <p className="text-sm font-medium">In-App Feed</p>
-                <p className="text-xs text-muted-foreground">Reactive badge & top header menu</p>
+                <p className="text-xs text-muted-foreground">
+                  Reactive badge & top header menu
+                </p>
               </div>
             </div>
             <Switch
               checked={integrations.inApp}
-              onCheckedChange={(checked) => setIntegrations((prev) => ({ ...prev, inApp: checked }))}
+              onCheckedChange={(checked) =>
+                setIntegrations((prev) => ({ ...prev, inApp: checked }))
+              }
             />
           </div>
 
           {/* Mobile Push */}
-          <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card/50">
+          <div className="flex items-center justify-between rounded-lg border bg-card/50 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-purple-500/10 text-purple-500 border border-purple-500/20">
+              <div className="rounded-md border border-purple-500/20 bg-purple-500/10 p-2 text-purple-500">
                 <Smartphone className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">Mobile Push</p>
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1 py-0 text-[10px]"
+                  >
                     Expo Push
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">Instant banners on mobile app</p>
+                <p className="text-xs text-muted-foreground">
+                  Instant banners on mobile app
+                </p>
               </div>
             </div>
             <Switch
               checked={integrations.push}
-              onCheckedChange={(checked) => setIntegrations((prev) => ({ ...prev, push: checked }))}
+              onCheckedChange={(checked) =>
+                setIntegrations((prev) => ({ ...prev, push: checked }))
+              }
             />
           </div>
 
           {/* Email (Resend) */}
-          <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card/50">
+          <div className="flex items-center justify-between rounded-lg border bg-card/50 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <div className="rounded-md border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-500">
                 <Mail className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">Email Notifications</p>
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1 py-0 text-[10px]"
+                  >
                     {orgApiKeys?.hasCustomResendKey ? "Custom BYOK" : "Resend"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Sent to <span className="font-mono text-foreground">{profile?.email}</span>
+                  Sent to{" "}
+                  <span className="font-mono text-foreground">
+                    {profile?.email}
+                  </span>
                 </p>
               </div>
             </div>
             <Switch
               checked={integrations.email}
-              onCheckedChange={(checked) => setIntegrations((prev) => ({ ...prev, email: checked }))}
+              onCheckedChange={(checked) =>
+                setIntegrations((prev) => ({ ...prev, email: checked }))
+              }
             />
           </div>
 
           {/* WhatsApp (SentDM) */}
-          <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card/50">
+          <div className="flex items-center justify-between rounded-lg border bg-card/50 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-green-500/10 text-green-500 border border-green-500/20">
+              <div className="rounded-md border border-green-500/20 bg-green-500/10 p-2 text-green-500">
                 <MessageSquare className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">WhatsApp</p>
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1 py-0 text-[10px]"
+                  >
                     {orgApiKeys?.hasCustomSentDmKey ? "Custom BYOK" : "Sent.dm"}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">Direct template messages</p>
+                <p className="text-xs text-muted-foreground">
+                  Direct template messages
+                </p>
               </div>
             </div>
             <Switch
               checked={integrations.whatsapp}
-              onCheckedChange={(checked) => setIntegrations((prev) => ({ ...prev, whatsapp: checked }))}
+              onCheckedChange={(checked) =>
+                setIntegrations((prev) => ({ ...prev, whatsapp: checked }))
+              }
             />
           </div>
 
           {/* SMS (SentDM) */}
-          <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card/50">
+          <div className="flex items-center justify-between rounded-lg border bg-card/50 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-orange-500/10 text-orange-500 border border-orange-500/20">
+              <div className="rounded-md border border-orange-500/20 bg-orange-500/10 p-2 text-orange-500">
                 <Smartphone className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">SMS Messages</p>
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1 py-0 text-[10px]"
+                  >
                     {orgApiKeys?.hasCustomSentDmKey ? "Custom BYOK" : "Sent.dm"}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">Standard carrier cellular text</p>
+                <p className="text-xs text-muted-foreground">
+                  Standard carrier cellular text
+                </p>
               </div>
             </div>
             <Switch
               checked={integrations.sms}
-              onCheckedChange={(checked) => setIntegrations((prev) => ({ ...prev, sms: checked }))}
+              onCheckedChange={(checked) =>
+                setIntegrations((prev) => ({ ...prev, sms: checked }))
+              }
             />
           </div>
 
           {/* RCS (SentDM) */}
-          <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card/50">
+          <div className="flex items-center justify-between rounded-lg border bg-card/50 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+              <div className="rounded-md border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-500">
                 <Radio className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">RCS Business Messaging</p>
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1 py-0 text-[10px]"
+                  >
                     {orgApiKeys?.hasCustomSentDmKey ? "Custom BYOK" : "Sent.dm"}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">Rich cards with verified sender ID</p>
+                <p className="text-xs text-muted-foreground">
+                  Rich cards with verified sender ID
+                </p>
               </div>
             </div>
             <Switch
               checked={integrations.rcs}
-              onCheckedChange={(checked) => setIntegrations((prev) => ({ ...prev, rcs: checked }))}
+              onCheckedChange={(checked) =>
+                setIntegrations((prev) => ({ ...prev, rcs: checked }))
+              }
             />
           </div>
         </CardContent>
@@ -636,12 +1038,13 @@ export default function NotificationSettings() {
       {/* 3. Phone Contact Routing Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4 text-emerald-500" />
             Phone Contact Routing (Sent.dm)
           </CardTitle>
           <CardDescription>
-            Specify your international mobile number to receive SMS, WhatsApp, and RCS notifications.
+            Specify your international mobile number to receive SMS, WhatsApp,
+            and RCS notifications.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -653,14 +1056,22 @@ export default function NotificationSettings() {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+1234567890"
-                className="font-mono text-sm max-w-md"
+                className="max-w-md font-mono text-sm"
               />
-              <Button variant="outline" size="sm" onClick={handleSavePreferences} disabled={isSaving}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSavePreferences}
+                disabled={isSaving}
+              >
                 Save Phone
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Please include country code with a <span className="font-mono">+</span> sign (e.g. <span className="font-mono">+14155552671</span> or <span className="font-mono">+919876543210</span>).
+              Please include country code with a{" "}
+              <span className="font-mono">+</span> sign (e.g.{" "}
+              <span className="font-mono">+14155552671</span> or{" "}
+              <span className="font-mono">+919876543210</span>).
             </p>
           </div>
         </CardContent>
@@ -679,12 +1090,21 @@ export default function NotificationSettings() {
             {/* Task Assigned */}
             <div className="flex items-center justify-between p-3.5">
               <div>
-                <p className="text-sm font-medium">Task Assigned / Reassigned</p>
-                <p className="text-xs text-muted-foreground">Receive an alert when you are assigned to a task</p>
+                <p className="text-sm font-medium">
+                  Task Assigned / Reassigned
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Receive an alert when you are assigned to a task
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.taskAssigned}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, taskAssigned: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    taskAssigned: checked,
+                  }))
+                }
               />
             </div>
 
@@ -692,11 +1112,19 @@ export default function NotificationSettings() {
             <div className="flex items-center justify-between p-3.5">
               <div>
                 <p className="text-sm font-medium">Task Status Transitions</p>
-                <p className="text-xs text-muted-foreground">Alerts when tasks you participate in are marked Under Review or Completed</p>
+                <p className="text-xs text-muted-foreground">
+                  Alerts when tasks you participate in are marked Under Review
+                  or Completed
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.taskStatusChanged}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, taskStatusChanged: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    taskStatusChanged: checked,
+                  }))
+                }
               />
             </div>
 
@@ -704,23 +1132,39 @@ export default function NotificationSettings() {
             <div className="flex items-center justify-between p-3.5">
               <div>
                 <p className="text-sm font-medium">Due Date & Overdue Alerts</p>
-                <p className="text-xs text-muted-foreground">Automatic 24-hour advance reminder and overdue warning notices</p>
+                <p className="text-xs text-muted-foreground">
+                  Automatic 24-hour advance reminder and overdue warning notices
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.taskDueReminder}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, taskDueReminder: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    taskDueReminder: checked,
+                  }))
+                }
               />
             </div>
 
             {/* Task Comments */}
             <div className="flex items-center justify-between p-3.5">
               <div>
-                <p className="text-sm font-medium">Task Comments & Chat Messages</p>
-                <p className="text-xs text-muted-foreground">When team members comment on your tasks</p>
+                <p className="text-sm font-medium">
+                  Task Comments & Chat Messages
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  When team members comment on your tasks
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.taskComments}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, taskComments: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    taskComments: checked,
+                  }))
+                }
               />
             </div>
 
@@ -728,11 +1172,18 @@ export default function NotificationSettings() {
             <div className="flex items-center justify-between p-3.5">
               <div>
                 <p className="text-sm font-medium">Approval Requests</p>
-                <p className="text-xs text-muted-foreground">When your sign-off or approval is requested</p>
+                <p className="text-xs text-muted-foreground">
+                  When your sign-off or approval is requested
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.approvalRequested}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, approvalRequested: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    approvalRequested: checked,
+                  }))
+                }
               />
             </div>
 
@@ -740,23 +1191,40 @@ export default function NotificationSettings() {
             <div className="flex items-center justify-between p-3.5">
               <div>
                 <p className="text-sm font-medium">Approval Decisions</p>
-                <p className="text-xs text-muted-foreground">When your requested approval is Approved, Declined, or sent for Rework</p>
+                <p className="text-xs text-muted-foreground">
+                  When your requested approval is Approved, Declined, or sent
+                  for Rework
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.approvalDecided}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, approvalDecided: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    approvalDecided: checked,
+                  }))
+                }
               />
             </div>
 
             {/* Approval Comments */}
             <div className="flex items-center justify-between p-3.5">
               <div>
-                <p className="text-sm font-medium">Approval Discussion Comments</p>
-                <p className="text-xs text-muted-foreground">Discussion and audit comments on approval requests</p>
+                <p className="text-sm font-medium">
+                  Approval Discussion Comments
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Discussion and audit comments on approval requests
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.approvalComments}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, approvalComments: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    approvalComments: checked,
+                  }))
+                }
               />
             </div>
 
@@ -764,11 +1232,18 @@ export default function NotificationSettings() {
             <div className="flex items-center justify-between p-3.5">
               <div>
                 <p className="text-sm font-medium">Form Submissions</p>
-                <p className="text-xs text-muted-foreground">When responses are submitted for tasks or standalone forms</p>
+                <p className="text-xs text-muted-foreground">
+                  When responses are submitted for tasks or standalone forms
+                </p>
               </div>
               <Switch
                 checked={eventPreferences.formResponses}
-                onCheckedChange={(checked) => setEventPreferences((prev) => ({ ...prev, formResponses: checked }))}
+                onCheckedChange={(checked) =>
+                  setEventPreferences((prev) => ({
+                    ...prev,
+                    formResponses: checked,
+                  }))
+                }
               />
             </div>
           </div>
@@ -780,12 +1255,13 @@ export default function NotificationSettings() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Sparkles className="h-4 w-4 text-primary" />
                 Live Notification Dispatcher
               </CardTitle>
               <CardDescription>
-                Test your notification routing live across all configured channels.
+                Test your notification routing live across all configured
+                channels.
               </CardDescription>
             </div>
           </div>
@@ -845,7 +1321,7 @@ export default function NotificationSettings() {
               onClick={handleRunTest}
               disabled={isTesting}
               size="sm"
-              className="ml-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              className="ml-auto bg-primary font-medium text-primary-foreground hover:bg-primary/90"
             >
               {isTesting ? (
                 <>
@@ -863,28 +1339,35 @@ export default function NotificationSettings() {
 
           {/* Test Results Output */}
           {testResults && (
-            <div className="rounded-lg border bg-background/80 p-4 space-y-2 text-xs font-mono animate-in fade-in duration-200">
-              <p className="font-semibold text-foreground flex items-center gap-1.5">
+            <div className="animate-in space-y-2 rounded-lg border bg-background/80 p-4 font-mono text-xs duration-200 fade-in">
+              <p className="flex items-center gap-1.5 font-semibold text-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                 Dispatch Results Summary:
               </p>
               <div className="space-y-1 text-muted-foreground">
-                {Object.entries(testResults).map(([key, val]: [string, any]) => (
-                  <div key={key} className="flex items-center justify-between border-b border-border/50 py-1 last:border-0">
-                    <span className="uppercase text-foreground font-semibold">{key}:</span>
-                    <span
-                      className={
-                        val.status === "success"
-                          ? "text-emerald-500 font-medium"
-                          : val.status === "warning"
-                          ? "text-amber-500 font-medium"
-                          : "text-rose-500 font-medium"
-                      }
+                {Object.entries(testResults).map(
+                  ([key, val]: [string, any]) => (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between border-b border-border/50 py-1 last:border-0"
                     >
-                      {val.message}
-                    </span>
-                  </div>
-                ))}
+                      <span className="font-semibold text-foreground uppercase">
+                        {key}:
+                      </span>
+                      <span
+                        className={
+                          val.status === "success"
+                            ? "font-medium text-emerald-500"
+                            : val.status === "warning"
+                              ? "font-medium text-amber-500"
+                              : "font-medium text-rose-500"
+                        }
+                      >
+                        {val.message}
+                      </span>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           )}

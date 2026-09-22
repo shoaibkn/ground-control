@@ -26,16 +26,18 @@ export const InvitationEmail = ({
 }: InvitationEmailProps) => (
   <Html>
     <Head />
-    <Preview>You've been invited to join {organizationName} on Ground Control</Preview>
+    <Preview>
+      You've been invited to join {organizationName} on Ground Control
+    </Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Ground Control</Heading>
         <Section style={section}>
+          <Text style={text}>Hi there,</Text>
           <Text style={text}>
-            Hi there,
-          </Text>
-          <Text style={text}>
-            <strong>{inviterEmail}</strong> has invited you to join the organization <strong>{organizationName}</strong> as an <strong>{role}</strong> on Ground Control.
+            <strong>{inviterEmail}</strong> has invited you to join the
+            organization <strong>{organizationName}</strong> as an{" "}
+            <strong>{role}</strong> on Ground Control.
           </Text>
           <Text style={text}>
             Click the link below to accept the invitation and join the team:
@@ -44,7 +46,8 @@ export const InvitationEmail = ({
             Join Organization
           </Link>
           <Text style={text}>
-            If you didn't expect this invitation, you can safely ignore this email.
+            If you didn't expect this invitation, you can safely ignore this
+            email.
           </Text>
         </Section>
       </Container>

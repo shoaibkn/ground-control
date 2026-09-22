@@ -65,12 +65,24 @@ export const createTask = mutation({
     const user = await requireAuth(ctx)
     const member = await requireMember(ctx, user._id, args.organizationId)
 
-    const canCreate = await hasPermission(ctx, args.organizationId, member.role, "tasks", "create")
+    const canCreate = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "tasks",
+      "create"
+    )
     if (!canCreate) {
       throw new Error("Permission denied to create tasks")
     }
 
-    const canAssign = await hasPermission(ctx, args.organizationId, member.role, "tasks", "assign")
+    const canAssign = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "tasks",
+      "assign"
+    )
     let finalAssignees = args.assigneeIds
     let finalCollaborators = args.collaboratorIds || []
     let finalSubscribers = args.subscriberIds || []
@@ -84,8 +96,14 @@ export const createTask = mutation({
 
     // Ensure role exclusivity: Assignees > Collaborators > Subscribers
     const assigneeSet = new Set(finalAssignees)
-    const collaboratorSet = new Set(finalCollaborators.filter((id: string) => !assigneeSet.has(id)))
-    const subscriberSet = new Set(finalSubscribers.filter((id: string) => !assigneeSet.has(id) && !collaboratorSet.has(id)))
+    const collaboratorSet = new Set(
+      finalCollaborators.filter((id: string) => !assigneeSet.has(id))
+    )
+    const subscriberSet = new Set(
+      finalSubscribers.filter(
+        (id: string) => !assigneeSet.has(id) && !collaboratorSet.has(id)
+      )
+    )
 
     const cleanAssignees = Array.from(assigneeSet)
     const cleanCollaborators = Array.from(collaboratorSet)
@@ -114,11 +132,11 @@ export const createTask = mutation({
       taskId,
       actorId: user._id,
       action: "TASK_CREATED",
-      details: { 
-        title: args.title, 
+      details: {
+        title: args.title,
         assignees: cleanAssignees,
         collaborators: cleanCollaborators,
-        subscribers: cleanSubscribers
+        subscribers: cleanSubscribers,
       },
       timestamp: Date.now(),
     })
@@ -126,18 +144,22 @@ export const createTask = mutation({
     // Send notifications to assignees
     for (const assigneeId of cleanAssignees) {
       if (assigneeId !== user._id) {
-        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
-          userId: assigneeId,
-          organizationId: args.organizationId,
-          templateName: "task_assigned",
-          parameters: {
-            taskTitle: args.title,
-            assignerName: user.name || user.email || "Someone",
-            dueDate: args.dueDate
-              ? new Date(args.dueDate).toLocaleDateString()
-              : "No due date",
-          },
-        })
+        await ctx.scheduler.runAfter(
+          0,
+          internal.notifications.sendNotification,
+          {
+            userId: assigneeId,
+            organizationId: args.organizationId,
+            templateName: "task_assigned",
+            parameters: {
+              taskTitle: args.title,
+              assignerName: user.name || user.email || "Someone",
+              dueDate: args.dueDate
+                ? new Date(args.dueDate).toLocaleDateString()
+                : "No due date",
+            },
+          }
+        )
       }
     }
 
@@ -151,8 +173,20 @@ export const getTasks = query({
     const user = await requireAuth(ctx)
     const member = await requireMember(ctx, user._id, args.organizationId)
 
-    const canReadAll = await hasPermission(ctx, args.organizationId, member.role, "tasks", "read_all")
-    const canReadOwn = await hasPermission(ctx, args.organizationId, member.role, "tasks", "read_own")
+    const canReadAll = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "tasks",
+      "read_all"
+    )
+    const canReadOwn = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "tasks",
+      "read_own"
+    )
 
     if (!canReadAll && !canReadOwn) {
       throw new Error("Permission denied to read tasks")
@@ -160,7 +194,9 @@ export const getTasks = query({
 
     let tasksQuery = ctx.db
       .query("tasks")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
 
     if (!args.showArchived) {
       tasksQuery = tasksQuery.filter((q) => q.eq(q.field("isArchived"), false))
@@ -198,14 +234,16 @@ export const getTasks = query({
         .query("taskChats")
         .withIndex("by_task", (q) => q.eq("taskId", task._id))
         .collect()
-      
+
       const activeChats = chats.filter((c) => !c.isDeleted)
       const chatCount = activeChats.length
 
       // Unread chats count
       const readReceipt = await ctx.db
         .query("taskReadReceipts")
-        .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
+        .withIndex("by_task_user", (q) =>
+          q.eq("taskId", task._id).eq("userId", user._id)
+        )
         .first()
 
       const lastReadTime = readReceipt?.lastReadTime ?? 0
@@ -227,9 +265,12 @@ export const getTasks = query({
         .first()
 
       let lastActivity = null
-      
+
       // Determine if the latest chat is newer than the latest audit log
-      if (latestChat && latestChat._creationTime > (latestAuditLog?.timestamp ?? 0)) {
+      if (
+        latestChat &&
+        latestChat._creationTime > (latestAuditLog?.timestamp ?? 0)
+      ) {
         // Resolve chat author profile
         let actor = null
         if (latestChat.userId && latestChat.userId.length >= 15) {
@@ -250,7 +291,10 @@ export const getTasks = query({
               }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for chat author: ${latestChat.userId}`, e)
+            console.error(
+              `Failed to find user profile for chat author: ${latestChat.userId}`,
+              e
+            )
           }
         }
         lastActivity = {
@@ -262,7 +306,11 @@ export const getTasks = query({
         // Resolve audit log actor profile
         const isSystemActor = latestAuditLog.actorId.toUpperCase() === "SYSTEM"
         let actor = null
-        if (!isSystemActor && latestAuditLog.actorId && latestAuditLog.actorId.length >= 15) {
+        if (
+          !isSystemActor &&
+          latestAuditLog.actorId &&
+          latestAuditLog.actorId.length >= 15
+        ) {
           try {
             const userRecord = (await ctx.runQuery(
               components.betterAuth.adapter.findOne,
@@ -280,13 +328,18 @@ export const getTasks = query({
               }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for audit log actor: ${latestAuditLog.actorId}`, e)
+            console.error(
+              `Failed to find user profile for audit log actor: ${latestAuditLog.actorId}`,
+              e
+            )
           }
         }
         lastActivity = {
           action: latestAuditLog.action,
           timestamp: latestAuditLog.timestamp,
-          actor: actor || (isSystemActor ? { name: "System" } : { name: "Unknown Member" }),
+          actor:
+            actor ||
+            (isSystemActor ? { name: "System" } : { name: "Unknown Member" }),
         }
       } else {
         // Fallback to task creation
@@ -309,7 +362,10 @@ export const getTasks = query({
               }
             }
           } catch (e) {
-            console.error(`Failed to find user profile for task creator: ${task.creatorId}`, e)
+            console.error(
+              `Failed to find user profile for task creator: ${task.creatorId}`,
+              e
+            )
           }
         }
         lastActivity = {
@@ -335,7 +391,11 @@ export const getTasks = query({
   },
 })
 
-export function calculateNextDueDate(currentDueDate: number, frequency: string, endDate?: number): number | null {
+export function calculateNextDueDate(
+  currentDueDate: number,
+  frequency: string,
+  endDate?: number
+): number | null {
   const date = new Date(currentDueDate)
   switch (frequency) {
     case "daily":
@@ -464,28 +524,52 @@ export const updateTaskStatus = mutation({
     const isAssignee = task.assigneeIds.includes(user._id)
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
-    const canComplete = await hasPermission(ctx, task.organizationId, member.role, "tasks", "complete")
-    const canCancel = await hasPermission(ctx, task.organizationId, member.role, "tasks", "cancel")
+    const canComplete = await hasPermission(
+      ctx,
+      task.organizationId,
+      member.role,
+      "tasks",
+      "complete"
+    )
+    const canCancel = await hasPermission(
+      ctx,
+      task.organizationId,
+      member.role,
+      "tasks",
+      "cancel"
+    )
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
 
     // Validate if the task requires form completion before transition to Completed or Pending Approval
-    if (task.formId && !task.formResponseId && (args.status === "Completed" || args.status === "Pending Approval")) {
-      throw new Error("You must fill out and submit the required form before completing this task.")
+    if (
+      task.formId &&
+      !task.formResponseId &&
+      (args.status === "Completed" || args.status === "Pending Approval")
+    ) {
+      throw new Error(
+        "You must fill out and submit the required form before completing this task."
+      )
     }
 
     // State machine logic
     let targetStatus = args.status
-    if (args.status === "Completed" && task.completedRequiresApproval && user._id !== task.creatorId) {
+    if (
+      args.status === "Completed" &&
+      task.completedRequiresApproval &&
+      user._id !== task.creatorId
+    ) {
       targetStatus = "Pending Approval"
 
       // Check for existing pending approval request for this task
       const existingApproval = await ctx.db
         .query("approvals")
-        .filter(q => q.and(
-          q.eq(q.field("taskId"), task._id),
-          q.eq(q.field("status"), "Pending"),
-          q.eq(q.field("isArchived"), false)
-        ))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("taskId"), task._id),
+            q.eq(q.field("status"), "Pending"),
+            q.eq(q.field("isArchived"), false)
+          )
+        )
         .first()
 
       if (!existingApproval) {
@@ -496,7 +580,7 @@ export const updateTaskStatus = mutation({
           creatorId: user._id,
           organizationId: task.organizationId,
           approverIds: [task.creatorId],
-          subscriberIds: task.assigneeIds.filter(id => id !== user._id),
+          subscriberIds: task.assigneeIds.filter((id) => id !== user._id),
           isArchived: false,
           taskId: task._id,
         })
@@ -506,17 +590,33 @@ export const updateTaskStatus = mutation({
     if (targetStatus === "Cancelled" && !canCancel) {
       throw new Error("Only admins/owners can cancel tasks")
     }
-    
-    if (targetStatus === "Completed" && !isAssignee && !isCollaborator && !isCreator && !canComplete) {
+
+    if (
+      targetStatus === "Completed" &&
+      !isAssignee &&
+      !isCollaborator &&
+      !isCreator &&
+      !canComplete
+    ) {
       throw new Error("Unauthorized to complete task")
     }
 
-    if (targetStatus === "Pending Approval" && !isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
+    if (
+      targetStatus === "Pending Approval" &&
+      !isAssignee &&
+      !isCollaborator &&
+      !isCreator &&
+      !isAdminOrOwner
+    ) {
       throw new Error("Unauthorized to request completion for this task")
     }
 
     // Member moving forward
-    if (targetStatus === "In Progress" || targetStatus === "Under Review" || targetStatus === "Pending Approval") {
+    if (
+      targetStatus === "In Progress" ||
+      targetStatus === "Under Review" ||
+      targetStatus === "Pending Approval"
+    ) {
       if (!isAssignee && !isCollaborator && !isCreator && !canComplete) {
         throw new Error("Permission denied to update task status")
       }
@@ -593,13 +693,21 @@ export const getTask = query({
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isSubscriber = task.subscriberIds?.includes(user._id) || false
 
-    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
+    if (
+      !isAdminOrOwner &&
+      !isCreator &&
+      !isAssignee &&
+      !isCollaborator &&
+      !isSubscriber
+    ) {
       throw new Error("Permission denied to view this task")
     }
 
     const starred = await ctx.db
       .query("starredTasks")
-      .withIndex("by_user_task", (q) => q.eq("userId", user._id).eq("taskId", task._id))
+      .withIndex("by_user_task", (q) =>
+        q.eq("userId", user._id).eq("taskId", task._id)
+      )
       .first()
 
     return {
@@ -629,7 +737,9 @@ export const updateTaskDetails = mutation({
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
     const isCreator = task.creatorId === user._id
     if (!isCreator && !isAdminOrOwner) {
-      throw new Error("Only the creator/assigner or organization admins/owners can edit task details")
+      throw new Error(
+        "Only the creator/assigner or organization admins/owners can edit task details"
+      )
     }
 
     const patch: Record<string, any> = {}
@@ -637,7 +747,8 @@ export const updateTaskDetails = mutation({
     if (args.description !== undefined) patch.description = args.description
     if (args.priority !== undefined) patch.priority = args.priority
     if (args.dueDate !== undefined) patch.dueDate = args.dueDate
-    if (args.completedRequiresApproval !== undefined) patch.completedRequiresApproval = args.completedRequiresApproval
+    if (args.completedRequiresApproval !== undefined)
+      patch.completedRequiresApproval = args.completedRequiresApproval
 
     await ctx.db.patch(args.taskId, patch)
 
@@ -669,12 +780,18 @@ export const inviteAssignees = mutation({
 
     // Only assigner (creator) or admin can change assignees
     if (!isCreator && !isAdminOrOwner) {
-      throw new Error("Only the creator/assigner or organization admins/owners can update assignees")
+      throw new Error(
+        "Only the creator/assigner or organization admins/owners can update assignees"
+      )
     }
 
     const cleanAssignees = Array.from(new Set(args.assigneeIds))
-    const cleanCollaborators = (task.collaboratorIds || []).filter((id: string) => !cleanAssignees.includes(id))
-    const cleanSubscribers = (task.subscriberIds || []).filter((id: string) => !cleanAssignees.includes(id))
+    const cleanCollaborators = (task.collaboratorIds || []).filter(
+      (id: string) => !cleanAssignees.includes(id)
+    )
+    const cleanSubscribers = (task.subscriberIds || []).filter(
+      (id: string) => !cleanAssignees.includes(id)
+    )
 
     await ctx.db.patch(args.taskId, {
       assigneeIds: cleanAssignees,
@@ -691,21 +808,27 @@ export const inviteAssignees = mutation({
     })
 
     // Send notifications to newly added assignees
-    const newAssignees = cleanAssignees.filter((id) => !task.assigneeIds.includes(id))
+    const newAssignees = cleanAssignees.filter(
+      (id) => !task.assigneeIds.includes(id)
+    )
     for (const assigneeId of newAssignees) {
       if (assigneeId !== user._id) {
-        await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
-          userId: assigneeId,
-          organizationId: task.organizationId,
-          templateName: "task_assigned",
-          parameters: {
-            taskTitle: task.title,
-            assignerName: user.name || user.email || "Someone",
-            dueDate: task.dueDate
-              ? new Date(task.dueDate).toLocaleDateString()
-              : "No due date",
-          },
-        })
+        await ctx.scheduler.runAfter(
+          0,
+          internal.notifications.sendNotification,
+          {
+            userId: assigneeId,
+            organizationId: task.organizationId,
+            templateName: "task_assigned",
+            parameters: {
+              taskTitle: task.title,
+              assignerName: user.name || user.email || "Someone",
+              dueDate: task.dueDate
+                ? new Date(task.dueDate).toLocaleDateString()
+                : "No due date",
+            },
+          }
+        )
       }
     }
 
@@ -733,8 +856,12 @@ export const updateCollaborators = mutation({
       throw new Error("Only the creator or assignees can manage collaborators")
     }
 
-    const cleanCollaborators = (Array.from(new Set(args.collaboratorIds)) as string[]).filter(id => !task.assigneeIds.includes(id))
-    const cleanSubscribers = (task.subscriberIds || []).filter((id: string) => !cleanCollaborators.includes(id))
+    const cleanCollaborators = (
+      Array.from(new Set(args.collaboratorIds)) as string[]
+    ).filter((id) => !task.assigneeIds.includes(id))
+    const cleanSubscribers = (task.subscriberIds || []).filter(
+      (id: string) => !cleanCollaborators.includes(id)
+    )
 
     await ctx.db.patch(args.taskId, {
       collaboratorIds: cleanCollaborators,
@@ -745,7 +872,10 @@ export const updateCollaborators = mutation({
       taskId: args.taskId,
       actorId: user._id,
       action: "COLLABORATORS_UPDATED",
-      details: { previous: task.collaboratorIds || [], new: cleanCollaborators },
+      details: {
+        previous: task.collaboratorIds || [],
+        new: cleanCollaborators,
+      },
       timestamp: Date.now(),
     })
 
@@ -771,11 +901,17 @@ export const updateSubscribers = mutation({
 
     // Only assigner, assignees, and collaborators can add/remove subscribers
     if (!isCreator && !isAssignee && !isCollaborator && !isAdminOrOwner) {
-      throw new Error("Only the creator, assignees, or collaborators can manage subscribers")
+      throw new Error(
+        "Only the creator, assignees, or collaborators can manage subscribers"
+      )
     }
 
-    const cleanSubscribers = (Array.from(new Set(args.subscriberIds)) as string[]).filter(id => !task.assigneeIds.includes(id))
-    const cleanCollaborators = (task.collaboratorIds || []).filter((id: string) => !cleanSubscribers.includes(id))
+    const cleanSubscribers = (
+      Array.from(new Set(args.subscriberIds)) as string[]
+    ).filter((id) => !task.assigneeIds.includes(id))
+    const cleanCollaborators = (task.collaboratorIds || []).filter(
+      (id: string) => !cleanSubscribers.includes(id)
+    )
 
     await ctx.db.patch(args.taskId, {
       collaboratorIds: cleanCollaborators,
@@ -812,7 +948,9 @@ export const createSubtask = mutation({
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
     if (!isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
-      throw new Error("Only the creator, assignees, collaborators, or organization admins can add subtasks")
+      throw new Error(
+        "Only the creator, assignees, collaborators, or organization admins can add subtasks"
+      )
     }
 
     const subtaskId = await ctx.db.insert("subtasks", {
@@ -857,7 +995,9 @@ export const toggleSubtask = mutation({
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isCreator = task.creatorId === user._id
     if (!isAssignee && !isCollaborator && !isCreator && !isAdminOrOwner) {
-      throw new Error("Only the creator, assignees, collaborators, or organization admins can toggle subtasks")
+      throw new Error(
+        "Only the creator, assignees, collaborators, or organization admins can toggle subtasks"
+      )
     }
 
     await ctx.db.patch(args.subtaskId, {
@@ -868,7 +1008,11 @@ export const toggleSubtask = mutation({
       taskId: subtask.taskId,
       actorId: user._id,
       action: "SUBTASK_TOGGLED",
-      details: { subtaskId: args.subtaskId, title: subtask.title, isCompleted: args.isCompleted },
+      details: {
+        subtaskId: args.subtaskId,
+        title: subtask.title,
+        isCompleted: args.isCompleted,
+      },
       timestamp: Date.now(),
     })
 
@@ -876,8 +1020,8 @@ export const toggleSubtask = mutation({
       await ctx.db.insert("taskChats", {
         taskId: subtask.taskId,
         userId: user._id,
-        content: args.isCompleted 
-          ? `completed subtask: ${subtask.title}` 
+        content: args.isCompleted
+          ? `completed subtask: ${subtask.title}`
           : `marked subtask "${subtask.title}" as incomplete`,
         isEdited: false,
         isDeleted: false,
@@ -930,33 +1074,37 @@ export const getTaskAuditLogs = query({
 
       if (!isSystemActor && log.actorId && log.actorId.length >= 15) {
         try {
-          actor = (await ctx.runQuery(
-            components.betterAuth.adapter.findOne,
-            {
-              model: "user",
-              where: [{ field: "_id", value: log.actorId }],
-            }
-          )) as any
+          actor = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+            model: "user",
+            where: [{ field: "_id", value: log.actorId }],
+          })) as any
         } catch (err) {
-          console.error(`Failed to find user profile for actorId: ${log.actorId}`, err)
+          console.error(
+            `Failed to find user profile for actorId: ${log.actorId}`,
+            err
+          )
         }
       }
 
       logsWithActors.push({
         ...log,
-        actor: isSystemActor ? {
-          name: "System",
-          email: "",
-          image: "",
-        } : actor ? {
-          name: actor.name,
-          email: actor.email,
-          image: actor.image,
-        } : {
-          name: "Unknown Member",
-          email: "",
-          image: ""
-        }
+        actor: isSystemActor
+          ? {
+              name: "System",
+              email: "",
+              image: "",
+            }
+          : actor
+            ? {
+                name: actor.name,
+                email: actor.email,
+                image: actor.image,
+              }
+            : {
+                name: "Unknown Member",
+                email: "",
+                image: "",
+              },
       })
     }
 
@@ -984,7 +1132,13 @@ export const toggleReaction = mutation({
     const isSubscriber = task.subscriberIds?.includes(user._id) || false
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
 
-    if (!isCreator && !isAssignee && !isCollaborator && !isSubscriber && !isAdminOrOwner) {
+    if (
+      !isCreator &&
+      !isAssignee &&
+      !isCollaborator &&
+      !isSubscriber &&
+      !isAdminOrOwner
+    ) {
       throw new Error("Permission denied to react to this task")
     }
 
@@ -1021,7 +1175,9 @@ export const toggleStarTask = mutation({
 
     const existing = await ctx.db
       .query("starredTasks")
-      .withIndex("by_user_task", (q) => q.eq("userId", user._id).eq("taskId", args.taskId))
+      .withIndex("by_user_task", (q) =>
+        q.eq("userId", user._id).eq("taskId", args.taskId)
+      )
       .first()
 
     if (existing) {
@@ -1093,7 +1249,9 @@ export const updateTaskRecurrence = mutation({
     const isCreator = task.creatorId === user._id
 
     if (!isCreator && !isAdminOrOwner) {
-      throw new Error("Only the creator or admins can modify task recurrence settings")
+      throw new Error(
+        "Only the creator or admins can modify task recurrence settings"
+      )
     }
 
     await ctx.db.patch(args.taskId, {
@@ -1125,7 +1283,15 @@ export const deleteTask = mutation({
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
     const isCreator = task.creatorId === user._id
 
-    const canDelete = isCreator || await hasPermission(ctx, task.organizationId, member.role, "tasks", "delete")
+    const canDelete =
+      isCreator ||
+      (await hasPermission(
+        ctx,
+        task.organizationId,
+        member.role,
+        "tasks",
+        "delete"
+      ))
     if (!canDelete) {
       throw new Error("Permission denied to delete tasks")
     }

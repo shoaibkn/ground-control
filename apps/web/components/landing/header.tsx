@@ -1,6 +1,17 @@
 "use client"
 
-import { Menu, Loader2, LogOut, User, Rocket, CheckCircle2, FileText, Shield, Activity, ClipboardList } from "lucide-react"
+import {
+  Menu,
+  Loader2,
+  LogOut,
+  User,
+  Rocket,
+  CheckCircle2,
+  FileText,
+  Shield,
+  Activity,
+  ClipboardList,
+} from "lucide-react"
 
 import {
   Accordion,
@@ -74,37 +85,43 @@ const Navbar1 = ({
       items: [
         {
           title: "Task Management",
-          description: "Multi-view tasks with status workflows, priorities, and recurring schedules",
+          description:
+            "Multi-view tasks with status workflows, priorities, and recurring schedules",
           icon: <CheckCircle2 className="size-5 shrink-0" />,
           url: "#features",
         },
         {
           title: "Approval Workflows",
-          description: "Create approvals, assign approvers, and track decisions in real-time",
+          description:
+            "Create approvals, assign approvers, and track decisions in real-time",
           icon: <ClipboardList className="size-5 shrink-0" />,
           url: "#features",
         },
         {
           title: "Forms Builder",
-          description: "Dynamic form builder with shareable forms linked to tasks and approvals",
+          description:
+            "Dynamic form builder with shareable forms linked to tasks and approvals",
           icon: <FileText className="size-5 shrink-0" />,
           url: "#features",
         },
         {
           title: "Role-Based Permissions",
-          description: "Granular permission matrices per organization with admin/member/guest control",
+          description:
+            "Granular permission matrices per organization with admin/member/guest control",
           icon: <Shield className="size-5 shrink-0" />,
           url: "#features",
         },
         {
           title: "Real-Time Collaboration",
-          description: "Chat threads, file attachments, reactions, and read receipts",
+          description:
+            "Chat threads, file attachments, reactions, and read receipts",
           icon: <Activity className="size-5 shrink-0" />,
           url: "#features",
         },
         {
           title: "Audit Trail",
-          description: "Comprehensive audit logging, notifications, and overdue task monitoring",
+          description:
+            "Comprehensive audit logging, notifications, and overdue task monitoring",
           icon: <Rocket className="size-5 shrink-0" />,
           url: "#features",
         },
@@ -132,7 +149,10 @@ const Navbar1 = ({
     })
   }
 
-  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+  const handleSmoothScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    url: string
+  ) => {
     if (url.startsWith("#")) {
       e.preventDefault()
       const el = document.getElementById(url.slice(1))
@@ -167,21 +187,21 @@ const Navbar1 = ({
               </NavigationMenu>
             </div>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex items-center gap-2">
             {isPending ? (
-              <Loader2 className="animate-spin size-4 text-muted-foreground" />
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
             ) : session ? (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <User className="size-4" />
-                    <span>{session.user.name}</span>
+                  <User className="size-4" />
+                  <span>{session.user.name}</span>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleLogout}>
                   <LogOut className="mr-2 size-4" />
                   Logout
                 </Button>
                 <Button size="sm" asChild>
-                    <Link href="/dashboard">Dashboard</Link>
+                  <Link href="/dashboard">Dashboard</Link>
                 </Button>
               </div>
             ) : (
@@ -237,22 +257,28 @@ const Navbar1 = ({
 
                   {/* Legal Links */}
                   <div className="flex flex-col gap-2 border-t border-zinc-800 pt-4">
-                    <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <Link
+                      href="/privacy"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
                       Privacy Policy
                     </Link>
-                    <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <Link
+                      href="/terms"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
                       Terms of Service
                     </Link>
                   </div>
 
                   <div className="flex flex-col gap-3">
                     {isPending ? (
-                      <Loader2 className="animate-spin size-4 self-center" />
+                      <Loader2 className="size-4 animate-spin self-center" />
                     ) : session ? (
                       <>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                            <User className="size-4" />
-                            <span>{session.user.name}</span>
+                        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                          <User className="size-4" />
+                          <span>{session.user.name}</span>
                         </div>
                         <Button variant="outline" onClick={handleLogout}>
                           Logout
@@ -267,7 +293,9 @@ const Navbar1 = ({
                           <Link href={auth.login.url}>{auth.login.title}</Link>
                         </Button>
                         <Button asChild>
-                          <Link href={auth.signup.url}>{auth.signup.title}</Link>
+                          <Link href={auth.signup.url}>
+                            {auth.signup.title}
+                          </Link>
                         </Button>
                       </>
                     )}
@@ -284,7 +312,10 @@ const Navbar1 = ({
 
 const renderMenuItem = (
   item: MenuItem,
-  handleSmoothScroll: (e: React.MouseEvent<HTMLAnchorElement>, url: string) => void
+  handleSmoothScroll: (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    url: string
+  ) => void
 ) => {
   if (item.items) {
     return (
@@ -293,7 +324,11 @@ const renderMenuItem = (
         <NavigationMenuContent className="bg-popover text-popover-foreground">
           <div className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
             {item.items.map((subItem) => (
-              <SubMenuLink key={subItem.title} item={subItem} onSmoothScroll={handleSmoothScroll} />
+              <SubMenuLink
+                key={subItem.title}
+                item={subItem}
+                onSmoothScroll={handleSmoothScroll}
+              />
             ))}
           </div>
         </NavigationMenuContent>
@@ -307,10 +342,7 @@ const renderMenuItem = (
         asChild
         className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-accent-foreground focus:bg-muted focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
       >
-        <Link
-          href={item.url}
-          onClick={(e) => handleSmoothScroll(e, item.url)}
-        >
+        <Link href={item.url} onClick={(e) => handleSmoothScroll(e, item.url)}>
           {item.title}
         </Link>
       </NavigationMenuLink>

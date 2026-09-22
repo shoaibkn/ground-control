@@ -13,23 +13,22 @@ export default function PrivacyPolicyPage() {
     <article className="prose-invert max-w-none space-y-10">
       {/* Header */}
       <div className="space-y-3 border-b border-zinc-900 pb-8">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+        <p className="font-mono text-[10px] tracking-widest text-zinc-500 uppercase">
           Legal
         </p>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Privacy Policy
         </h1>
-        <p className="text-sm text-zinc-400">
-          Effective date: {effectiveDate}
-        </p>
+        <p className="text-sm text-zinc-400">Effective date: {effectiveDate}</p>
       </div>
 
       {/* Introduction */}
       <section className="space-y-4">
         <p className="text-sm leading-relaxed text-zinc-300">
-          Ground Control (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the Ground Control
-          web application (the &ldquo;Service&rdquo;). This Privacy Policy explains how we
-          collect, use, disclose, and safeguard your information when you use our
+          Ground Control (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or
+          &ldquo;our&rdquo;) operates the Ground Control web application (the
+          &ldquo;Service&rdquo;). This Privacy Policy explains how we collect,
+          use, disclose, and safeguard your information when you use our
           Service.
         </p>
         <p className="text-sm leading-relaxed text-zinc-300">
@@ -48,26 +47,30 @@ export default function PrivacyPolicyPage() {
           <h3 className="text-base font-medium text-zinc-200">
             1.1 Information You Provide
           </h3>
-          <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+          <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
             <li>
-              <span className="text-zinc-300 font-medium">Account Information:</span>{" "}
+              <span className="font-medium text-zinc-300">
+                Account Information:
+              </span>{" "}
               When you register, we collect your name, email address, and
               password. If you sign up via Google OAuth, we receive your name,
               email address, and profile picture from Google.
             </li>
             <li>
-              <span className="text-zinc-300 font-medium">Organization Data:</span>{" "}
+              <span className="font-medium text-zinc-300">
+                Organization Data:
+              </span>{" "}
               Information about organizations you create or join, including
               organization name, member roles, and member profiles (position,
               department, phone number, address).
             </li>
             <li>
-              <span className="text-zinc-300 font-medium">Content Data:</span>{" "}
+              <span className="font-medium text-zinc-300">Content Data:</span>{" "}
               Tasks, approvals, form responses, chat messages, comments, and
               file attachments you create within the Service.
             </li>
             <li>
-              <span className="text-zinc-300 font-medium">Beta Programme:</span>{" "}
+              <span className="font-medium text-zinc-300">Beta Programme:</span>{" "}
               If you sign up for our Beta Programme, we collect your name and
               email address.
             </li>
@@ -78,15 +81,15 @@ export default function PrivacyPolicyPage() {
           <h3 className="text-base font-medium text-zinc-200">
             1.2 Information Collected Automatically
           </h3>
-          <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+          <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
             <li>
-              <span className="text-zinc-300 font-medium">Usage Data:</span>{" "}
-              We may collect information about how you access and use the Service,
-              including your browser type, device information, pages visited, and
-              timestamps of interactions.
+              <span className="font-medium text-zinc-300">Usage Data:</span> We
+              may collect information about how you access and use the Service,
+              including your browser type, device information, pages visited,
+              and timestamps of interactions.
             </li>
             <li>
-              <span className="text-zinc-300 font-medium">Session Data:</span>{" "}
+              <span className="font-medium text-zinc-300">Session Data:</span>{" "}
               Session tokens and authentication state managed through our
               authentication provider (Better Auth).
             </li>
@@ -102,7 +105,7 @@ export default function PrivacyPolicyPage() {
         <p className="text-sm text-zinc-400">
           We use the information we collect to:
         </p>
-        <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+        <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
           <li>Provide, operate, and maintain the Service</li>
           <li>Authenticate your identity and manage your account</li>
           <li>Enable collaboration within your organizations</li>
@@ -129,34 +132,50 @@ export default function PrivacyPolicyPage() {
           We use the following third-party services to operate the Service:
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border border-zinc-800 rounded-lg overflow-hidden">
-            <thead className="bg-zinc-900/60 text-zinc-300 text-xs uppercase font-mono">
+          <table className="w-full overflow-hidden rounded-lg border border-zinc-800 text-left text-sm">
+            <thead className="bg-zinc-900/60 font-mono text-xs text-zinc-300 uppercase">
               <tr>
-                <th className="px-4 py-3 border-b border-zinc-800">Service</th>
-                <th className="px-4 py-3 border-b border-zinc-800">Purpose</th>
-                <th className="px-4 py-3 border-b border-zinc-800">Data Shared</th>
+                <th className="border-b border-zinc-800 px-4 py-3">Service</th>
+                <th className="border-b border-zinc-800 px-4 py-3">Purpose</th>
+                <th className="border-b border-zinc-800 px-4 py-3">
+                  Data Shared
+                </th>
               </tr>
             </thead>
             <tbody className="text-zinc-400">
               <tr className="border-b border-zinc-900">
                 <td className="px-4 py-3 font-medium text-zinc-300">Convex</td>
-                <td className="px-4 py-3">Real-time database and serverless backend</td>
-                <td className="px-4 py-3">All application data (tasks, approvals, forms, user profiles)</td>
+                <td className="px-4 py-3">
+                  Real-time database and serverless backend
+                </td>
+                <td className="px-4 py-3">
+                  All application data (tasks, approvals, forms, user profiles)
+                </td>
               </tr>
               <tr className="border-b border-zinc-900">
-                <td className="px-4 py-3 font-medium text-zinc-300">Google OAuth</td>
+                <td className="px-4 py-3 font-medium text-zinc-300">
+                  Google OAuth
+                </td>
                 <td className="px-4 py-3">Social sign-in authentication</td>
-                <td className="px-4 py-3">Name, email, profile picture (received from Google)</td>
+                <td className="px-4 py-3">
+                  Name, email, profile picture (received from Google)
+                </td>
               </tr>
               <tr className="border-b border-zinc-900">
                 <td className="px-4 py-3 font-medium text-zinc-300">Resend</td>
                 <td className="px-4 py-3">Transactional email delivery</td>
-                <td className="px-4 py-3">Recipient email address, email content</td>
+                <td className="px-4 py-3">
+                  Recipient email address, email content
+                </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 font-medium text-zinc-300">Cloudflare R2</td>
+                <td className="px-4 py-3 font-medium text-zinc-300">
+                  Cloudflare R2
+                </td>
                 <td className="px-4 py-3">File attachment storage</td>
-                <td className="px-4 py-3">Uploaded files (documents, images)</td>
+                <td className="px-4 py-3">
+                  Uploaded files (documents, images)
+                </td>
               </tr>
             </tbody>
           </table>
@@ -169,9 +188,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 4. Data Retention */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          4. Data Retention
-        </h2>
+        <h2 className="text-xl font-semibold text-white">4. Data Retention</h2>
         <p className="text-sm text-zinc-400">
           We retain your personal data for as long as your account is active or
           as needed to provide you the Service. If you delete your account, we
@@ -187,14 +204,12 @@ export default function PrivacyPolicyPage() {
 
       {/* 5. Data Security */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          5. Data Security
-        </h2>
+        <h2 className="text-xl font-semibold text-white">5. Data Security</h2>
         <p className="text-sm text-zinc-400">
           We implement appropriate technical and organizational measures to
           protect your personal data, including:
         </p>
-        <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+        <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
           <li>Encryption of data in transit (HTTPS/TLS)</li>
           <li>Secure authentication with session token management</li>
           <li>Role-based access controls within the application</li>
@@ -208,35 +223,36 @@ export default function PrivacyPolicyPage() {
 
       {/* 6. Your Rights */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          6. Your Rights
-        </h2>
+        <h2 className="text-xl font-semibold text-white">6. Your Rights</h2>
         <p className="text-sm text-zinc-400">
           Depending on your jurisdiction, you may have the right to:
         </p>
-        <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+        <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
           <li>
-            <span className="text-zinc-300 font-medium">Access</span> the
+            <span className="font-medium text-zinc-300">Access</span> the
             personal data we hold about you
           </li>
           <li>
-            <span className="text-zinc-300 font-medium">Correct</span>{" "}
+            <span className="font-medium text-zinc-300">Correct</span>{" "}
             inaccurate or incomplete personal data
           </li>
           <li>
-            <span className="text-zinc-300 font-medium">Delete</span> your
+            <span className="font-medium text-zinc-300">Delete</span> your
             personal data (see our{" "}
-            <a href="/data-deletion" className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors">
+            <a
+              href="/data-deletion"
+              className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
+            >
               Data Deletion
             </a>{" "}
             page)
           </li>
           <li>
-            <span className="text-zinc-300 font-medium">Export</span> your data
+            <span className="font-medium text-zinc-300">Export</span> your data
             in a portable format
           </li>
           <li>
-            <span className="text-zinc-300 font-medium">Withdraw consent</span>{" "}
+            <span className="font-medium text-zinc-300">Withdraw consent</span>{" "}
             for data processing where applicable
           </li>
         </ul>
@@ -244,7 +260,7 @@ export default function PrivacyPolicyPage() {
           To exercise any of these rights, please contact us at{" "}
           <a
             href="mailto:privacy@groundcontrol.app"
-            className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors"
+            className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
           >
             privacy@groundcontrol.app
           </a>
@@ -261,7 +277,7 @@ export default function PrivacyPolicyPage() {
           When you sign in using Google, we access the following data from your
           Google account:
         </p>
-        <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+        <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
           <li>Your name</li>
           <li>Your email address</li>
           <li>Your profile picture</li>
@@ -274,13 +290,13 @@ export default function PrivacyPolicyPage() {
           authentication session.
         </p>
         <p className="text-sm text-zinc-400">
-          You can revoke Ground Control&apos;s access to your Google account at any
-          time through your{" "}
+          You can revoke Ground Control&apos;s access to your Google account at
+          any time through your{" "}
           <a
             href="https://myaccount.google.com/permissions"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors"
+            className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
           >
             Google Account permissions settings
           </a>
@@ -310,28 +326,26 @@ export default function PrivacyPolicyPage() {
         <p className="text-sm text-zinc-400">
           We may update this Privacy Policy from time to time. We will notify
           you of any material changes by posting the new Privacy Policy on this
-          page and updating the &ldquo;Effective date&rdquo; above. Your continued use of
-          the Service after changes are posted constitutes acceptance of the
-          updated policy.
+          page and updating the &ldquo;Effective date&rdquo; above. Your
+          continued use of the Service after changes are posted constitutes
+          acceptance of the updated policy.
         </p>
       </section>
 
       {/* 10. Contact */}
       <section className="space-y-4 border-t border-zinc-900 pt-8">
-        <h2 className="text-xl font-semibold text-white">
-          10. Contact Us
-        </h2>
+        <h2 className="text-xl font-semibold text-white">10. Contact Us</h2>
         <p className="text-sm text-zinc-400">
           If you have questions or concerns about this Privacy Policy, please
           contact us at:
         </p>
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-5 space-y-2 text-sm font-mono">
+        <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5 font-mono text-sm">
           <p className="text-zinc-300">Ground Control</p>
           <p className="text-zinc-400">
             Email:{" "}
             <a
               href="mailto:privacy@groundcontrol.app"
-              className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors"
+              className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
             >
               privacy@groundcontrol.app
             </a>

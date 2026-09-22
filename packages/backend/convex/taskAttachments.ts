@@ -45,7 +45,13 @@ export const getAttachments = query({
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isSubscriber = task.subscriberIds?.includes(user._id) || false
 
-    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
+    if (
+      !isAdminOrOwner &&
+      !isCreator &&
+      !isAssignee &&
+      !isCollaborator &&
+      !isSubscriber
+    ) {
       throw new Error("Permission denied to read attachments for this task")
     }
 
@@ -68,9 +74,10 @@ export const registerAttachment = mutation({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
     const task = await ctx.db.get(args.taskId)
-    
+
     if (!task) throw new Error("Task not found")
-    if (task.isArchived) throw new Error("Cannot add attachment to archived task")
+    if (task.isArchived)
+      throw new Error("Cannot add attachment to archived task")
 
     const member = await requireMember(ctx, user._id, task.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -79,7 +86,13 @@ export const registerAttachment = mutation({
     const isCollaborator = task.collaboratorIds?.includes(user._id) || false
     const isSubscriber = task.subscriberIds?.includes(user._id) || false
 
-    if (!isAdminOrOwner && !isCreator && !isAssignee && !isCollaborator && !isSubscriber) {
+    if (
+      !isAdminOrOwner &&
+      !isCreator &&
+      !isAssignee &&
+      !isCollaborator &&
+      !isSubscriber
+    ) {
       throw new Error("Permission denied to register attachment on this task")
     }
 
@@ -128,7 +141,8 @@ export const deleteAttachment = mutation({
 
     const task = await ctx.db.get(attachment.taskId)
     if (!task) throw new Error("Task not found")
-    if (task.isArchived) throw new Error("Cannot delete attachment from archived task")
+    if (task.isArchived)
+      throw new Error("Cannot delete attachment from archived task")
 
     const member = await requireMember(ctx, user._id, task.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -145,7 +159,10 @@ export const deleteAttachment = mutation({
       taskId: attachment.taskId,
       actorId: user._id,
       action: "ATTACHMENT_DELETED",
-      details: { fileName: attachment.fileName, attachmentId: args.attachmentId },
+      details: {
+        fileName: attachment.fileName,
+        attachmentId: args.attachmentId,
+      },
       timestamp: Date.now(),
     })
 

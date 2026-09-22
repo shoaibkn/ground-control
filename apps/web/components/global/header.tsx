@@ -76,15 +76,22 @@ export default function Header() {
     api.notifications.getUserNotifications,
     orgId ? { organizationId: orgId, category: activeCategory } : "skip"
   )
-  const unreadCount = useQuery(
-    api.notifications.getUnreadCount,
-    orgId ? { organizationId: orgId } : "skip"
-  ) ?? 0
+  const unreadCount =
+    useQuery(
+      api.notifications.getUnreadCount,
+      orgId ? { organizationId: orgId } : "skip"
+    ) ?? 0
 
   const markReadMutation = useMutation(api.notifications.markNotificationRead)
-  const markAllReadMutation = useMutation(api.notifications.markAllNotificationsRead)
-  const deleteNotificationMutation = useMutation(api.notifications.deleteNotification)
-  const clearAllReadMutation = useMutation(api.notifications.clearAllReadNotifications)
+  const markAllReadMutation = useMutation(
+    api.notifications.markAllNotificationsRead
+  )
+  const deleteNotificationMutation = useMutation(
+    api.notifications.deleteNotification
+  )
+  const clearAllReadMutation = useMutation(
+    api.notifications.clearAllReadNotifications
+  )
 
   const getSegmentLabel = (segment: string) => {
     const mapping: Record<string, string> = {
@@ -185,13 +192,19 @@ export default function Header() {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-88 sm:w-96 p-0 shadow-xl">
+          <DropdownMenuContent
+            align="end"
+            className="w-88 p-0 shadow-xl sm:w-96"
+          >
             {/* Header */}
-            <DropdownMenuLabel className="flex items-center justify-between p-3.5 bg-muted/20">
+            <DropdownMenuLabel className="flex items-center justify-between bg-muted/20 p-3.5">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">Notifications</span>
+                <span className="text-sm font-semibold">Notifications</span>
                 {unreadCount > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono">
+                  <Badge
+                    variant="secondary"
+                    className="h-5 px-1.5 font-mono text-[10px]"
+                  >
                     {unreadCount} new
                   </Badge>
                 )}
@@ -201,7 +214,9 @@ export default function Header() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => orgId && markAllReadMutation({ organizationId: orgId })}
+                    onClick={() =>
+                      orgId && markAllReadMutation({ organizationId: orgId })
+                    }
                     className="h-7 px-2 text-xs text-primary hover:text-primary"
                   >
                     Mark all read
@@ -213,7 +228,10 @@ export default function Header() {
                   asChild
                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                 >
-                  <Link href="/settings?tab=notifications" title="Notification Settings">
+                  <Link
+                    href="/settings?tab=notifications"
+                    title="Notification Settings"
+                  >
                     <Settings className="h-3.5 w-3.5" />
                   </Link>
                 </Button>
@@ -221,10 +239,10 @@ export default function Header() {
             </DropdownMenuLabel>
 
             {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 px-3 py-2 border-b border-border/60 bg-muted/10 overflow-x-auto text-xs">
+            <div className="flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-muted/10 px-3 py-2 text-xs">
               <button
                 onClick={() => setActiveCategory("all")}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   activeCategory === "all"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted"
@@ -234,7 +252,7 @@ export default function Header() {
               </button>
               <button
                 onClick={() => setActiveCategory("tasks")}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   activeCategory === "tasks"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted"
@@ -244,7 +262,7 @@ export default function Header() {
               </button>
               <button
                 onClick={() => setActiveCategory("approvals")}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   activeCategory === "approvals"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted"
@@ -254,7 +272,7 @@ export default function Header() {
               </button>
               <button
                 onClick={() => setActiveCategory("comments")}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   activeCategory === "comments"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted"
@@ -275,7 +293,7 @@ export default function Header() {
                   <div className="flex flex-col items-center justify-center p-8 text-center">
                     <Bell className="mb-2 h-7 w-7 text-muted-foreground/40" />
                     <p className="text-xs font-semibold">No notifications</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
                       You're all caught up on your workspace updates.
                     </p>
                   </div>
@@ -284,7 +302,7 @@ export default function Header() {
                     <DropdownMenuItem
                       key={notification._id}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`flex items-start gap-3 p-3.5 focus:bg-accent/50 cursor-pointer ${
+                      className={`flex cursor-pointer items-start gap-3 p-3.5 focus:bg-accent/50 ${
                         !notification.isRead ? "bg-accent/25" : ""
                       }`}
                     >
@@ -293,14 +311,14 @@ export default function Header() {
                       </div>
                       <div className="flex-1 space-y-1 overflow-hidden">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold truncate text-foreground">
+                          <p className="truncate text-xs font-semibold text-foreground">
                             {notification.title}
                           </p>
-                          <span className="text-[10px] whitespace-nowrap text-muted-foreground font-mono">
+                          <span className="font-mono text-[10px] whitespace-nowrap text-muted-foreground">
                             {formatRelativeTime(notification.createdAt)}
                           </span>
                         </div>
-                        <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                           {notification.message}
                         </p>
                       </div>
@@ -317,19 +335,21 @@ export default function Header() {
 
             {/* Footer */}
             {notifications && notifications.length > 0 && (
-              <div className="p-2 border-t border-border flex items-center justify-between bg-muted/10 text-xs">
+              <div className="flex items-center justify-between border-t border-border bg-muted/10 p-2 text-xs">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => orgId && clearAllReadMutation({ organizationId: orgId })}
+                  onClick={() =>
+                    orgId && clearAllReadMutation({ organizationId: orgId })
+                  }
                   className="h-7 text-[11px] text-muted-foreground hover:text-foreground"
                 >
-                  <Trash2 className="h-3 w-3 mr-1" />
+                  <Trash2 className="mr-1 h-3 w-3" />
                   Clear read
                 </Button>
                 <Link
                   href="/settings?tab=notifications"
-                  className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium pr-2"
+                  className="flex items-center gap-1 pr-2 text-[11px] font-medium text-primary hover:underline"
                 >
                   Preferences
                   <ExternalLink className="h-3 w-3" />

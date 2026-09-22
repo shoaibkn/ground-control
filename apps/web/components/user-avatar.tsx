@@ -1,7 +1,11 @@
 "use client"
 
 import { authClient } from "@/lib/auth-client"
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
 import { getAvatarUrl } from "@workspace/ui/lib/utils"
 import { AvatarHoverCard } from "./avatar-hover-card"
 
@@ -34,29 +38,33 @@ export function UserAvatar({
   const image = resolvedUser?.image
 
   const avatarElement = (
-    <Avatar className={`h-6 w-6 border border-card shadow-xs shrink-0 select-none ${avatarClassName}`}>
+    <Avatar
+      className={`h-6 w-6 shrink-0 border border-card shadow-xs select-none ${avatarClassName}`}
+    >
       <AvatarImage src={getAvatarUrl(image, name)} />
-      <AvatarFallback className="text-[9px] bg-accent text-accent-foreground font-semibold">
+      <AvatarFallback className="bg-accent text-[9px] font-semibold text-accent-foreground">
         {name.charAt(0) || "U"}
       </AvatarFallback>
     </Avatar>
   )
 
   const content = showName ? (
-    <div className={`flex items-center gap-1.5 cursor-pointer ${className}`}>
+    <div className={`flex cursor-pointer items-center gap-1.5 ${className}`}>
       {avatarElement}
-      <span className="text-xs font-medium text-foreground/80 truncate">
+      <span className="truncate text-xs font-medium text-foreground/80">
         {name}
       </span>
     </div>
   ) : (
-    <div className={`cursor-pointer ${className}`}>
-      {avatarElement}
-    </div>
+    <div className={`cursor-pointer ${className}`}>{avatarElement}</div>
   )
 
   return (
-    <AvatarHoverCard userId={userId} user={resolvedUser} tooltipSide={tooltipSide}>
+    <AvatarHoverCard
+      userId={userId}
+      user={resolvedUser}
+      tooltipSide={tooltipSide}
+    >
       {content}
     </AvatarHoverCard>
   )

@@ -13,13 +13,15 @@ import {
 
 export default function SubscriptionSettings() {
   const { data: activeMember, isPending } = authClient.useActiveMember()
-  const canManageSubscription = activeMember?.role === "owner" || activeMember?.role === "admin"
+  const canManageSubscription =
+    activeMember?.role === "owner" || activeMember?.role === "admin"
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {!isPending && !canManageSubscription && (
-        <div className="md:col-span-2 lg:col-span-3 rounded-md bg-destructive/10 p-3 text-xs text-destructive font-medium border border-destructive/20 animate-in fade-in duration-200">
-          Subscription plan management is restricted to organization owners and administrators.
+        <div className="animate-in rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs font-medium text-destructive duration-200 fade-in md:col-span-2 lg:col-span-3">
+          Subscription plan management is restricted to organization owners and
+          administrators.
         </div>
       )}
 
@@ -69,8 +71,8 @@ export default function SubscriptionSettings() {
           </ul>
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full" 
+          <Button
+            className="w-full"
             disabled={isPending || !canManageSubscription}
           >
             Upgrade to Pro
@@ -97,8 +99,8 @@ export default function SubscriptionSettings() {
           </ul>
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full" 
+          <Button
+            className="w-full"
             variant="outline"
             disabled={isPending || !canManageSubscription}
           >

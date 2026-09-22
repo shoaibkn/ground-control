@@ -35,7 +35,7 @@ export const getChats = query({
   args: { approvalId: v.id("approvals") },
   handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
-    
+
     const approval = await ctx.db.get(args.approvalId)
     if (!approval) throw new Error("Approval request not found")
 
@@ -46,9 +46,11 @@ export const getChats = query({
     const isSubscriber = approval.subscriberIds?.includes(user._id) || false
 
     if (!isAdminOrOwner && !isCreator && !isApprover && !isSubscriber) {
-      throw new Error("Permission denied to read chats for this approval request")
+      throw new Error(
+        "Permission denied to read chats for this approval request"
+      )
     }
-    
+
     const chats = await ctx.db
       .query("approvalChats")
       .withIndex("by_approval", (q: any) => q.eq("approvalId", args.approvalId))
@@ -68,9 +70,10 @@ export const addChat = mutation({
   handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     const approval = await ctx.db.get(args.approvalId)
-    
+
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot send chat on archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot send chat on archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -91,14 +94,26 @@ export const addChat = mutation({
         approvalId: args.approvalId,
         actorId: user._id,
         action: "STATUS_CHANGED",
-        details: { previous: previousStatus, new: args.statusChange, comment: args.content },
+        details: {
+          previous: previousStatus,
+          new: args.statusChange,
+          comment: args.content,
+        },
         timestamp: Date.now(),
       })
 
       // If Rework is selected, automatically create a task for the creator to rework on the request, due at EOD.
       if (args.statusChange === "Rework") {
         const now = new Date()
-        const eod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+        const eod = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59,
+          999
+        ).getTime()
 
         const taskId = await ctx.db.insert("tasks", {
           title: `Rework: ${approval.title}`,
@@ -147,7 +162,10 @@ export const addChat = mutation({
     approval.subscriberIds?.forEach((id: string) => recipients.add(id))
     recipients.delete(user._id)
 
-    const commentPreview = args.content.length > 80 ? `${args.content.slice(0, 80)}...` : args.content
+    const commentPreview =
+      args.content.length > 80
+        ? `${args.content.slice(0, 80)}...`
+        : args.content
 
     for (const recipientId of recipients) {
       await ctx.scheduler.runAfter(0, internal.notifications.sendNotification, {
@@ -178,13 +196,15 @@ export const editChat = mutation({
   handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     const chat = await ctx.db.get(args.chatId)
-    
+
     if (!chat) throw new Error("Chat not found")
-    if (chat.userId !== user._id) throw new Error("Unauthorized to edit this chat")
-    
+    if (chat.userId !== user._id)
+      throw new Error("Unauthorized to edit this chat")
+
     const approval = await ctx.db.get(chat.approvalId)
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot edit chat on archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot edit chat on archived approval request")
 
     await requireMember(ctx, user._id, approval.organizationId)
 
@@ -205,9 +225,9 @@ export const deleteChat = mutation({
   handler: async (ctx: any, args: any) => {
     const user = await requireAuth(ctx)
     const chat = await ctx.db.get(args.chatId)
-    
+
     if (!chat) throw new Error("Chat not found")
-    
+
     const approval = await ctx.db.get(chat.approvalId)
     if (!approval) throw new Error("Approval request not found")
 

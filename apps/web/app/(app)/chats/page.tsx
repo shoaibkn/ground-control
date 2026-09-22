@@ -76,9 +76,13 @@ export default function ChatsPage() {
 
   // 2. State management
   const [activeThreadId, setActiveThreadId] = useState<any>(null)
-  const [activeThreadType, setActiveThreadType] = useState<"task" | "approval" | null>(null)
+  const [activeThreadType, setActiveThreadType] = useState<
+    "task" | "approval" | null
+  >(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "tasks" | "approvals">("all")
+  const [activeTab, setActiveTab] = useState<
+    "all" | "unread" | "tasks" | "approvals"
+  >("all")
   const [isDetailsSheetOpen, setIsDetailsSheetOpen] = useState(false)
   const [newChat, setNewChat] = useState("")
   const [draftAttachmentFiles, setDraftAttachmentFiles] = useState<
@@ -98,23 +102,32 @@ export default function ChatsPage() {
   // 3. Thread-specific queries & mutations
   const taskChats = useQuery(
     api.taskChats.getChats,
-    activeThreadType === "task" && activeThreadId ? { taskId: activeThreadId } : "skip"
+    activeThreadType === "task" && activeThreadId
+      ? { taskId: activeThreadId }
+      : "skip"
   )
   const approvalChats = useQuery(
     api.approvalChats.getChats,
-    activeThreadType === "approval" && activeThreadId ? { approvalId: activeThreadId } : "skip"
+    activeThreadType === "approval" && activeThreadId
+      ? { approvalId: activeThreadId }
+      : "skip"
   )
   const activeChats = activeThreadType === "task" ? taskChats : approvalChats
 
   const taskAttachments = useQuery(
     api.taskAttachments.getAttachments,
-    activeThreadType === "task" && activeThreadId ? { taskId: activeThreadId } : "skip"
+    activeThreadType === "task" && activeThreadId
+      ? { taskId: activeThreadId }
+      : "skip"
   )
   const approvalAttachments = useQuery(
     api.approvalAttachments.getAttachments,
-    activeThreadType === "approval" && activeThreadId ? { approvalId: activeThreadId } : "skip"
+    activeThreadType === "approval" && activeThreadId
+      ? { approvalId: activeThreadId }
+      : "skip"
   )
-  const activeAttachments = activeThreadType === "task" ? taskAttachments : approvalAttachments
+  const activeAttachments =
+    activeThreadType === "task" ? taskAttachments : approvalAttachments
 
   // Task Mutations
   const addTaskChat = useMutation(api.taskChats.addChat)
@@ -131,8 +144,12 @@ export default function ChatsPage() {
   const deleteApprovalChat = useMutation(api.approvalChats.deleteChat)
   const markApprovalChatsAsRead = useMutation(api.approvalChats.markChatsAsRead)
   const updateApprovalStatus = useMutation(api.approvals.updateApprovalStatus)
-  const registerApprovalAttach = useMutation(api.approvalAttachments.registerAttachment)
-  const deleteApprovalAttach = useMutation(api.approvalAttachments.deleteAttachment)
+  const registerApprovalAttach = useMutation(
+    api.approvalAttachments.registerAttachment
+  )
+  const deleteApprovalAttach = useMutation(
+    api.approvalAttachments.deleteAttachment
+  )
 
   // Find currently active thread metadata from queries
   const activeThread = threads?.find((t: any) => t.id === activeThreadId)
@@ -238,7 +255,9 @@ export default function ChatsPage() {
         )
       } catch (err: any) {
         toast.error(`Failed to upload ${draft.file.name}`)
-        setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
+        setDraftAttachmentFiles((prev) =>
+          prev.filter((d) => d.file !== draft.file)
+        )
       }
     }
   }
@@ -395,8 +414,11 @@ export default function ChatsPage() {
 
     const titleMatch = thread.title.toLowerCase().includes(query)
     const descMatch = thread.description?.toLowerCase().includes(query) || false
-    const msgMatch = thread.latestMessage?.content?.toLowerCase().includes(query) || false
-    const idMatch = `#${thread.id.slice(-4)}`.toLowerCase().includes(query) || thread.id.toLowerCase().includes(query)
+    const msgMatch =
+      thread.latestMessage?.content?.toLowerCase().includes(query) || false
+    const idMatch =
+      `#${thread.id.slice(-4)}`.toLowerCase().includes(query) ||
+      thread.id.toLowerCase().includes(query)
 
     return titleMatch || descMatch || msgMatch || idMatch
   })
@@ -413,45 +435,46 @@ export default function ChatsPage() {
   if (!activeOrg) {
     return (
       <div className="flex h-[calc(100vh-120px)] items-center justify-center">
-        <p className="text-sm text-muted-foreground">Please select or create an organization first.</p>
+        <p className="text-sm text-muted-foreground">
+          Please select or create an organization first.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col w-full min-w-0 space-y-4">
+    <div className="flex w-full min-w-0 flex-col space-y-4">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4 shrink-0">
+      <div className="flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border/40 pb-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
             Inbox Management
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Review notifications, coordinate reviews, and collaborate across tasks and approvals.
+          <p className="mt-1 text-xs text-muted-foreground">
+            Review notifications, coordinate reviews, and collaborate across
+            tasks and approvals.
           </p>
         </div>
       </div>
 
       {/* Main split grid */}
-      <div className="flex h-[calc(100vh-12rem)] w-full rounded-xl border border-border/80 bg-card/45 shadow-xs backdrop-blur-xs overflow-hidden">
-        
+      <div className="flex h-[calc(100vh-12rem)] w-full overflow-hidden rounded-xl border border-border/80 bg-card/45 shadow-xs backdrop-blur-xs">
         {/* Left Side: Message List */}
-        <div className="w-[360px] flex flex-col border-r border-border/40 bg-muted/5 shrink-0">
-          
+        <div className="flex w-[360px] shrink-0 flex-col border-r border-border/40 bg-muted/5">
           {/* Search bar inside list */}
-          <div className="p-3 border-b border-border/40 space-y-2 shrink-0">
+          <div className="shrink-0 space-y-2 border-b border-border/40 p-3">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" />
+              <Search className="absolute top-2.5 left-3 h-3.5 w-3.5 text-muted-foreground/75" />
               <Input
                 placeholder="Search inbox comments, titles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-8.5 text-xs bg-background/50 border-input/60 focus-visible:ring-1 focus-visible:ring-primary/20"
+                className="h-8.5 border-input/60 bg-background/50 pl-9 text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
               />
             </div>
 
             {/* Tab categories */}
-            <div className="flex p-0.5 rounded-lg bg-muted/50 border border-border/20 text-xs">
+            <div className="flex rounded-lg border border-border/20 bg-muted/50 p-0.5 text-xs">
               {[
                 { id: "all", label: "All" },
                 { id: "unread", label: "Unread" },
@@ -462,10 +485,10 @@ export default function ChatsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "flex-1 py-1 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
+                    "flex-1 cursor-pointer rounded-md py-1 text-[10px] font-semibold transition-all",
                     activeTab === tab.id
                       ? "bg-background text-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/20"
+                      : "text-muted-foreground hover:bg-background/20 hover:text-foreground"
                   )}
                 >
                   {tab.label}
@@ -475,11 +498,13 @@ export default function ChatsPage() {
           </div>
 
           {/* Scrollable list */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/30 scrollbar-thin">
+          <div className="flex-1 scrollbar-thin divide-y divide-border/30 overflow-y-auto">
             {threads === undefined ? (
               <div className="flex h-48 flex-col items-center justify-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-[10px] text-muted-foreground">Loading inbox...</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Loading inbox...
+                </p>
               </div>
             ) : displayedThreads && displayedThreads.length > 0 ? (
               displayedThreads.map((thread: any) => {
@@ -495,21 +520,21 @@ export default function ChatsPage() {
                       setActiveThreadType(thread.type)
                     }}
                     className={cn(
-                      "w-full p-4 flex flex-col gap-1.5 text-left border-l-2 transition-all cursor-pointer",
+                      "flex w-full cursor-pointer flex-col gap-1.5 border-l-2 p-4 text-left transition-all",
                       isSelected
-                        ? "bg-primary/5 border-l-primary border-r border-r-primary/10 shadow-inner"
-                        : "border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/30"
+                        ? "border-r border-r-primary/10 border-l-primary bg-primary/5 shadow-inner"
+                        : "border-l-transparent hover:border-l-muted-foreground/30 hover:bg-muted/30"
                     )}
                   >
                     {/* Top Row: Type and ID, status, and time */}
-                    <div className="flex items-center justify-between w-full text-[10px]">
+                    <div className="flex w-full items-center justify-between text-[10px]">
                       <div className="flex items-center gap-1.5 font-semibold">
                         {isTask ? (
                           <CircleCheckBig className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
                         ) : (
                           <Signature className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         )}
-                        <span className="text-muted-foreground uppercase font-mono">
+                        <span className="font-mono text-muted-foreground uppercase">
                           {isTask ? "Task" : "Approval"} #{shortId}
                         </span>
                       </div>
@@ -518,7 +543,7 @@ export default function ChatsPage() {
                         <Badge
                           variant="outline"
                           className={cn(
-                            "px-1.5 py-0.5 text-[8.5px] font-bold rounded-full border",
+                            "rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold",
                             isTask
                               ? getTaskStatusStyle(thread.status)
                               : getApprovalStatusStyle(thread.status)
@@ -526,35 +551,40 @@ export default function ChatsPage() {
                         >
                           {thread.status}
                         </Badge>
-                        <span className="text-muted-foreground/80 font-medium">
+                        <span className="font-medium text-muted-foreground/80">
                           {formatTimeAgo(thread.lastActivityTimestamp)}
                         </span>
                       </div>
                     </div>
 
                     {/* Thread Title */}
-                    <span className="font-semibold text-xs text-foreground truncate max-w-full">
+                    <span className="max-w-full truncate text-xs font-semibold text-foreground">
                       {thread.title}
                     </span>
 
                     {/* Latest Comment Content Preview */}
-                    <div className="flex items-start gap-1 justify-between w-full">
-                      <p className="text-[11px] text-muted-foreground/90 leading-relaxed truncate flex-1 pr-2">
+                    <div className="flex w-full items-start justify-between gap-1">
+                      <p className="flex-1 truncate pr-2 text-[11px] leading-relaxed text-muted-foreground/90">
                         {thread.latestMessage ? (
                           <>
                             <span className="font-semibold text-foreground/80">
-                              {thread.latestMessage.senderName === "You" ? "You" : thread.latestMessage.senderName}:
+                              {thread.latestMessage.senderName === "You"
+                                ? "You"
+                                : thread.latestMessage.senderName}
+                              :
                             </span>{" "}
                             {thread.latestMessage.content}
                           </>
                         ) : (
-                          <span className="italic text-muted-foreground/60">No comments yet</span>
+                          <span className="text-muted-foreground/60 italic">
+                            No comments yet
+                          </span>
                         )}
                       </p>
 
                       {/* Unread badge */}
                       {thread.unreadChatCount > 0 && (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-emerald-500 text-emerald-foreground text-[8px] font-bold flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+                        <span className="text-emerald-foreground flex h-4 min-w-4 shrink-0 animate-pulse items-center justify-center rounded-full bg-emerald-500 px-1 text-[8px] font-bold shadow-sm">
                           {thread.unreadChatCount}
                         </span>
                       )}
@@ -564,9 +594,11 @@ export default function ChatsPage() {
               })
             ) : (
               <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-                <MessageSquareOff className="size-8 text-muted-foreground/30 mb-2" />
-                <p className="text-xs font-semibold text-foreground/80">No conversations</p>
-                <p className="text-[10px] max-w-[200px] mt-0.5">
+                <MessageSquareOff className="mb-2 size-8 text-muted-foreground/30" />
+                <p className="text-xs font-semibold text-foreground/80">
+                  No conversations
+                </p>
+                <p className="mt-0.5 max-w-[200px] text-[10px]">
                   Try adjusting your filters or search keywords.
                 </p>
               </div>
@@ -575,26 +607,30 @@ export default function ChatsPage() {
         </div>
 
         {/* Right Side: Conversation Area */}
-        <div className="flex-1 flex flex-col bg-background/30 min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col bg-background/30">
           {activeThreadId && activeThread ? (
             <>
               {/* Conversation Header */}
-              <div className="p-4 border-b border-border/40 bg-card/45 flex items-center justify-between gap-4 shrink-0">
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/40 bg-card/45 p-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-mono text-muted-foreground bg-muted border border-border/30 rounded px-1.5 py-0.5 select-all cursor-pointer"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`#${activeThread.id.slice(-4)}`)
-                            toast.success(`Copied ID #${activeThread.id.slice(-4)}`)
-                          }}
-                          title="Click to copy ID"
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className="cursor-pointer rounded border border-border/30 bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground select-all"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `#${activeThread.id.slice(-4)}`
+                        )
+                        toast.success(`Copied ID #${activeThread.id.slice(-4)}`)
+                      }}
+                      title="Click to copy ID"
                     >
-                      {activeThread.type === "task" ? "TASK" : "APPROVAL"} #{activeThread.id.slice(-4)}
+                      {activeThread.type === "task" ? "TASK" : "APPROVAL"} #
+                      {activeThread.id.slice(-4)}
                     </span>
                     <Badge
                       variant="outline"
                       className={cn(
-                        "h-5 text-[9px] font-bold rounded-full",
+                        "h-5 rounded-full text-[9px] font-bold",
                         activeThread.type === "task"
                           ? getTaskStatusStyle(activeThread.status)
                           : getApprovalStatusStyle(activeThread.status)
@@ -608,7 +644,7 @@ export default function ChatsPage() {
                       <Badge
                         variant="outline"
                         className={cn(
-                          "h-5 text-[9px] font-bold rounded-full",
+                          "h-5 rounded-full text-[9px] font-bold",
                           getPriorityStyle(activeThread.priority)
                         )}
                       >
@@ -617,33 +653,38 @@ export default function ChatsPage() {
                     )}
 
                     {activeThread.dueDate && (
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground/80 font-medium">
+                      <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/80">
                         <Calendar className="h-3 w-3 shrink-0" />
-                        <span>Due {new Date(activeThread.dueDate).toLocaleDateString()}</span>
+                        <span>
+                          Due{" "}
+                          {new Date(activeThread.dueDate).toLocaleDateString()}
+                        </span>
                       </div>
                     )}
                   </div>
 
-                  <h3 className="text-sm font-bold text-foreground truncate mt-1.5 flex items-center gap-1.5">
+                  <h3 className="mt-1.5 flex items-center gap-1.5 truncate text-sm font-bold text-foreground">
                     {activeThread.title}
                   </h3>
                 </div>
 
                 {/* Header Actions */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 items-center gap-2">
                   {/* Status Dropdowns/Triggers */}
                   {activeThread.type === "task" ? (
                     <Select
                       value={activeThread.status}
                       onValueChange={(val) => setStatusToChange(val)}
                     >
-                      <SelectTrigger className="h-8 w-28 text-xs font-semibold bg-background/50 border-input/60">
+                      <SelectTrigger className="h-8 w-28 border-input/60 bg-background/50 text-xs font-semibold">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent className="text-xs">
                         <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="In Progress">In Progress</SelectItem>
-                        <SelectItem value="Under Review">Under Review</SelectItem>
+                        <SelectItem value="Under Review">
+                          Under Review
+                        </SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                       </SelectContent>
@@ -659,10 +700,13 @@ export default function ChatsPage() {
                             size="sm"
                             variant="outline"
                             className={cn(
-                              "h-8 text-[10px] px-2.5 font-semibold bg-background/50 border-input/60 hover:bg-muted",
-                              st === "Approved" && "hover:text-emerald-500 hover:border-emerald-500/20",
-                              st === "Declined" && "hover:text-rose-500 hover:border-rose-500/20",
-                              st === "Rework" && "hover:text-amber-500 hover:border-amber-500/20"
+                              "h-8 border-input/60 bg-background/50 px-2.5 text-[10px] font-semibold hover:bg-muted",
+                              st === "Approved" &&
+                                "hover:border-emerald-500/20 hover:text-emerald-500",
+                              st === "Declined" &&
+                                "hover:border-rose-500/20 hover:text-rose-500",
+                              st === "Rework" &&
+                                "hover:border-amber-500/20 hover:text-amber-500"
                             )}
                             onClick={() => {
                               setStatusToChange(st)
@@ -679,7 +723,7 @@ export default function ChatsPage() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-8 text-[10.5px] font-semibold flex items-center gap-1 border border-border/40 hover:scale-[1.01] transition-transform"
+                    className="flex h-8 items-center gap-1 border border-border/40 text-[10.5px] font-semibold transition-transform hover:scale-[1.01]"
                     onClick={() => setIsDetailsSheetOpen(true)}
                   >
                     <Eye className="h-3.5 w-3.5 shrink-0" />
@@ -689,17 +733,20 @@ export default function ChatsPage() {
               </div>
 
               {/* Messages Stream */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
                 {activeChats === undefined ? (
                   <div className="flex h-full items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
                 ) : activeChats.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center text-center p-6">
-                    <MessageSquare className="mb-2 size-8 text-muted-foreground/30 animate-bounce" />
-                    <span className="text-xs font-semibold text-foreground">No discussions yet</span>
-                    <span className="text-[10px] text-muted-foreground max-w-xs mt-1">
-                      Post a comment or update to start the discussion on this thread.
+                  <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+                    <MessageSquare className="mb-2 size-8 animate-bounce text-muted-foreground/30" />
+                    <span className="text-xs font-semibold text-foreground">
+                      No discussions yet
+                    </span>
+                    <span className="mt-1 max-w-xs text-[10px] text-muted-foreground">
+                      Post a comment or update to start the discussion on this
+                      thread.
                     </span>
                   </div>
                 ) : (
@@ -710,7 +757,7 @@ export default function ChatsPage() {
                         className={cn(
                           "flex gap-3 text-xs",
                           chat.isSystem
-                            ? "bg-muted/20 border border-border/20 rounded-xl p-3 items-center justify-between"
+                            ? "items-center justify-between rounded-xl border border-border/20 bg-muted/20 p-3"
                             : ""
                         )}
                       >
@@ -721,28 +768,33 @@ export default function ChatsPage() {
                           />
                         )}
 
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           {!chat.isSystem && (
-                            <div className="flex items-center gap-1.5 mb-1">
+                            <div className="mb-1 flex items-center gap-1.5">
                               <AvatarHoverCard userId={chat.userId}>
-                                <span className="font-semibold text-foreground hover:underline cursor-pointer">
-                                  {chat.userId === currentUserId ? "You" : "Team Member"}
+                                <span className="cursor-pointer font-semibold text-foreground hover:underline">
+                                  {chat.userId === currentUserId
+                                    ? "You"
+                                    : "Team Member"}
                                 </span>
                               </AvatarHoverCard>
                               <span className="text-[9px] text-muted-foreground/80">
-                                {new Date(chat._creationTime).toLocaleString(undefined, {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {new Date(chat._creationTime).toLocaleString(
+                                  undefined,
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
                               </span>
                             </div>
                           )}
 
                           <p
                             className={cn(
-                              "leading-relaxed text-foreground/90 whitespace-pre-wrap",
+                              "leading-relaxed whitespace-pre-wrap text-foreground/90",
                               chat.isSystem
-                                ? "text-[10px] text-muted-foreground/80 italic font-medium"
+                                ? "text-[10px] font-medium text-muted-foreground/80 italic"
                                 : "text-[11.5px]"
                             )}
                           >
@@ -750,46 +802,56 @@ export default function ChatsPage() {
                           </p>
 
                           {/* Chat attachment preview if any */}
-                          {chat.attachmentIds && chat.attachmentIds.length > 0 && (
-                            <div className="mt-2.5 space-y-1.5 max-w-md">
-                              {activeAttachments
-                                ?.filter((a) => chat.attachmentIds?.includes(a._id))
-                                .map((attach) => (
-                                  <div
-                                    key={attach._id}
-                                    className="flex items-center justify-between border border-border/40 rounded-lg bg-card p-2 text-[10.5px]"
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <File className="h-4 w-4 text-primary shrink-0" />
-                                      <div className="flex flex-col min-w-0">
-                                        <span className="font-medium truncate leading-tight text-foreground/90">
-                                          {attach.fileName}
-                                        </span>
-                                        <span className="text-[8.5px] text-muted-foreground leading-normal mt-0.5">
-                                          {formatFileSize(attach.fileSize)}
-                                        </span>
+                          {chat.attachmentIds &&
+                            chat.attachmentIds.length > 0 && (
+                              <div className="mt-2.5 max-w-md space-y-1.5">
+                                {activeAttachments
+                                  ?.filter((a) =>
+                                    chat.attachmentIds?.includes(a._id)
+                                  )
+                                  .map((attach) => (
+                                    <div
+                                      key={attach._id}
+                                      className="flex items-center justify-between rounded-lg border border-border/40 bg-card p-2 text-[10.5px]"
+                                    >
+                                      <div className="flex min-w-0 items-center gap-2">
+                                        <File className="h-4 w-4 shrink-0 text-primary" />
+                                        <div className="flex min-w-0 flex-col">
+                                          <span className="truncate leading-tight font-medium text-foreground/90">
+                                            {attach.fileName}
+                                          </span>
+                                          <span className="mt-0.5 text-[8.5px] leading-normal text-muted-foreground">
+                                            {formatFileSize(attach.fileSize)}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <Button size="icon-sm" variant="ghost" className="h-6 w-6">
-                                        <Download className="h-3.5 w-3.5" />
-                                      </Button>
-                                      {(attach.uploaderId === currentUserId ||
-                                        activeThread.creatorId === currentUserId) && (
+                                      <div className="flex shrink-0 items-center gap-1">
                                         <Button
                                           size="icon-sm"
                                           variant="ghost"
-                                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                                          onClick={() => handleDeleteAttachment(attach._id)}
+                                          className="h-6 w-6"
                                         >
-                                          <Trash2 className="h-3.5 w-3.5" />
+                                          <Download className="h-3.5 w-3.5" />
                                         </Button>
-                                      )}
+                                        {(attach.uploaderId === currentUserId ||
+                                          activeThread.creatorId ===
+                                            currentUserId) && (
+                                          <Button
+                                            size="icon-sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                                            onClick={() =>
+                                              handleDeleteAttachment(attach._id)
+                                            }
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                            </div>
-                          )}
+                                  ))}
+                              </div>
+                            )}
                         </div>
 
                         {/* Options dropdown for message sender */}
@@ -799,14 +861,17 @@ export default function ChatsPage() {
                               <Button
                                 size="icon-sm"
                                 variant="ghost"
-                                className="h-6 w-6 text-muted-foreground self-start shrink-0 hover:bg-muted"
+                                className="h-6 w-6 shrink-0 self-start text-muted-foreground hover:bg-muted"
                               >
                                 <MoreHorizontal className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="text-xs">
+                            <DropdownMenuContent
+                              align="end"
+                              className="text-xs"
+                            >
                               <DropdownMenuItem
-                                className="text-destructive flex items-center gap-1.5 cursor-pointer"
+                                className="flex cursor-pointer items-center gap-1.5 text-destructive"
                                 onClick={() => setChatToDelete(chat)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -823,17 +888,19 @@ export default function ChatsPage() {
               </div>
 
               {/* Chat Input & Toolbar */}
-              <div className="border-t border-border/40 bg-card/25 p-4 flex flex-col gap-2.5 shrink-0">
+              <div className="flex shrink-0 flex-col gap-2.5 border-t border-border/40 bg-card/25 p-4">
                 {/* Selected File Previews */}
                 {draftAttachmentFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto pb-1.5">
+                  <div className="flex max-h-24 flex-wrap gap-2 overflow-y-auto pb-1.5">
                     {draftAttachmentFiles.map((draft, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-1.5 px-2.5 py-1 bg-background/50 border border-border/60 rounded-md text-[10px]"
+                        className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2.5 py-1 text-[10px]"
                       >
-                        <File className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="max-w-[120px] truncate">{draft.file.name}</span>
+                        <File className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="max-w-[120px] truncate">
+                          {draft.file.name}
+                        </span>
                         {!draft.id ? (
                           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                         ) : (
@@ -844,7 +911,7 @@ export default function ChatsPage() {
                                 prev.filter((d) => d.file !== draft.file)
                               )
                             }}
-                            className="text-destructive hover:scale-110 ml-1.5 focus:outline-none"
+                            className="ml-1.5 text-destructive hover:scale-110 focus:outline-none"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -867,8 +934,10 @@ export default function ChatsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-7 px-3 text-[10px] font-medium rounded-full bg-background/50 border-border/50 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center gap-1.5"
-                      onClick={() => document.getElementById("inbox-file-upload")?.click()}
+                      className="flex h-7 items-center gap-1.5 rounded-full border-border/50 bg-background/50 px-3 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onClick={() =>
+                        document.getElementById("inbox-file-upload")?.click()
+                      }
                     >
                       <Paperclip className="h-3 w-3 shrink-0" />
                       <span>Attach File</span>
@@ -877,13 +946,16 @@ export default function ChatsPage() {
                 </div>
 
                 {/* Input Text Form */}
-                <form onSubmit={handleSendChatMessage} className="flex gap-2 items-center">
+                <form
+                  onSubmit={handleSendChatMessage}
+                  className="flex items-center gap-2"
+                >
                   <Input
                     placeholder={`Reply to this ${activeThreadType}...`}
                     value={newChat}
                     onChange={(e) => setNewChat(e.target.value)}
                     disabled={isChatSending}
-                    className="h-9.5 text-xs flex-1 bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                    className="h-9.5 flex-1 bg-background/50 text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
                   />
                   <Button
                     type="submit"
@@ -902,18 +974,19 @@ export default function ChatsPage() {
             </>
           ) : (
             // Premium Workspace Inbox Empty State
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/5">
+            <div className="flex flex-1 flex-col items-center justify-center bg-muted/5 p-8 text-center">
               <div className="relative mb-4">
-                <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl transform scale-150 animate-pulse" />
-                <div className="relative p-5 bg-card/65 border border-border/50 rounded-2xl shadow-sm text-primary">
+                <div className="absolute inset-0 scale-150 transform animate-pulse rounded-full bg-primary/10 blur-xl" />
+                <div className="relative rounded-2xl border border-border/50 bg-card/65 p-5 text-primary shadow-sm">
                   <Sparkles className="size-10" />
                 </div>
               </div>
-              <h4 className="text-sm font-bold text-foreground tracking-tight">
+              <h4 className="text-sm font-bold tracking-tight text-foreground">
                 Your Workspace Inbox
               </h4>
-              <p className="text-xs text-muted-foreground max-w-sm mt-1.5 leading-relaxed">
-                Select a task or approval thread from the left pane to review conversation updates, respond to comments, or approve requests.
+              <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted-foreground">
+                Select a task or approval thread from the left pane to review
+                conversation updates, respond to comments, or approve requests.
               </p>
             </div>
           )}
@@ -942,12 +1015,12 @@ export default function ChatsPage() {
         open={statusToChange !== null}
         onOpenChange={(open) => !open && setStatusToChange(null)}
       >
-        <AlertDialogContent className="sm:max-w-[420px] rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl">
+        <AlertDialogContent className="rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-md sm:max-w-[420px]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+            <AlertDialogTitle className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               Confirm Status Transition to {statusToChange}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground mt-1">
+            <AlertDialogDescription className="mt-1 text-xs text-muted-foreground">
               {activeThreadType === "approval"
                 ? `Please provide a comment for transitioning this approval to "${statusToChange}".`
                 : `Are you sure you want to transition this task status to "${statusToChange}"?`}
@@ -962,7 +1035,7 @@ export default function ChatsPage() {
                 placeholder="Enter transition comment (optional)..."
                 value={statusComment}
                 onChange={(e) => setStatusComment(e.target.value)}
-                className="text-xs h-9.5 bg-background/50 focus-visible:ring-1 focus-visible:ring-primary/20"
+                className="h-9.5 bg-background/50 text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStatusTransitionSubmit()
                 }}
@@ -971,16 +1044,16 @@ export default function ChatsPage() {
           )}
 
           <AlertDialogFooter className="mt-2">
-            <AlertDialogCancel className="text-xs h-8.5 rounded-lg border-border/60">
+            <AlertDialogCancel className="h-8.5 rounded-lg border-border/60 text-xs">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="text-xs h-8.5 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold"
+              className="h-8.5 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95"
               onClick={handleStatusTransitionSubmit}
               disabled={isStatusChanging}
             >
               {isStatusChanging ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
               ) : null}
               Confirm Transition
             </AlertDialogAction>
@@ -993,41 +1066,43 @@ export default function ChatsPage() {
         open={chatToDelete !== null}
         onOpenChange={(open) => !open && setChatToDelete(null)}
       >
-        <AlertDialogContent className="sm:max-w-[400px] rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl">
+        <AlertDialogContent className="rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-md sm:max-w-[400px]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-sm font-bold flex items-center gap-2 text-destructive">
+            <AlertDialogTitle className="flex items-center gap-2 text-sm font-bold text-destructive">
               <AlertCircle className="h-4.5 w-4.5" />
               Delete Comment?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground mt-1">
-              This action is permanent and cannot be undone. Do you want to delete this message?
+            <AlertDialogDescription className="mt-1 text-xs text-muted-foreground">
+              This action is permanent and cannot be undone. Do you want to
+              delete this message?
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {chatToDelete?.attachmentIds && chatToDelete.attachmentIds.length > 0 && (
-            <div className="flex items-center gap-2.5 py-2.5 px-3 border border-border/60 rounded-xl bg-muted/10 my-2 select-none">
-              <input
-                type="checkbox"
-                id="inbox-delete-attachments-chk"
-                checked={deleteAttachmentWithMsg}
-                onChange={(e) => setDeleteAttachmentWithMsg(e.target.checked)}
-                className="cursor-pointer rounded border-border"
-              />
-              <label
-                htmlFor="inbox-delete-attachments-chk"
-                className="text-[10.5px] font-semibold text-foreground/80 cursor-pointer select-none"
-              >
-                Also delete all file attachments in this message.
-              </label>
-            </div>
-          )}
+          {chatToDelete?.attachmentIds &&
+            chatToDelete.attachmentIds.length > 0 && (
+              <div className="my-2 flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/10 px-3 py-2.5 select-none">
+                <input
+                  type="checkbox"
+                  id="inbox-delete-attachments-chk"
+                  checked={deleteAttachmentWithMsg}
+                  onChange={(e) => setDeleteAttachmentWithMsg(e.target.checked)}
+                  className="cursor-pointer rounded border-border"
+                />
+                <label
+                  htmlFor="inbox-delete-attachments-chk"
+                  className="cursor-pointer text-[10.5px] font-semibold text-foreground/80 select-none"
+                >
+                  Also delete all file attachments in this message.
+                </label>
+              </div>
+            )}
 
           <AlertDialogFooter className="mt-2">
-            <AlertDialogCancel className="text-xs h-8.5 rounded-lg border-border/60">
+            <AlertDialogCancel className="h-8.5 rounded-lg border-border/60 text-xs">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="text-xs h-8.5 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/95 font-semibold"
+              className="text-destructive-foreground h-8.5 rounded-lg bg-destructive text-xs font-semibold hover:bg-destructive/95"
               onClick={handleDeleteMessage}
             >
               Delete Comment

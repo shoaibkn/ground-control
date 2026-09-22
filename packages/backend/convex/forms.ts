@@ -54,7 +54,13 @@ export const createForm = mutation({
     const user = await requireAuth(ctx)
     const member = await requireMember(ctx, user._id, args.organizationId)
 
-    const canCreate = await hasPermission(ctx, args.organizationId, member.role, "forms", "create")
+    const canCreate = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "forms",
+      "create"
+    )
     if (!canCreate) {
       throw new Error("Permission denied to create forms")
     }
@@ -98,7 +104,15 @@ export const updateForm = mutation({
     const member = await requireMember(ctx, user._id, form.organizationId)
 
     const isCreator = form.creatorId === user._id
-    const canUpdate = isCreator || await hasPermission(ctx, form.organizationId, member.role, "forms", "update")
+    const canUpdate =
+      isCreator ||
+      (await hasPermission(
+        ctx,
+        form.organizationId,
+        member.role,
+        "forms",
+        "update"
+      ))
     if (!canUpdate) {
       throw new Error("Permission denied to update this form")
     }
@@ -126,7 +140,15 @@ export const deleteForm = mutation({
     const member = await requireMember(ctx, user._id, form.organizationId)
 
     const isCreator = form.creatorId === user._id
-    const canDelete = isCreator || await hasPermission(ctx, form.organizationId, member.role, "forms", "delete")
+    const canDelete =
+      isCreator ||
+      (await hasPermission(
+        ctx,
+        form.organizationId,
+        member.role,
+        "forms",
+        "delete"
+      ))
     if (!canDelete) {
       throw new Error("Permission denied to delete this form")
     }
@@ -142,10 +164,18 @@ export const getForms = query({
     const user = await requireAuth(ctx)
     const member = await requireMember(ctx, user._id, args.organizationId)
 
-    const canReadAll = await hasPermission(ctx, args.organizationId, member.role, "forms", "read_all")
+    const canReadAll = await hasPermission(
+      ctx,
+      args.organizationId,
+      member.role,
+      "forms",
+      "read_all"
+    )
     let forms = await ctx.db
       .query("forms")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
       .collect()
 
     if (!canReadAll) {
@@ -178,7 +208,15 @@ export const getFormResponses = query({
     const member = await requireMember(ctx, user._id, form.organizationId)
 
     const isCreator = form.creatorId === user._id
-    const canViewResponses = isCreator || await hasPermission(ctx, form.organizationId, member.role, "forms", "read_all")
+    const canViewResponses =
+      isCreator ||
+      (await hasPermission(
+        ctx,
+        form.organizationId,
+        member.role,
+        "forms",
+        "read_all"
+      ))
     if (!canViewResponses) {
       throw new Error("Permission denied to view responses for this form")
     }
@@ -239,7 +277,7 @@ export const submitFormResponse = mutation({
           creatorId: user._id,
           organizationId: task.organizationId,
           approverIds: [task.creatorId],
-          subscriberIds: task.assigneeIds.filter(id => id !== user._id),
+          subscriberIds: task.assigneeIds.filter((id) => id !== user._id),
           isArchived: false,
           taskId: task._id,
           formId: args.formId,
@@ -257,7 +295,11 @@ export const submitFormResponse = mutation({
         taskId: args.taskId,
         actorId: user._id,
         action: "FORM_SUBMITTED",
-        details: { formId: args.formId, formResponseId: responseId, targetStatus },
+        details: {
+          formId: args.formId,
+          formResponseId: responseId,
+          targetStatus,
+        },
         timestamp: Date.now(),
       })
 
@@ -379,7 +421,13 @@ export const getFormResponse = query({
 
     // 3. Allowed if the caller has global "forms: read_all" permissions (admin/owner)
     const member = await requireMember(ctx, user._id, response.organizationId)
-    const canReadAll = await hasPermission(ctx, response.organizationId, member.role, "forms", "read_all")
+    const canReadAll = await hasPermission(
+      ctx,
+      response.organizationId,
+      member.role,
+      "forms",
+      "read_all"
+    )
     if (canReadAll) return response
 
     // 4. Allowed if the caller is a participant on the linked task

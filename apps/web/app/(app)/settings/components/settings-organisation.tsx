@@ -85,7 +85,7 @@ export default function OrganisationSettings() {
             />
           </div>
           {!isPending && !isOwner && (
-            <p className="text-xs text-destructive mt-2 animate-in fade-in duration-200">
+            <p className="mt-2 animate-in text-xs text-destructive duration-200 fade-in">
               Only organization owners can modify organization details.
             </p>
           )}

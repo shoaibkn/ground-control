@@ -75,14 +75,11 @@ export const updateUserStatus = mutation({
     })
 
     // 6. Fetch all active sessions for this user and delete them to force-logout the user instantly
-    const result = (await ctx.runQuery(
-      components.betterAuth.adapter.findMany,
-      {
-        model: "session",
-        where: [{ field: "userId", value: args.userId }],
-        paginationOpts: { numItems: 100, cursor: null },
-      }
-    )) as any
+    const result = (await ctx.runQuery(components.betterAuth.adapter.findMany, {
+      model: "session",
+      where: [{ field: "userId", value: args.userId }],
+      paginationOpts: { numItems: 100, cursor: null },
+    })) as any
 
     const sessions = result?.page || []
 
@@ -135,13 +132,10 @@ export const deleteInvitation = mutation({
     }
 
     // 3. Verify that the invitation exists and belongs to this organization
-    const invite = (await ctx.runQuery(
-      components.betterAuth.adapter.findOne,
-      {
-        model: "invitation",
-        where: [{ field: "_id", value: args.invitationId }],
-      }
-    )) as any
+    const invite = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "invitation",
+      where: [{ field: "_id", value: args.invitationId }],
+    })) as any
 
     if (!invite || invite.organizationId !== args.organizationId) {
       throw new Error("Invitation not found")
@@ -163,13 +157,10 @@ export const deleteInvitation = mutation({
 export const getUserProviders = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    const user = (await ctx.runQuery(
-      components.betterAuth.adapter.findOne,
-      {
-        model: "user",
-        where: [{ field: "email", value: args.email }],
-      }
-    )) as any
+    const user = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "email", value: args.email }],
+    })) as any
 
     if (!user) {
       return { exists: false, providers: [] }
@@ -193,4 +184,3 @@ export const getUserProviders = query({
     }
   },
 })
-

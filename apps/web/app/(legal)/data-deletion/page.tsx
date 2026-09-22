@@ -11,10 +11,10 @@ export default function DataDeletionPage() {
     <article className="prose-invert max-w-none space-y-10">
       {/* Header */}
       <div className="space-y-3 border-b border-zinc-900 pb-8">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+        <p className="font-mono text-[10px] tracking-widest text-zinc-500 uppercase">
           Legal
         </p>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Data Deletion Instructions
         </h1>
         <p className="text-sm text-zinc-400">
@@ -27,9 +27,9 @@ export default function DataDeletionPage() {
         <h2 className="text-xl font-semibold text-white">Overview</h2>
         <p className="text-sm leading-relaxed text-zinc-400">
           We respect your right to control your personal data. You may request
-          the deletion of your account and associated personal data at any
-          time. This page explains how to do so and what happens when you
-          request deletion.
+          the deletion of your account and associated personal data at any time.
+          This page explains how to do so and what happens when you request
+          deletion.
         </p>
       </section>
 
@@ -44,9 +44,9 @@ export default function DataDeletionPage() {
         </p>
 
         {/* Method 1 */}
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-5 space-y-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-zinc-300">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 font-mono text-xs font-bold text-zinc-300">
               1
             </div>
             <h3 className="text-base font-medium text-zinc-200">
@@ -57,14 +57,14 @@ export default function DataDeletionPage() {
             Send an email to{" "}
             <a
               href="mailto:privacy@groundcontrol.app"
-              className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors"
+              className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
             >
               privacy@groundcontrol.app
             </a>{" "}
             with the subject line &ldquo;Data Deletion Request&rdquo; and
             include the following information:
           </p>
-          <ul className="list-disc list-inside space-y-1.5 text-sm text-zinc-400 ml-2">
+          <ul className="ml-2 list-inside list-disc space-y-1.5 text-sm text-zinc-400">
             <li>Your full name</li>
             <li>
               The email address associated with your Ground Control account
@@ -77,9 +77,9 @@ export default function DataDeletionPage() {
         </div>
 
         {/* Method 2 */}
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-5 space-y-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-zinc-300">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 font-mono text-xs font-bold text-zinc-300">
               2
             </div>
             <h3 className="text-base font-medium text-zinc-200">
@@ -88,16 +88,16 @@ export default function DataDeletionPage() {
           </div>
           <p className="text-sm text-zinc-400">
             Sign in to your Ground Control account, navigate to{" "}
-            <span className="text-zinc-300 font-medium">Settings</span>, and
-            use the account deletion option (when available). This will
-            initiate the deletion process immediately.
+            <span className="font-medium text-zinc-300">Settings</span>, and use
+            the account deletion option (when available). This will initiate the
+            deletion process immediately.
           </p>
         </div>
 
         {/* Method 3 */}
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-5 space-y-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-zinc-300">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 font-mono text-xs font-bold text-zinc-300">
               3
             </div>
             <h3 className="text-base font-medium text-zinc-200">
@@ -111,13 +111,13 @@ export default function DataDeletionPage() {
               href="https://myaccount.google.com/permissions"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors"
+              className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
             >
               Google Account permissions settings
             </a>
             . Note that this revokes OAuth access but does not automatically
-            delete your Ground Control account data — please also use Method
-            1 or 2 above.
+            delete your Ground Control account data — please also use Method 1
+            or 2 above.
           </p>
         </div>
       </section>
@@ -132,13 +132,13 @@ export default function DataDeletionPage() {
           permanently removed:
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border border-zinc-800 rounded-lg overflow-hidden">
-            <thead className="bg-zinc-900/60 text-zinc-300 text-xs uppercase font-mono">
+          <table className="w-full overflow-hidden rounded-lg border border-zinc-800 text-left text-sm">
+            <thead className="bg-zinc-900/60 font-mono text-xs text-zinc-300 uppercase">
               <tr>
-                <th className="px-4 py-3 border-b border-zinc-800">
+                <th className="border-b border-zinc-800 px-4 py-3">
                   Data Type
                 </th>
-                <th className="px-4 py-3 border-b border-zinc-800">Action</th>
+                <th className="border-b border-zinc-800 px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="text-zinc-400">
@@ -201,12 +201,10 @@ export default function DataDeletionPage() {
 
       {/* Timeline */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          Deletion Timeline
-        </h2>
+        <h2 className="text-xl font-semibold text-white">Deletion Timeline</h2>
         <div className="space-y-4">
           <div className="flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-zinc-300 mt-0.5 shrink-0">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 font-mono text-xs font-bold text-zinc-300">
               24h
             </div>
             <div>
@@ -214,14 +212,13 @@ export default function DataDeletionPage() {
                 Account Access Revoked
               </p>
               <p className="text-sm text-zinc-400">
-                Your account will be deactivated and you will no longer be
-                able to sign in within 24 hours of our receiving your
-                request.
+                Your account will be deactivated and you will no longer be able
+                to sign in within 24 hours of our receiving your request.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-zinc-300 mt-0.5 shrink-0">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 font-mono text-xs font-bold text-zinc-300">
               7d
             </div>
             <div>
@@ -235,7 +232,7 @@ export default function DataDeletionPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-zinc-300 mt-0.5 shrink-0">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 font-mono text-xs font-bold text-zinc-300">
               30d
             </div>
             <div>
@@ -243,8 +240,8 @@ export default function DataDeletionPage() {
                 File Attachments Purged
               </p>
               <p className="text-sm text-zinc-400">
-                All file attachments uploaded by you will be permanently
-                deleted from our cloud storage within 30 days.
+                All file attachments uploaded by you will be permanently deleted
+                from our cloud storage within 30 days.
               </p>
             </div>
           </div>
@@ -260,19 +257,21 @@ export default function DataDeletionPage() {
           In certain cases, we may be required to retain some data even after
           your deletion request:
         </p>
-        <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
+        <ul className="list-inside list-disc space-y-2 text-sm text-zinc-400">
           <li>
-            <span className="text-zinc-300 font-medium">Legal obligations:</span>{" "}
+            <span className="font-medium text-zinc-300">
+              Legal obligations:
+            </span>{" "}
             Data we are required to retain by law, regulation, or legal
             proceedings
           </li>
           <li>
-            <span className="text-zinc-300 font-medium">Audit logs:</span>{" "}
+            <span className="font-medium text-zinc-300">Audit logs:</span>{" "}
             Anonymized audit records may be retained for organizational
             compliance purposes, with your personal identifiers removed
           </li>
           <li>
-            <span className="text-zinc-300 font-medium">
+            <span className="font-medium text-zinc-300">
               Active organization ownership:
             </span>{" "}
             If you are the sole owner of an organization, you must either
@@ -289,13 +288,13 @@ export default function DataDeletionPage() {
           If you have questions about data deletion or need assistance, please
           contact us:
         </p>
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-5 space-y-2 text-sm font-mono">
+        <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5 font-mono text-sm">
           <p className="text-zinc-300">Ground Control — Privacy Team</p>
           <p className="text-zinc-400">
             Email:{" "}
             <a
               href="mailto:privacy@groundcontrol.app"
-              className="text-zinc-200 underline underline-offset-2 hover:text-white transition-colors"
+              className="text-zinc-200 underline underline-offset-2 transition-colors hover:text-white"
             >
               privacy@groundcontrol.app
             </a>

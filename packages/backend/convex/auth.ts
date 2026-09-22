@@ -17,7 +17,8 @@ import { ResetPasswordEmail } from "./emails/ResetPasswordEmail"
 import { createAuthMiddleware, APIError } from "better-auth/api"
 
 const siteUrl = process.env.SITE_URL!
-const emailFrom = process.env.EMAIL_FROM || "Ground Control <onboarding@resend.dev>"
+const emailFrom =
+  process.env.EMAIL_FROM || "Ground Control <onboarding@resend.dev>"
 
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
@@ -129,7 +130,13 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     emailVerification: {
       sendOnSignUp: true,
       testMode: false,
-      sendVerificationEmail: async ({ user, url }: { user: any; url: string }) => {
+      sendVerificationEmail: async ({
+        user,
+        url,
+      }: {
+        user: any
+        url: string
+      }) => {
         await resend.sendEmail(ctx as any, {
           from: emailFrom,
           to: user.email,
@@ -150,7 +157,13 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
             },
           },
         },
-        sendInvitationEmail: async ({ email, invitation }: { email: string; invitation: any }) => {
+        sendInvitationEmail: async ({
+          email,
+          invitation,
+        }: {
+          email: string
+          invitation: any
+        }) => {
           const inviteLink = `${siteUrl}/accept-invitation?id=${invitation.id}`
           const org = (await ctx.runQuery(
             components.betterAuth.adapter.findOne,

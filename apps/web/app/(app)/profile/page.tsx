@@ -16,8 +16,17 @@ import {
 } from "@workspace/ui/components/card"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   ArrowLeft,
@@ -35,7 +44,11 @@ import Link from "next/link"
 
 const DICEBEAR_STYLES = [
   { id: "notionists", name: "Notionists", desc: "Notion style avatars" },
-  { id: "notionists-neutral", name: "Notionists Neutral", desc: "Neutral Notion style heads" },
+  {
+    id: "notionists-neutral",
+    name: "Notionists Neutral",
+    desc: "Neutral Notion style heads",
+  },
   { id: "glass", name: "Glass", desc: "Modern glassmorphic 3D designs" },
 ]
 
@@ -46,8 +59,12 @@ export default function ProfilePage() {
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [avatarType, setAvatarType] = useState<"dicebear" | "upload">("dicebear")
-  const [dicebearStyle, setDicebearStyle] = useState<"notionists" | "notionists-neutral" | "glass">("notionists")
+  const [avatarType, setAvatarType] = useState<"dicebear" | "upload">(
+    "dicebear"
+  )
+  const [dicebearStyle, setDicebearStyle] = useState<
+    "notionists" | "notionists-neutral" | "glass"
+  >("notionists")
   const [dicebearSeed, setDicebearSeed] = useState("")
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -60,7 +77,7 @@ export default function ProfilePage() {
       setName(session.user.name || "")
       setEmail(session.user.email || "")
       const userImage = session.user.image || ""
-      
+
       if (userImage.startsWith("data:image")) {
         setAvatarType("upload")
         setUploadedImage(userImage)
@@ -69,10 +86,13 @@ export default function ProfilePage() {
         setAvatarType("dicebear")
         const styleMatch = userImage.match(/\/9\.x\/([^/]+)\/svg/)
         const seedMatch = userImage.match(/\?seed=([^&]+)/)
-        
+
         const style = styleMatch && styleMatch[1] ? styleMatch[1] : "notionists"
-        const seed = seedMatch && seedMatch[1] ? decodeURIComponent(seedMatch[1]) : "avatar"
-        
+        const seed =
+          seedMatch && seedMatch[1]
+            ? decodeURIComponent(seedMatch[1])
+            : "avatar"
+
         if (["notionists", "notionists-neutral", "glass"].includes(style)) {
           setDicebearStyle(style as any)
         }
@@ -89,9 +109,10 @@ export default function ProfilePage() {
     return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`
   }
 
-  const currentAvatarUrl = avatarType === "dicebear" 
-    ? getDicebearUrl(dicebearStyle, dicebearSeed)
-    : (uploadedImage || (session?.user?.image ?? ""))
+  const currentAvatarUrl =
+    avatarType === "dicebear"
+      ? getDicebearUrl(dicebearStyle, dicebearSeed)
+      : uploadedImage || (session?.user?.image ?? "")
 
   // Randomize seed
   const handleRandomize = () => {
@@ -162,9 +183,10 @@ export default function ProfilePage() {
 
     setIsSaving(true)
     try {
-      const avatarToSave = avatarType === "dicebear"
-        ? getDicebearUrl(dicebearStyle, dicebearSeed)
-        : uploadedImage
+      const avatarToSave =
+        avatarType === "dicebear"
+          ? getDicebearUrl(dicebearStyle, dicebearSeed)
+          : uploadedImage
 
       if (!avatarToSave) {
         toast.error("Please select or upload an avatar.")
@@ -199,39 +221,48 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col w-full min-w-0 max-w-4xl mx-auto py-2 md:py-6 space-y-6 animate-in fade-in-50 duration-300">
+    <div className="mx-auto flex w-full max-w-4xl min-w-0 animate-in flex-col space-y-6 py-2 duration-300 fade-in-50 md:py-6">
       <Toaster />
-      
+
       {/* Header Bar */}
-      <div className="flex flex-col gap-2 w-full">
-        <Link 
-          href="/settings" 
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+      <div className="flex w-full flex-col gap-2">
+        <Link
+          href="/settings"
+          className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back to Settings</span>
         </Link>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Account Profile</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Account Profile
+          </h2>
           <p className="text-xs text-muted-foreground">
-            Update your public credentials and customize your avatar representation.
+            Update your public credentials and customize your avatar
+            representation.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-3">
         {/* Left Side: Avatar Configuration */}
-        <Card className="w-full md:col-span-1 shadow-xs border-border/80 bg-card/45 backdrop-blur-xs">
+        <Card className="w-full border-border/80 bg-card/45 shadow-xs backdrop-blur-xs md:col-span-1">
           <CardHeader>
             <CardTitle>Your Avatar</CardTitle>
-            <CardDescription>Select a dynamic style or upload your own.</CardDescription>
+            <CardDescription>
+              Select a dynamic style or upload your own.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Avatar Preview Box */}
             <div className="flex flex-col items-center py-4">
-              <Avatar className="h-32 w-32 rounded-2xl border border-border shadow-md ring-4 ring-primary/5 select-none transition-transform hover:scale-102">
-                <AvatarImage src={currentAvatarUrl} alt="Avatar Preview" className="object-cover" />
-                <AvatarFallback className="rounded-2xl text-3xl font-semibold bg-accent text-accent-foreground">
+              <Avatar className="h-32 w-32 rounded-2xl border border-border shadow-md ring-4 ring-primary/5 transition-transform select-none hover:scale-102">
+                <AvatarImage
+                  src={currentAvatarUrl}
+                  alt="Avatar Preview"
+                  className="object-cover"
+                />
+                <AvatarFallback className="rounded-2xl bg-accent text-3xl font-semibold text-accent-foreground">
                   {name
                     ?.split(" ")
                     .map((n) => n[0])
@@ -242,28 +273,40 @@ export default function ProfilePage() {
             </div>
 
             {/* Selector Tabs */}
-            <Tabs 
-              defaultValue={avatarType} 
-              value={avatarType} 
-              onValueChange={(val) => setAvatarType(val as any)} 
+            <Tabs
+              defaultValue={avatarType}
+              value={avatarType}
+              onValueChange={(val) => setAvatarType(val as any)}
               className="w-full"
             >
-              <TabsList className="grid grid-cols-2 w-full h-9 p-1 bg-muted/60">
-                <TabsTrigger value="dicebear" className="text-xs py-1.5 cursor-pointer">
-                  <Sparkles className="size-3.5 mr-1.5" />
+              <TabsList className="grid h-9 w-full grid-cols-2 bg-muted/60 p-1">
+                <TabsTrigger
+                  value="dicebear"
+                  className="cursor-pointer py-1.5 text-xs"
+                >
+                  <Sparkles className="mr-1.5 size-3.5" />
                   Dicebear
                 </TabsTrigger>
-                <TabsTrigger value="upload" className="text-xs py-1.5 cursor-pointer">
-                  <Upload className="size-3.5 mr-1.5" />
+                <TabsTrigger
+                  value="upload"
+                  className="cursor-pointer py-1.5 text-xs"
+                >
+                  <Upload className="mr-1.5 size-3.5" />
                   Custom
                 </TabsTrigger>
               </TabsList>
 
               {/* Dicebear generator style options */}
-              <TabsContent value="dicebear" className="space-y-4 pt-3 mt-0 focus-visible:ring-0">
+              <TabsContent
+                value="dicebear"
+                className="mt-0 space-y-4 pt-3 focus-visible:ring-0"
+              >
                 <div className="grid grid-cols-3 gap-2">
                   {DICEBEAR_STYLES.map((style) => {
-                    const previewUrl = getDicebearUrl(style.id, dicebearSeed || "avatar")
+                    const previewUrl = getDicebearUrl(
+                      style.id,
+                      dicebearSeed || "avatar"
+                    )
                     const isActive = dicebearStyle === style.id
                     return (
                       <button
@@ -271,19 +314,23 @@ export default function ProfilePage() {
                         type="button"
                         onClick={() => setDicebearStyle(style.id as any)}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all hover:bg-accent/40 cursor-pointer relative",
+                          "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border p-2 text-center transition-all hover:bg-accent/40",
                           isActive
                             ? "border-primary bg-primary/5 text-primary shadow-xs"
                             : "border-border bg-card text-muted-foreground"
                         )}
                       >
-                        <Avatar className="h-10 w-10 mb-1 border rounded-lg bg-muted/30">
+                        <Avatar className="mb-1 h-10 w-10 rounded-lg border bg-muted/30">
                           <AvatarImage src={previewUrl} alt={style.name} />
-                          <AvatarFallback className="rounded-lg text-[10px]">TH</AvatarFallback>
+                          <AvatarFallback className="rounded-lg text-[10px]">
+                            TH
+                          </AvatarFallback>
                         </Avatar>
-                        <span className="text-[9px] font-medium truncate w-full">{style.name}</span>
+                        <span className="w-full truncate text-[9px] font-medium">
+                          {style.name}
+                        </span>
                         {isActive && (
-                          <span className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                          <span className="absolute top-1 right-1 rounded-full bg-primary p-0.5 text-primary-foreground">
                             <Check className="size-2" />
                           </span>
                         )}
@@ -293,14 +340,16 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="seed" className="text-xs">Avatar Seed</Label>
+                  <Label htmlFor="seed" className="text-xs">
+                    Avatar Seed
+                  </Label>
                   <div className="flex gap-2">
                     <Input
                       id="seed"
                       value={dicebearSeed}
                       onChange={(e) => setDicebearSeed(e.target.value)}
                       placeholder="Type custom seed..."
-                      className="h-8 text-xs flex-1 bg-input/10 dark:bg-input/20 border-input/40"
+                      className="h-8 flex-1 border-input/40 bg-input/10 text-xs dark:bg-input/20"
                     />
                     <Button
                       type="button"
@@ -311,14 +360,21 @@ export default function ProfilePage() {
                       title="Randomize seed"
                       className="h-8 w-8 shrink-0 cursor-pointer"
                     >
-                      <Shuffle className={cn("size-3.5", { "animate-spin": randomizing })} />
+                      <Shuffle
+                        className={cn("size-3.5", {
+                          "animate-spin": randomizing,
+                        })}
+                      />
                     </Button>
                   </div>
                 </div>
               </TabsContent>
 
               {/* Base64 File Uploader */}
-              <TabsContent value="upload" className="space-y-4 pt-3 mt-0 focus-visible:ring-0">
+              <TabsContent
+                value="upload"
+                className="mt-0 space-y-4 pt-3 focus-visible:ring-0"
+              >
                 <div
                   onDragEnter={handleDrag}
                   onDragOver={handleDrag}
@@ -326,9 +382,13 @@ export default function ProfilePage() {
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={cn(
-                    "border border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-accent/20",
-                    dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-                    uploadedImage ? "border-solid bg-accent/5 border-primary/20" : ""
+                    "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 transition-all hover:bg-accent/20",
+                    dragActive
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50",
+                    uploadedImage
+                      ? "border-solid border-primary/20 bg-accent/5"
+                      : ""
                   )}
                 >
                   <input
@@ -339,9 +399,11 @@ export default function ProfilePage() {
                     className="hidden"
                   />
                   {uploadedImage ? (
-                    <div className="flex flex-col items-center gap-2 w-full text-center">
-                      <ImageIcon className="size-6 text-primary animate-pulse" />
-                      <span className="text-[10px] text-muted-foreground font-medium">Custom Image Selected</span>
+                    <div className="flex w-full flex-col items-center gap-2 text-center">
+                      <ImageIcon className="size-6 animate-pulse text-primary" />
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        Custom Image Selected
+                      </span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -350,7 +412,7 @@ export default function ProfilePage() {
                           e.stopPropagation()
                           setUploadedImage(null)
                         }}
-                        className="text-destructive hover:bg-destructive/10 h-7 text-[10px] gap-1.5 mt-1 cursor-pointer"
+                        className="mt-1 h-7 cursor-pointer gap-1.5 text-[10px] text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="size-3" /> Remove Custom Image
                       </Button>
@@ -358,8 +420,12 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <Upload className="size-6 text-muted-foreground" />
-                      <p className="text-xs font-semibold text-center text-foreground">Drag & drop photo here</p>
-                      <p className="text-[10px] text-muted-foreground text-center">Or click to search folders (Max 2MB)</p>
+                      <p className="text-center text-xs font-semibold text-foreground">
+                        Drag & drop photo here
+                      </p>
+                      <p className="text-center text-[10px] text-muted-foreground">
+                        Or click to search folders (Max 2MB)
+                      </p>
                     </>
                   )}
                 </div>
@@ -369,53 +435,63 @@ export default function ProfilePage() {
         </Card>
 
         {/* Right Side: Account Details Form */}
-        <Card className="w-full md:col-span-2 shadow-xs border-border/80 bg-card/45 backdrop-blur-xs">
+        <Card className="w-full border-border/80 bg-card/45 shadow-xs backdrop-blur-xs md:col-span-2">
           <CardHeader>
             <CardTitle>Personal Details</CardTitle>
-            <CardDescription>Configure your public handle and contact endpoint.</CardDescription>
+            <CardDescription>
+              Configure your public handle and contact endpoint.
+            </CardDescription>
           </CardHeader>
           <form onSubmit={handleSave}>
             <CardContent className="space-y-4">
               {/* Full Name input */}
               <div className="space-y-2">
-                <Label htmlFor="profile-name" className="text-xs">Display Name</Label>
+                <Label htmlFor="profile-name" className="text-xs">
+                  Display Name
+                </Label>
                 <div className="relative">
-                  <User className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground/80" />
+                  <User className="absolute top-2 left-2.5 h-4 w-4 text-muted-foreground/80" />
                   <Input
                     id="profile-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="E.g. John Doe"
                     required
-                    className="pl-9 h-9 text-xs bg-input/10 dark:bg-input/20 border-input/40"
+                    className="h-9 border-input/40 bg-input/10 pl-9 text-xs dark:bg-input/20"
                   />
                 </div>
               </div>
 
               {/* Email (Readonly) */}
               <div className="space-y-2">
-                <Label htmlFor="profile-email" className="text-xs">Email Address</Label>
+                <Label htmlFor="profile-email" className="text-xs">
+                  Email Address
+                </Label>
                 <div className="relative">
-                  <Mail className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/60" />
+                  <Mail className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-muted-foreground/60" />
                   <Input
                     id="profile-email"
                     value={email}
                     disabled
-                    className="pl-9 h-9 text-xs bg-muted/40 cursor-not-allowed opacity-80 border-input/40"
+                    className="h-9 cursor-not-allowed border-input/40 bg-muted/40 pl-9 text-xs opacity-80"
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground/80 mt-1 leading-normal">
-                  Email updates are prohibited in order to maintain backend security audits. Contact your administrator to revise credentials.
+                <p className="mt-1 text-[10px] leading-normal text-muted-foreground/80">
+                  Email updates are prohibited in order to maintain backend
+                  security audits. Contact your administrator to revise
+                  credentials.
                 </p>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end border-t border-border/40 pt-4 mt-2">
+            <CardFooter className="mt-2 flex justify-end border-t border-border/40 pt-4">
               <Button
                 type="submit"
                 disabled={isSaving || !name.trim()}
-                className="text-xs font-semibold h-8 cursor-pointer shadow-xs hover:scale-[1.02] transition-transform"
+                className="h-8 cursor-pointer text-xs font-semibold shadow-xs transition-transform hover:scale-[1.02]"
               >
-                {isSaving && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                {isSaving && (
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                )}
                 Save Settings
               </Button>
             </CardFooter>

@@ -114,12 +114,19 @@ export function NavUser({
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
+                className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
+                  <AvatarImage
+                    src={getAvatarUrl(user.image ?? user.avatar, user.name)}
+                    alt={user.name}
+                  />
                   <AvatarFallback className="rounded-lg">
-                    {user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U"}
+                    {user.name
+                      ?.split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -138,9 +145,16 @@ export function NavUser({
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={getAvatarUrl(user.image ?? user.avatar, user.name)} alt={user.name} />
+                    <AvatarImage
+                      src={getAvatarUrl(user.image ?? user.avatar, user.name)}
+                      alt={user.name}
+                    />
                     <AvatarFallback className="rounded-lg">
-                      {user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U"}
+                      {user.name
+                        ?.split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -168,21 +182,37 @@ export function NavUser({
                   <CreditCard className="size-4" />
                   Billing
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowNotifications(true)} className="cursor-pointer">
+                <DropdownMenuItem
+                  onClick={() => setShowNotifications(true)}
+                  className="cursor-pointer"
+                >
                   <Bell className="size-4" />
                   Notifications
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowThemeDialog(true)} className="cursor-pointer">
-                  {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+                <DropdownMenuItem
+                  onClick={() => setShowThemeDialog(true)}
+                  className="cursor-pointer"
+                >
+                  {resolvedTheme === "dark" ? (
+                    <Moon className="size-4" />
+                  ) : (
+                    <Sun className="size-4" />
+                  )}
                   Theme Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowOrgDialog(true)} className="cursor-pointer">
+                <DropdownMenuItem
+                  onClick={() => setShowOrgDialog(true)}
+                  className="cursor-pointer"
+                >
                   <Building className="size-4" />
                   Switch Organization
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
                 <LogOut className="size-4" />
                 Log out
               </DropdownMenuItem>

@@ -68,7 +68,10 @@ export function MemberProfileDialog({
         phoneNumber: profile.phoneNumber || "",
       })
       setIntegrations({
-        email: profile.integrations?.email !== undefined ? profile.integrations.email : true,
+        email:
+          profile.integrations?.email !== undefined
+            ? profile.integrations.email
+            : true,
         sms: profile.integrations?.sms || false,
         rcs: profile.integrations?.rcs || false,
         whatsapp: profile.integrations?.whatsapp || false,

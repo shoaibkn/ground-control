@@ -1,4 +1,11 @@
-import { query, mutation, internalQuery, internalMutation, internalAction, action } from "./_generated/server"
+import {
+  query,
+  mutation,
+  internalQuery,
+  internalMutation,
+  internalAction,
+  action,
+} from "./_generated/server"
 import { v } from "convex/values"
 import { components, internal } from "./_generated/api"
 import { Resend } from "@convex-dev/resend"
@@ -8,10 +15,13 @@ import { NotificationEmail } from "./emails/NotificationEmail"
 import SentDm from "@sentdm/sentdm"
 import { authComponent } from "./auth"
 
-const emailFrom = process.env.EMAIL_FROM || "Ground Control <onboarding@resend.dev>"
+const emailFrom =
+  process.env.EMAIL_FROM || "Ground Control <onboarding@resend.dev>"
 const siteUrl = process.env.SITE_URL || "http://localhost:3000"
 
-export const pushNotifications = new PushNotifications<string>(components.pushNotifications)
+export const pushNotifications = new PushNotifications<string>(
+  components.pushNotifications
+)
 
 async function requireAuth(ctx: any) {
   const user = await authComponent.getAuthUser(ctx)
@@ -102,9 +112,12 @@ export const getUserNotifications = query({
 
     if (args.category && args.category !== "all") {
       filtered = filtered.filter((n) => {
-        if (args.category === "tasks") return n.entityType === "task" || n.type.startsWith("task_")
-        if (args.category === "approvals") return n.entityType === "approval" || n.type.startsWith("approval_")
-        if (args.category === "comments") return n.type.includes("comment") || n.type.includes("chat")
+        if (args.category === "tasks")
+          return n.entityType === "task" || n.type.startsWith("task_")
+        if (args.category === "approvals")
+          return n.entityType === "approval" || n.type.startsWith("approval_")
+        if (args.category === "comments")
+          return n.type.includes("comment") || n.type.includes("chat")
         if (args.category === "system") return n.type === "system"
         return true
       })
@@ -123,7 +136,10 @@ export const getUnreadCount = query({
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_user_org_read", (q) =>
-        q.eq("userId", user._id).eq("organizationId", args.organizationId).eq("isRead", false)
+        q
+          .eq("userId", user._id)
+          .eq("organizationId", args.organizationId)
+          .eq("isRead", false)
       )
       .collect()
 
@@ -160,7 +176,10 @@ export const markAllNotificationsRead = mutation({
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_user_org_read", (q) =>
-        q.eq("userId", user._id).eq("organizationId", args.organizationId).eq("isRead", false)
+        q
+          .eq("userId", user._id)
+          .eq("organizationId", args.organizationId)
+          .eq("isRead", false)
       )
       .collect()
 
@@ -201,7 +220,10 @@ export const clearAllReadNotifications = mutation({
     const readList = await ctx.db
       .query("notifications")
       .withIndex("by_user_org_read", (q) =>
-        q.eq("userId", user._id).eq("organizationId", args.organizationId).eq("isRead", true)
+        q
+          .eq("userId", user._id)
+          .eq("organizationId", args.organizationId)
+          .eq("isRead", true)
       )
       .collect()
 
@@ -230,7 +252,9 @@ export const getOrganizationApiKeys = query({
 
     const keysRecord = await ctx.db
       .query("organizationApiKeys")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
       .first()
 
     const maskKey = (key?: string) => {
@@ -285,12 +309,16 @@ export const updateOrganizationApiKeys = mutation({
 
     const member = await requireMember(ctx, user._id, args.organizationId)
     if (member.role !== "admin" && member.role !== "owner") {
-      throw new Error("Only organization owners and administrators can configure API keys")
+      throw new Error(
+        "Only organization owners and administrators can configure API keys"
+      )
     }
 
     const existing = await ctx.db
       .query("organizationApiKeys")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
       .first()
 
     const now = Date.now()
@@ -298,23 +326,35 @@ export const updateOrganizationApiKeys = mutation({
     let newResendApiKey = existing?.resendApiKey
     if (args.clearResendKey) {
       newResendApiKey = undefined
-    } else if (args.resendApiKey !== undefined && args.resendApiKey.trim() !== "") {
+    } else if (
+      args.resendApiKey !== undefined &&
+      args.resendApiKey.trim() !== ""
+    ) {
       newResendApiKey = args.resendApiKey.trim()
     }
 
     let newSentDmApiKey = existing?.sentDmApiKey
     if (args.clearSentDmKey) {
       newSentDmApiKey = undefined
-    } else if (args.sentDmApiKey !== undefined && args.sentDmApiKey.trim() !== "") {
+    } else if (
+      args.sentDmApiKey !== undefined &&
+      args.sentDmApiKey.trim() !== ""
+    ) {
       newSentDmApiKey = args.sentDmApiKey.trim()
     }
 
     const updateData = {
       organizationId: args.organizationId,
       resendApiKey: newResendApiKey,
-      resendFromEmail: args.resendFromEmail !== undefined ? (args.resendFromEmail.trim() || undefined) : existing?.resendFromEmail,
+      resendFromEmail:
+        args.resendFromEmail !== undefined
+          ? args.resendFromEmail.trim() || undefined
+          : existing?.resendFromEmail,
       sentDmApiKey: newSentDmApiKey,
-      sentDmTemplateIds: args.sentDmTemplateIds !== undefined ? args.sentDmTemplateIds : existing?.sentDmTemplateIds,
+      sentDmTemplateIds:
+        args.sentDmTemplateIds !== undefined
+          ? args.sentDmTemplateIds
+          : existing?.sentDmTemplateIds,
       updatedAt: now,
       updatedBy: user._id,
     }
@@ -334,7 +374,9 @@ export const getOrganizationApiKeysInternal = internalQuery({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("organizationApiKeys")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
       .first()
   },
 })
@@ -437,7 +479,10 @@ export const sendPushNotificationMutation = internalMutation({
         allowUnregisteredTokens: true,
       })
     } catch (e) {
-      console.warn(`[Push Warning] Failed to send push notification to ${args.userId}:`, e)
+      console.warn(
+        `[Push Warning] Failed to send push notification to ${args.userId}:`,
+        e
+      )
     }
   },
 })
@@ -458,10 +503,16 @@ export const sendEmailAction = internalAction({
   },
   handler: async (ctx, args) => {
     const resend = args.resendApiKey
-      ? new Resend(components.resend, { apiKey: args.resendApiKey, testMode: false })
+      ? new Resend(components.resend, {
+          apiKey: args.resendApiKey,
+          testMode: false,
+        })
       : new Resend(components.resend, { testMode: false })
 
-    const from = args.fromEmail && args.fromEmail.trim() !== "" ? args.fromEmail.trim() : emailFrom
+    const from =
+      args.fromEmail && args.fromEmail.trim() !== ""
+        ? args.fromEmail.trim()
+        : emailFrom
 
     const html = await render(
       NotificationEmail({
@@ -495,28 +546,67 @@ export const sendNotification = internalAction({
   },
   handler: async (ctx, args) => {
     // 1. Get the user profile and preferences
-    const profile = await ctx.runQuery(internal.notifications.getUserProfileForNotification, {
-      userId: args.userId,
-      organizationId: args.organizationId,
-    })
+    const profile = await ctx.runQuery(
+      internal.notifications.getUserProfileForNotification,
+      {
+        userId: args.userId,
+        organizationId: args.organizationId,
+      }
+    )
 
     if (!profile) {
-      console.warn(`No profile found for user ${args.userId} in organization ${args.organizationId}`)
+      console.warn(
+        `No profile found for user ${args.userId} in organization ${args.organizationId}`
+      )
       return
     }
 
-    const { email, phoneNumber, integrations, notificationPreferences } = profile
+    const { email, phoneNumber, integrations, notificationPreferences } =
+      profile
 
     // Check event-level preference
     if (notificationPreferences) {
-      if (args.templateName === "task_assigned" && notificationPreferences.taskAssigned === false) return
-      if (args.templateName === "task_status_changed" && notificationPreferences.taskStatusChanged === false) return
-      if ((args.templateName === "task_overdue" || args.templateName === "task_due_soon") && notificationPreferences.taskDueReminder === false) return
-      if (args.templateName === "task_comment" && notificationPreferences.taskComments === false) return
-      if (args.templateName === "approval_requested" && notificationPreferences.approvalRequested === false) return
-      if (args.templateName === "approval_status_changed" && notificationPreferences.approvalDecided === false) return
-      if (args.templateName === "approval_comment" && notificationPreferences.approvalComments === false) return
-      if (args.templateName === "form_response_submitted" && notificationPreferences.formResponses === false) return
+      if (
+        args.templateName === "task_assigned" &&
+        notificationPreferences.taskAssigned === false
+      )
+        return
+      if (
+        args.templateName === "task_status_changed" &&
+        notificationPreferences.taskStatusChanged === false
+      )
+        return
+      if (
+        (args.templateName === "task_overdue" ||
+          args.templateName === "task_due_soon") &&
+        notificationPreferences.taskDueReminder === false
+      )
+        return
+      if (
+        args.templateName === "task_comment" &&
+        notificationPreferences.taskComments === false
+      )
+        return
+      if (
+        args.templateName === "approval_requested" &&
+        notificationPreferences.approvalRequested === false
+      )
+        return
+      if (
+        args.templateName === "approval_status_changed" &&
+        notificationPreferences.approvalDecided === false
+      )
+        return
+      if (
+        args.templateName === "approval_comment" &&
+        notificationPreferences.approvalComments === false
+      )
+        return
+      if (
+        args.templateName === "form_response_submitted" &&
+        notificationPreferences.formResponses === false
+      )
+        return
     }
 
     // Format content
@@ -613,7 +703,13 @@ export const sendNotification = internalAction({
         type: args.templateName,
         title,
         message,
-        link: args.link || (entityType === "task" ? `/tasks` : entityType === "approval" ? `/approvals` : `/dashboard`),
+        link:
+          args.link ||
+          (entityType === "task"
+            ? `/tasks`
+            : entityType === "approval"
+              ? `/approvals`
+              : `/dashboard`),
         actorId: args.actorId,
         entityId: args.entityId,
         entityType,
@@ -626,16 +722,19 @@ export const sendNotification = internalAction({
     const wantsPush = integrations?.push ?? true
     if (wantsPush) {
       try {
-        await ctx.runMutation(internal.notifications.sendPushNotificationMutation, {
-          userId: args.userId,
-          title,
-          body: message,
-          data: {
-            entityType,
-            entityId: args.entityId,
-            link: args.link,
-          },
-        })
+        await ctx.runMutation(
+          internal.notifications.sendPushNotificationMutation,
+          {
+            userId: args.userId,
+            title,
+            body: message,
+            data: {
+              entityType,
+              entityId: args.entityId,
+              link: args.link,
+            },
+          }
+        )
         channelsSent.push("push")
       } catch (e) {
         console.warn(`[Mobile Push Error] ${args.userId}:`, e)
@@ -643,9 +742,12 @@ export const sendNotification = internalAction({
     }
 
     // Retrieve organization BYOK configuration
-    const orgKeys = await ctx.runQuery(internal.notifications.getOrganizationApiKeysInternal, {
-      organizationId: args.organizationId,
-    })
+    const orgKeys = await ctx.runQuery(
+      internal.notifications.getOrganizationApiKeysInternal,
+      {
+        organizationId: args.organizationId,
+      }
+    )
 
     // 3. Dispatch via Email (Resend)
     const wantsEmail = integrations?.email ?? true
@@ -683,18 +785,23 @@ export const sendNotification = internalAction({
 
     if (channels.length > 0 && phoneNumber) {
       if (!sentDmApiKey) {
-        console.warn(`[SentDM Warning] Neither custom nor platform SENT_DM_API_KEY is defined. Logging payload: ${JSON.stringify(args.parameters)}`)
+        console.warn(
+          `[SentDM Warning] Neither custom nor platform SENT_DM_API_KEY is defined. Logging payload: ${JSON.stringify(args.parameters)}`
+        )
       } else {
         const defaultTemplateIds: Record<string, string | undefined> = {
           task_assigned: process.env.SENTDM_TASK_ASSIGNED_TEMPLATE_ID,
-          task_status_changed: process.env.SENTDM_TASK_STATUS_CHANGED_TEMPLATE_ID,
+          task_status_changed:
+            process.env.SENTDM_TASK_STATUS_CHANGED_TEMPLATE_ID,
           task_overdue: process.env.SENTDM_TASK_OVERDUE_TEMPLATE_ID,
           task_due_soon: process.env.SENTDM_TASK_DUE_SOON_TEMPLATE_ID,
           task_comment: process.env.SENTDM_TASK_COMMENT_TEMPLATE_ID,
           approval_requested: process.env.SENTDM_APPROVAL_REQUESTED_TEMPLATE_ID,
-          approval_status_changed: process.env.SENTDM_APPROVAL_STATUS_CHANGED_TEMPLATE_ID,
+          approval_status_changed:
+            process.env.SENTDM_APPROVAL_STATUS_CHANGED_TEMPLATE_ID,
           approval_comment: process.env.SENTDM_APPROVAL_COMMENT_TEMPLATE_ID,
-          form_response_submitted: process.env.SENTDM_FORM_RESPONSE_SUBMITTED_TEMPLATE_ID,
+          form_response_submitted:
+            process.env.SENTDM_FORM_RESPONSE_SUBMITTED_TEMPLATE_ID,
         }
 
         const templateId =
@@ -713,13 +820,20 @@ export const sendNotification = internalAction({
               channel: channels,
             })
             const recipient = response.data?.recipients?.[0]
-            console.log(`SentDM message sent to ${phoneNumber} via channels ${JSON.stringify(channels)}. Message ID: ${recipient?.message_id ?? "unknown"}`)
+            console.log(
+              `SentDM message sent to ${phoneNumber} via channels ${JSON.stringify(channels)}. Message ID: ${recipient?.message_id ?? "unknown"}`
+            )
             channelsSent.push(...channels)
           } catch (error) {
-            console.error(`Failed to send SentDM message to ${phoneNumber}:`, error)
+            console.error(
+              `Failed to send SentDM message to ${phoneNumber}:`,
+              error
+            )
           }
         } else {
-          console.log(`[SentDM Info] Fallback: No template ID for ${args.templateName}. Message: "${title} - ${message}"`)
+          console.log(
+            `[SentDM Info] Fallback: No template ID for ${args.templateName}. Message: "${title} - ${message}"`
+          )
         }
       }
     }
@@ -741,18 +855,24 @@ export const sendTestNotification = action({
       throw new Error("Unauthorized")
     }
 
-    const profile = await ctx.runQuery(internal.notifications.getUserProfileForNotification, {
-      userId: user._id,
-      organizationId: args.organizationId,
-    })
+    const profile = await ctx.runQuery(
+      internal.notifications.getUserProfileForNotification,
+      {
+        userId: user._id,
+        organizationId: args.organizationId,
+      }
+    )
 
     if (!profile) {
       throw new Error("Member profile not found")
     }
 
-    const orgKeys = await ctx.runQuery(internal.notifications.getOrganizationApiKeysInternal, {
-      organizationId: args.organizationId,
-    })
+    const orgKeys = await ctx.runQuery(
+      internal.notifications.getOrganizationApiKeysInternal,
+      {
+        organizationId: args.organizationId,
+      }
+    )
 
     const testTime = new Date().toLocaleTimeString()
     const testTitle = `Test Notification (${args.channel.toUpperCase()})`
@@ -772,21 +892,33 @@ export const sendTestNotification = action({
         actorId: user._id,
         channelSent: ["in_app"],
       })
-      results.inApp = { status: "success", message: "In-App notification delivered" }
+      results.inApp = {
+        status: "success",
+        message: "In-App notification delivered",
+      }
     }
 
     // Mobile Push Test
     if (args.channel === "all" || args.channel === "push") {
       try {
-        await ctx.runMutation(internal.notifications.sendPushNotificationMutation, {
-          userId: user._id,
-          title: testTitle,
-          body: testMessage,
-          data: { link: "/settings?tab=notifications" },
-        })
-        results.push = { status: "success", message: "Push notification queued for Expo mobile client" }
+        await ctx.runMutation(
+          internal.notifications.sendPushNotificationMutation,
+          {
+            userId: user._id,
+            title: testTitle,
+            body: testMessage,
+            data: { link: "/settings?tab=notifications" },
+          }
+        )
+        results.push = {
+          status: "success",
+          message: "Push notification queued for Expo mobile client",
+        }
       } catch (e: any) {
-        results.push = { status: "error", message: e.message || "Failed to dispatch push" }
+        results.push = {
+          status: "error",
+          message: e.message || "Failed to dispatch push",
+        }
       }
     }
 
@@ -794,13 +926,16 @@ export const sendTestNotification = action({
     if (args.channel === "all" || args.channel === "email") {
       if (profile.email) {
         try {
-          const resendMode = orgKeys?.resendApiKey ? "Custom Org Key (BYOK)" : "Platform Managed Key"
+          const resendMode = orgKeys?.resendApiKey
+            ? "Custom Org Key (BYOK)"
+            : "Platform Managed Key"
           await ctx.runAction(internal.notifications.sendEmailAction, {
             email: profile.email,
             templateName: "system_test",
             parameters: {},
             subject: `Ground Control: Test Notification (${testTime})`,
-            previewText: "Your Ground Control notification test was successful!",
+            previewText:
+              "Your Ground Control notification test was successful!",
             title: "Ground Control Test Notification",
             message: `Hello ${profile.name || "Operator"}, this is a test notification verifying that your email integration via Resend is working properly (${resendMode}).`,
             actionUrl: `${siteUrl}/settings?tab=notifications`,
@@ -813,7 +948,10 @@ export const sendTestNotification = action({
             message: `Email delivered to ${profile.email} using ${resendMode}`,
           }
         } catch (e: any) {
-          results.email = { status: "error", message: e.message || "Failed to send email" }
+          results.email = {
+            status: "error",
+            message: e.message || "Failed to send email",
+          }
         }
       } else {
         results.email = { status: "skipped", message: "No email address found" }
@@ -821,15 +959,32 @@ export const sendTestNotification = action({
     }
 
     // SentDM Smart Messaging Test (WhatsApp / SMS / RCS)
-    if (args.channel === "all" || args.channel === "whatsapp" || args.channel === "sms" || args.channel === "rcs") {
-      const targetChannel = (args.channel === "all" ? "sms" : args.channel) as "sms" | "whatsapp" | "rcs"
+    if (
+      args.channel === "all" ||
+      args.channel === "whatsapp" ||
+      args.channel === "sms" ||
+      args.channel === "rcs"
+    ) {
+      const targetChannel = (args.channel === "all" ? "sms" : args.channel) as
+        | "sms"
+        | "whatsapp"
+        | "rcs"
       const sentDmApiKey = orgKeys?.sentDmApiKey || process.env.SENT_DM_API_KEY
-      const sentDmMode = orgKeys?.sentDmApiKey ? "Custom Org Key (BYOK)" : "Platform Managed Key"
+      const sentDmMode = orgKeys?.sentDmApiKey
+        ? "Custom Org Key (BYOK)"
+        : "Platform Managed Key"
 
       if (!profile.phoneNumber) {
-        results.phone = { status: "skipped", message: "No phone number configured in profile" }
+        results.phone = {
+          status: "skipped",
+          message: "No phone number configured in profile",
+        }
       } else if (!sentDmApiKey) {
-        results.phone = { status: "warning", message: "No Sent.dm API key configured (Neither custom nor platform key found)" }
+        results.phone = {
+          status: "warning",
+          message:
+            "No Sent.dm API key configured (Neither custom nor platform key found)",
+        }
       } else {
         try {
           const client = new SentDm({ apiKey: sentDmApiKey })
@@ -855,10 +1010,17 @@ export const sendTestNotification = action({
               message: `Sent.dm message dispatched to ${profile.phoneNumber} via ${targetChannel.toUpperCase()} using ${sentDmMode}`,
             }
           } else {
-            results.phone = { status: "warning", message: "Sent.dm template ID not configured (custom or environment template ID needed)" }
+            results.phone = {
+              status: "warning",
+              message:
+                "Sent.dm template ID not configured (custom or environment template ID needed)",
+            }
           }
         } catch (e: any) {
-          results.phone = { status: "error", message: e.message || "Failed to dispatch Sent.dm message" }
+          results.phone = {
+            status: "error",
+            message: e.message || "Failed to dispatch Sent.dm message",
+          }
         }
       }
     }

@@ -8,10 +8,16 @@ export async function POST(req: Request) {
     const { invitationId, organizationId } = body
 
     if (!invitationId) {
-      return NextResponse.json({ error: "Missing invitationId" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Missing invitationId" },
+        { status: 400 }
+      )
     }
     if (!organizationId) {
-      return NextResponse.json({ error: "Missing organizationId" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Missing organizationId" },
+        { status: 400 }
+      )
     }
 
     // Call our Convex secure delete mutation

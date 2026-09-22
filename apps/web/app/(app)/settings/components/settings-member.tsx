@@ -587,7 +587,10 @@ export default function MemberSettings() {
                           <TableCell className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
                               <AvatarImage
-                                src={getAvatarUrl(member.user?.image, member.user?.name)}
+                                src={getAvatarUrl(
+                                  member.user?.image,
+                                  member.user?.name
+                                )}
                               />
                               <AvatarFallback>
                                 {member.user?.name?.charAt(0) || "U"}

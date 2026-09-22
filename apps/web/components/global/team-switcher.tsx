@@ -32,10 +32,10 @@ export function TeamSwitcher() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" className="animate-pulse bg-muted">
-             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground" />
-             <div className="grid flex-1 text-left text-sm leading-tight space-y-1">
-               <div className="h-4 w-20 bg-muted-foreground/20 rounded" />
-             </div>
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground" />
+            <div className="grid flex-1 space-y-1 text-left text-sm leading-tight">
+              <div className="h-4 w-20 rounded bg-muted-foreground/20" />
+            </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -66,7 +66,9 @@ export function TeamSwitcher() {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{currentOrg.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{currentOrg.slug}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {currentOrg.slug}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -94,14 +96,16 @@ export function TeamSwitcher() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="gap-2 p-2"
               onClick={() => router.push("/onboarding")}
             >
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
-              <div className="font-medium text-muted-foreground">Create organization</div>
+              <div className="font-medium text-muted-foreground">
+                Create organization
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -104,12 +104,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuButton
                 onClick={() => setIsCreateMenuOpen(true)}
                 tooltip="Create New"
-                className="animate-icon-group group/btn h-10 rounded-lg border border-primary/25 bg-primary/5 hover:bg-primary hover:text-primary-foreground flex items-center justify-start gap-3 transition-all duration-300 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 shadow-xs hover:border-primary cursor-pointer hover:shadow-sm hover:scale-[1.01]"
+                className="animate-icon-group group/btn flex h-10 cursor-pointer items-center justify-start gap-3 rounded-lg border border-primary/25 bg-primary/5 shadow-xs transition-all duration-300 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 hover:scale-[1.01] hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-sm"
               >
-                <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground group-hover/btn:bg-background group-hover/btn:text-primary transition-colors duration-300 shrink-0">
-                  <AnimatedIcon icon={Plus} animation="spin" className="size-4 shrink-0" />
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors duration-300 group-hover/btn:bg-background group-hover/btn:text-primary">
+                  <AnimatedIcon
+                    icon={Plus}
+                    animation="spin"
+                    className="size-4 shrink-0"
+                  />
                 </div>
-                <span className="font-semibold text-xs group-data-[collapsible=icon]:hidden tracking-wide">Create New</span>
+                <span className="text-xs font-semibold tracking-wide group-data-[collapsible=icon]:hidden">
+                  Create New
+                </span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -184,9 +190,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       {/* Create New Selection Dialog */}
       <Dialog open={isCreateMenuOpen} onOpenChange={setIsCreateMenuOpen}>
-        <DialogContent className="sm:max-w-[480px] p-6 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl">
+        <DialogContent className="rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-md sm:max-w-[480px]">
           <DialogHeader className="pb-4">
-            <DialogTitle className="text-base font-bold">Create New</DialogTitle>
+            <DialogTitle className="text-base font-bold">
+              Create New
+            </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Choose what you would like to create in this organization.
             </DialogDescription>
@@ -199,14 +207,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 setIsCreateMenuOpen(false)
                 setIsCreateTaskOpen(true)
               }}
-              className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-border/50 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 group/item cursor-pointer text-center outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group/item flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-border/50 bg-background/50 p-5 text-center transition-all duration-200 outline-none hover:border-primary/50 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              <div className="p-3.5 bg-primary/10 text-primary rounded-xl group-hover/item:scale-110 transition-transform duration-200">
+              <div className="rounded-xl bg-primary/10 p-3.5 text-primary transition-transform duration-200 group-hover/item:scale-110">
                 <CircleCheckBig className="size-6" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-foreground">Task</span>
-                <span className="text-[9px] text-muted-foreground">Create to-do items</span>
+                <span className="text-xs font-semibold text-foreground">
+                  Task
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  Create to-do items
+                </span>
               </div>
             </button>
 
@@ -216,14 +228,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 setIsCreateMenuOpen(false)
                 toast.info("Approvals creation coming soon!")
               }}
-              className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-border/50 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 group/item cursor-pointer text-center outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group/item flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-border/50 bg-background/50 p-5 text-center transition-all duration-200 outline-none hover:border-primary/50 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              <div className="p-3.5 bg-primary/10 text-primary rounded-xl group-hover/item:scale-110 transition-transform duration-200">
+              <div className="rounded-xl bg-primary/10 p-3.5 text-primary transition-transform duration-200 group-hover/item:scale-110">
                 <Signature className="size-6" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-foreground">Approval</span>
-                <span className="text-[9px] text-muted-foreground">Request sign-off</span>
+                <span className="text-xs font-semibold text-foreground">
+                  Approval
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  Request sign-off
+                </span>
               </div>
             </button>
 
@@ -233,14 +249,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 setIsCreateMenuOpen(false)
                 toast.info("New chat creation coming soon!")
               }}
-              className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-border/50 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 group/item cursor-pointer text-center outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group/item flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-border/50 bg-background/50 p-5 text-center transition-all duration-200 outline-none hover:border-primary/50 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              <div className="p-3.5 bg-primary/10 text-primary rounded-xl group-hover/item:scale-110 transition-transform duration-200">
+              <div className="rounded-xl bg-primary/10 p-3.5 text-primary transition-transform duration-200 group-hover/item:scale-110">
                 <MessageSquare className="size-6" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-foreground">Chat</span>
-                <span className="text-[9px] text-muted-foreground">Start a channel</span>
+                <span className="text-xs font-semibold text-foreground">
+                  Chat
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  Start a channel
+                </span>
               </div>
             </button>
 
@@ -248,14 +268,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <Link
               href="/forms/new"
               onClick={() => setIsCreateMenuOpen(false)}
-              className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-border/50 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 group/item cursor-pointer text-center outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group/item flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-border/50 bg-background/50 p-5 text-center transition-all duration-200 outline-none hover:border-primary/50 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              <div className="p-3.5 bg-primary/10 text-primary rounded-xl group-hover/item:scale-110 transition-transform duration-200">
+              <div className="rounded-xl bg-primary/10 p-3.5 text-primary transition-transform duration-200 group-hover/item:scale-110">
                 <FileText className="size-6" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-foreground">Form</span>
-                <span className="text-[9px] text-muted-foreground">Build custom form</span>
+                <span className="text-xs font-semibold text-foreground">
+                  Form
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  Build custom form
+                </span>
               </div>
             </Link>
           </div>
@@ -263,7 +287,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </Dialog>
 
       {/* Task Creation Dialog */}
-      <CreateTaskDialog isOpen={isCreateTaskOpen} setIsOpen={setIsCreateTaskOpen} />
+      <CreateTaskDialog
+        isOpen={isCreateTaskOpen}
+        setIsOpen={setIsCreateTaskOpen}
+      />
     </Sidebar>
   )
 }

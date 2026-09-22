@@ -11,7 +11,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 })
     }
     if (!organizationId) {
-      return NextResponse.json({ error: "Missing organizationId" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Missing organizationId" },
+        { status: 400 }
+      )
     }
 
     // Call the Convex mutation. fetchAuthMutation automatically retrieves the token

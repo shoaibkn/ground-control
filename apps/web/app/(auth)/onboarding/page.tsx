@@ -3,7 +3,14 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
@@ -74,13 +81,15 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-md">
         {step === 1 && (
           <form onSubmit={handleCreateOrg}>
             <CardHeader>
               <CardTitle>Welcome!</CardTitle>
-              <CardDescription>Let's start by creating an organization.</CardDescription>
+              <CardDescription>
+                Let's start by creating an organization.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -91,7 +100,12 @@ export default function OnboardingPage() {
                   value={orgName}
                   onChange={(e) => {
                     setOrgName(e.target.value)
-                    setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))
+                    setOrgSlug(
+                      e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/^-|-$/g, "")
+                    )
                   }}
                   required
                 />
@@ -108,7 +122,11 @@ export default function OnboardingPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={loading || !orgName || !orgSlug}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || !orgName || !orgSlug}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Organization
               </Button>
@@ -120,11 +138,15 @@ export default function OnboardingPage() {
           <form onSubmit={handleSelectPlan}>
             <CardHeader>
               <CardTitle>Select a Plan</CardTitle>
-              <CardDescription>Choose a plan that fits your needs (Demo).</CardDescription>
+              <CardDescription>
+                Choose a plan that fits your needs (Demo).
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4">
-                <label className={`flex items-center gap-4 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-muted ${selectedPlan === "free" ? "border-primary bg-primary/5" : ""}`}>
+                <label
+                  className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted ${selectedPlan === "free" ? "border-primary bg-primary/5" : ""}`}
+                >
                   <input
                     type="radio"
                     name="plan"
@@ -135,12 +157,16 @@ export default function OnboardingPage() {
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold">Free</h3>
-                    <p className="text-sm text-muted-foreground">For small teams getting started.</p>
+                    <p className="text-sm text-muted-foreground">
+                      For small teams getting started.
+                    </p>
                   </div>
                   <div className="font-semibold">$0/mo</div>
                 </label>
 
-                <label className={`flex items-center gap-4 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-muted ${selectedPlan === "pro" ? "border-primary bg-primary/5" : ""}`}>
+                <label
+                  className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted ${selectedPlan === "pro" ? "border-primary bg-primary/5" : ""}`}
+                >
                   <input
                     type="radio"
                     name="plan"
@@ -151,7 +177,9 @@ export default function OnboardingPage() {
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold">Pro</h3>
-                    <p className="text-sm text-muted-foreground">For growing teams with more needs.</p>
+                    <p className="text-sm text-muted-foreground">
+                      For growing teams with more needs.
+                    </p>
                   </div>
                   <div className="font-semibold">$29/mo</div>
                 </label>
@@ -170,7 +198,10 @@ export default function OnboardingPage() {
             <form onSubmit={handleInvite}>
               <CardHeader>
                 <CardTitle>Invite Team Members</CardTitle>
-                <CardDescription>Invite people to join {activeOrg?.name || "your organization"}.</CardDescription>
+                <CardDescription>
+                  Invite people to join {activeOrg?.name || "your organization"}
+                  .
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -188,7 +219,7 @@ export default function OnboardingPage() {
                   <Label htmlFor="inviteRole">Role</Label>
                   <select
                     id="inviteRole"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
                   >
@@ -196,14 +227,23 @@ export default function OnboardingPage() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                <Button type="submit" variant="secondary" className="w-full" disabled={loading || !inviteEmail}>
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  className="w-full"
+                  disabled={loading || !inviteEmail}
+                >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Send Invite
                 </Button>
               </CardContent>
             </form>
             <CardFooter>
-              <Button type="button" onClick={finishOnboarding} className="w-full">
+              <Button
+                type="button"
+                onClick={finishOnboarding}
+                className="w-full"
+              >
                 Go to Dashboard
               </Button>
             </CardFooter>

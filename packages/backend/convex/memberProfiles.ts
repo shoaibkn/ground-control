@@ -107,12 +107,28 @@ export const upsertProfile = mutation({
 
     if (existingProfile) {
       await ctx.db.patch(existingProfile._id, {
-        address: args.address !== undefined ? args.address : existingProfile.address,
-        position: args.position !== undefined ? args.position : existingProfile.position,
-        department: args.department !== undefined ? args.department : existingProfile.department,
-        phoneNumber: args.phoneNumber !== undefined ? args.phoneNumber : existingProfile.phoneNumber,
-        integrations: args.integrations !== undefined ? args.integrations : existingProfile.integrations,
-        notificationPreferences: args.notificationPreferences !== undefined ? args.notificationPreferences : existingProfile.notificationPreferences,
+        address:
+          args.address !== undefined ? args.address : existingProfile.address,
+        position:
+          args.position !== undefined
+            ? args.position
+            : existingProfile.position,
+        department:
+          args.department !== undefined
+            ? args.department
+            : existingProfile.department,
+        phoneNumber:
+          args.phoneNumber !== undefined
+            ? args.phoneNumber
+            : existingProfile.phoneNumber,
+        integrations:
+          args.integrations !== undefined
+            ? args.integrations
+            : existingProfile.integrations,
+        notificationPreferences:
+          args.notificationPreferences !== undefined
+            ? args.notificationPreferences
+            : existingProfile.notificationPreferences,
       })
     } else {
       await ctx.db.insert("memberProfiles", {
@@ -121,7 +137,14 @@ export const upsertProfile = mutation({
         position: args.position,
         department: args.department,
         phoneNumber: args.phoneNumber,
-        integrations: args.integrations ?? { email: true, sms: false, rcs: false, whatsapp: false, push: true, inApp: true },
+        integrations: args.integrations ?? {
+          email: true,
+          sms: false,
+          rcs: false,
+          whatsapp: false,
+          push: true,
+          inApp: true,
+        },
         notificationPreferences: args.notificationPreferences ?? {
           taskAssigned: true,
           taskStatusChanged: true,
@@ -224,15 +247,31 @@ export const updateMyPreferences = mutation({
 
     if (existingProfile) {
       await ctx.db.patch(existingProfile._id, {
-        phoneNumber: args.phoneNumber !== undefined ? args.phoneNumber : existingProfile.phoneNumber,
-        integrations: args.integrations !== undefined ? args.integrations : existingProfile.integrations,
-        notificationPreferences: args.notificationPreferences !== undefined ? args.notificationPreferences : existingProfile.notificationPreferences,
+        phoneNumber:
+          args.phoneNumber !== undefined
+            ? args.phoneNumber
+            : existingProfile.phoneNumber,
+        integrations:
+          args.integrations !== undefined
+            ? args.integrations
+            : existingProfile.integrations,
+        notificationPreferences:
+          args.notificationPreferences !== undefined
+            ? args.notificationPreferences
+            : existingProfile.notificationPreferences,
       })
     } else {
       await ctx.db.insert("memberProfiles", {
         memberId: callerUser._id,
         phoneNumber: args.phoneNumber,
-        integrations: args.integrations ?? { email: true, sms: false, rcs: false, whatsapp: false, push: true, inApp: true },
+        integrations: args.integrations ?? {
+          email: true,
+          sms: false,
+          rcs: false,
+          whatsapp: false,
+          push: true,
+          inApp: true,
+        },
         notificationPreferences: args.notificationPreferences ?? {
           taskAssigned: true,
           taskStatusChanged: true,
@@ -287,7 +326,7 @@ export const getOrganizationProfiles = query({
     )) as any
 
     const members = membersResult?.page || []
-    
+
     const profiles = []
     for (const member of members) {
       if (member && member.userId) {

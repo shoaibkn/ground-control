@@ -30,7 +30,11 @@ export function AnimatedIcon({
   return (
     <Icon
       size={size}
-      className={cn("transition-transform duration-200", animationClass, className)}
+      className={cn(
+        "transition-transform duration-200",
+        animationClass,
+        className
+      )}
     />
   )
 }

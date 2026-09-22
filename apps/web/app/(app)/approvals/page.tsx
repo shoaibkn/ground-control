@@ -8,8 +8,16 @@ import { Button } from "@workspace/ui/components/button"
 import { ButtonGroup } from "@workspace/ui/components/button-group"
 import { Input } from "@workspace/ui/components/input"
 import { Badge } from "@workspace/ui/components/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@workspace/ui/components/tooltip"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@workspace/ui/components/tooltip"
 import {
   Table,
   TableBody,
@@ -94,8 +102,12 @@ export default function ApprovalsPage() {
   const [showArchived, setShowArchived] = useState(false)
   const [filters, setFilters] = useState<ApprovalFilters>(defaultFilters)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [timePreset, setTimePreset] = useState<"all" | "overdue" | "today" | "week" | "later">("all")
-  const [selectedTimelineDate, setSelectedTimelineDate] = useState<number | null>(new Date().setHours(0,0,0,0))
+  const [timePreset, setTimePreset] = useState<
+    "all" | "overdue" | "today" | "week" | "later"
+  >("all")
+  const [selectedTimelineDate, setSelectedTimelineDate] = useState<
+    number | null
+  >(new Date().setHours(0, 0, 0, 0))
   const [showAllDates, setShowAllDates] = useState(false)
   const [daysCount, setDaysCount] = useState(30)
   const [pastDaysCount, setPastDaysCount] = useState(7)
@@ -104,7 +116,7 @@ export default function ApprovalsPage() {
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: session } = authClient.useSession()
-  
+
   // Fetch approvals for the current organization
   const approvals = useQuery(
     api.approvals.getApprovals,
@@ -171,7 +183,9 @@ export default function ApprovalsPage() {
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups((prev) =>
-      prev.includes(groupKey) ? prev.filter((k) => k !== groupKey) : [...prev, groupKey]
+      prev.includes(groupKey)
+        ? prev.filter((k) => k !== groupKey)
+        : [...prev, groupKey]
     )
   }
 
@@ -199,7 +213,11 @@ export default function ApprovalsPage() {
   const getTimelineDays = () => {
     const list = []
     const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    ).getTime()
     for (let i = -pastDaysCount; i < daysCount; i++) {
       list.push(startOfToday + i * 24 * 60 * 60 * 1000)
     }
@@ -208,15 +226,16 @@ export default function ApprovalsPage() {
 
   const getDayApprovalCount = (dayTimestamp: number) => {
     if (!approvals) return 0
-    const dayStart = new Date(dayTimestamp).setHours(0,0,0,0)
+    const dayStart = new Date(dayTimestamp).setHours(0, 0, 0, 0)
     const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1
-    return approvals.filter((a: any) => 
-      !a.isArchived && 
-      a.status !== "Approved" && 
-      a.status !== "Declined" &&
-      a.dueDate && 
-      a.dueDate >= dayStart && 
-      a.dueDate <= dayEnd
+    return approvals.filter(
+      (a: any) =>
+        !a.isArchived &&
+        a.status !== "Approved" &&
+        a.status !== "Declined" &&
+        a.dueDate &&
+        a.dueDate >= dayStart &&
+        a.dueDate <= dayEnd
     ).length
   }
 
@@ -248,7 +267,10 @@ export default function ApprovalsPage() {
       if (timestampAttr) {
         const timestamp = parseInt(timestampAttr, 10)
         const date = new Date(timestamp)
-        const monthYear = date.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+        const monthYear = date.toLocaleDateString(undefined, {
+          month: "long",
+          year: "numeric",
+        })
         setCurrentVisibleMonth(monthYear)
       }
     }
@@ -256,7 +278,8 @@ export default function ApprovalsPage() {
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget
-    const scrollRight = target.scrollWidth - target.scrollLeft - target.clientWidth
+    const scrollRight =
+      target.scrollWidth - target.scrollLeft - target.clientWidth
     if (scrollRight < 200) {
       setDaysCount((prev) => prev + 14)
     }
@@ -273,10 +296,16 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     if (scrollContainerRef.current) {
-      const todayStart = new Date().setHours(0,0,0,0)
-      const todayBtn = scrollContainerRef.current.querySelector(`[data-timestamp="${todayStart}"]`)
+      const todayStart = new Date().setHours(0, 0, 0, 0)
+      const todayBtn = scrollContainerRef.current.querySelector(
+        `[data-timestamp="${todayStart}"]`
+      )
       if (todayBtn) {
-        todayBtn.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" })
+        todayBtn.scrollIntoView({
+          behavior: "auto",
+          block: "nearest",
+          inline: "center",
+        })
       }
       updateVisibleMonth(scrollContainerRef.current)
     }
@@ -290,8 +319,12 @@ export default function ApprovalsPage() {
 
   const filteredApprovals = approvals?.filter((app: any) => {
     // 1. Text Search Query
-    const titleMatch = app.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const descMatch = app.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false
+    const titleMatch = app.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+    const descMatch =
+      app.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      false
     if (!titleMatch && !descMatch) return false
 
     // 2. Status Filter
@@ -310,7 +343,8 @@ export default function ApprovalsPage() {
     // 4. People Filter (Approvers or Subscribers)
     if (filters.peopleIds.length > 0) {
       const isMemberMatched = filters.peopleIds.some(
-        (pid) => app.approverIds.includes(pid) || app.subscriberIds?.includes(pid)
+        (pid) =>
+          app.approverIds.includes(pid) || app.subscriberIds?.includes(pid)
       )
       if (!isMemberMatched) return false
     }
@@ -318,7 +352,7 @@ export default function ApprovalsPage() {
     // 5. Due Date Preset Filter
     if (filters.dueDates && filters.dueDates.length > 0) {
       const now = Date.now()
-      const startOfToday = new Date(now).setHours(0,0,0,0)
+      const startOfToday = new Date(now).setHours(0, 0, 0, 0)
       const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
       const dayOfWeek = new Date(now).getDay()
       const startOfWeek = startOfToday - dayOfWeek * 24 * 60 * 60 * 1000
@@ -335,10 +369,18 @@ export default function ApprovalsPage() {
           )
         }
         if (dateType === "today") {
-          return app.dueDate && app.dueDate >= startOfToday && app.dueDate <= endOfToday
+          return (
+            app.dueDate &&
+            app.dueDate >= startOfToday &&
+            app.dueDate <= endOfToday
+          )
         }
         if (dateType === "week") {
-          return app.dueDate && app.dueDate >= startOfWeek && app.dueDate <= endOfWeek
+          return (
+            app.dueDate &&
+            app.dueDate >= startOfWeek &&
+            app.dueDate <= endOfWeek
+          )
         }
         return false
       })
@@ -380,7 +422,8 @@ export default function ApprovalsPage() {
   }
 
   const getCountsForSidebar = () => {
-    if (!approvals) return { all: 0, pending: 0, approved: 0, declined: 0, rework: 0 }
+    if (!approvals)
+      return { all: 0, pending: 0, approved: 0, declined: 0, rework: 0 }
     return {
       all: approvals.length,
       pending: approvals.filter((a) => a.status === "Pending").length,
@@ -408,25 +451,27 @@ export default function ApprovalsPage() {
   if (!activeOrg) {
     return (
       <div className="flex h-[calc(100vh-120px)] items-center justify-center">
-        <p className="text-sm text-muted-foreground">Please select or create an organization first.</p>
+        <p className="text-sm text-muted-foreground">
+          Please select or create an organization first.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col w-full min-w-0 space-y-4">
+    <div className="flex w-full min-w-0 flex-col space-y-4">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4 shrink-0">
+      <div className="flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border/40 pb-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
             Approval Requests
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             Submit documents, coordinate reviews, and track sign-offs.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           {/* Main Filters & Stages trigger */}
           <ApprovalsSidebar
             counts={getCountsForSidebar()}
@@ -435,12 +480,19 @@ export default function ApprovalsPage() {
               if (status === "all") {
                 setFilters((prev) => ({ ...prev, statuses: [] }))
               } else {
-                setFilters((prev) => ({ ...prev, statuses: [status.charAt(0).toUpperCase() + status.slice(1)] }))
+                setFilters((prev) => ({
+                  ...prev,
+                  statuses: [status.charAt(0).toUpperCase() + status.slice(1)],
+                }))
               }
             }}
           />
 
-          <Button size="sm" onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-1.5 h-8 text-xs font-semibold shadow-xs">
+          <Button
+            size="sm"
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="flex h-8 items-center gap-1.5 text-xs font-semibold shadow-xs"
+          >
             <Plus className="h-4 w-4" />
             <span>New Request</span>
           </Button>
@@ -448,16 +500,16 @@ export default function ApprovalsPage() {
       </div>
 
       {/* Control bar */}
-      <div className="flex flex-col gap-3 shrink-0">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-muted/10 border border-border/50 rounded-xl p-3">
+      <div className="flex shrink-0 flex-col gap-3">
+        <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-border/50 bg-muted/10 p-3 md:flex-row md:items-center">
           {/* Search bar */}
-          <div className="relative flex-1 min-w-[200px] md:max-w-md">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" />
+          <div className="relative min-w-[200px] flex-1 md:max-w-md">
+            <Search className="absolute top-2.5 left-3 h-3.5 w-3.5 text-muted-foreground/75" />
             <Input
               placeholder="Search approval requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-8.5 text-xs bg-background/50 border-input/60"
+              className="h-8.5 border-input/60 bg-background/50 pl-9 text-xs"
             />
           </div>
 
@@ -467,28 +519,28 @@ export default function ApprovalsPage() {
               <Button
                 variant={view === "table" ? "default" : "outline"}
                 size="sm"
-                className="h-8 text-xs px-3"
+                className="h-8 px-3 text-xs"
                 onClick={() => setView("table")}
               >
-                <TableIcon className="h-3.5 w-3.5 mr-1" />
+                <TableIcon className="mr-1 h-3.5 w-3.5" />
                 <span>Table</span>
               </Button>
               <Button
                 variant={view === "list" ? "default" : "outline"}
                 size="sm"
-                className="h-8 text-xs px-3"
+                className="h-8 px-3 text-xs"
                 onClick={() => setView("list")}
               >
-                <List className="h-3.5 w-3.5 mr-1" />
+                <List className="mr-1 h-3.5 w-3.5" />
                 <span>Cards</span>
               </Button>
               <Button
                 variant={view === "kanban" ? "default" : "outline"}
                 size="sm"
-                className="h-8 text-xs px-3"
+                className="h-8 px-3 text-xs"
                 onClick={() => setView("kanban")}
               >
-                <Kanban className="h-3.5 w-3.5 mr-1" />
+                <Kanban className="mr-1 h-3.5 w-3.5" />
                 <span>Kanban</span>
               </Button>
             </ButtonGroup>
@@ -499,8 +551,9 @@ export default function ApprovalsPage() {
               size="sm"
               onClick={() => setFiltersOpen(true)}
               className={cn(
-                "h-8 text-xs flex items-center gap-1.5 bg-input/10 dark:bg-input/20 border-input/40 transition-all cursor-pointer",
-                activeFiltersCount > 0 && "border-primary/50 bg-primary/5 text-primary hover:bg-primary/10"
+                "flex h-8 cursor-pointer items-center gap-1.5 border-input/40 bg-input/10 text-xs transition-all dark:bg-input/20",
+                activeFiltersCount > 0 &&
+                  "border-primary/50 bg-primary/5 text-primary hover:bg-primary/10"
               )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -508,7 +561,7 @@ export default function ApprovalsPage() {
               {activeFiltersCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="h-4.5 min-w-4.5 px-1 bg-primary-foreground text-primary rounded-full text-[9px] font-bold flex items-center justify-center shrink-0"
+                  className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-primary-foreground px-1 text-[9px] font-bold text-primary"
                 >
                   {activeFiltersCount}
                 </Badge>
@@ -517,10 +570,15 @@ export default function ApprovalsPage() {
 
             {/* Group By Selector */}
             {(view === "table" || view === "list") && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Group By:</span>
-                <Select value={groupBy} onValueChange={(val: any) => setGroupBy(val)}>
-                  <SelectTrigger className="h-8 w-[120px] text-xs bg-input/10 dark:bg-input/20 border-input/40">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                  Group By:
+                </span>
+                <Select
+                  value={groupBy}
+                  onValueChange={(val: any) => setGroupBy(val)}
+                >
+                  <SelectTrigger className="h-8 w-[120px] border-input/40 bg-input/10 text-xs dark:bg-input/20">
                     <SelectValue placeholder="Group By" />
                   </SelectTrigger>
                   <SelectContent className="text-xs">
@@ -534,17 +592,25 @@ export default function ApprovalsPage() {
 
             {/* Columns Toggle for Kanban view */}
             {view === "kanban" && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Columns:</span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                  Columns:
+                </span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 text-xs bg-input/10 dark:bg-input/20 border-input/40 flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex h-8 items-center gap-1.5 border-input/40 bg-input/10 text-xs dark:bg-input/20"
+                    >
                       <Columns className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>View Columns</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[180px]">
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-semibold">Toggle Columns</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-[10px] font-semibold tracking-wider uppercase">
+                      Toggle Columns
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {["Pending", "Approved", "Declined", "Rework"].map((st) => {
                       const isVisible = visibleStatuses.includes(st)
@@ -554,7 +620,9 @@ export default function ApprovalsPage() {
                           checked={isVisible}
                           onCheckedChange={(checked) => {
                             setVisibleStatuses((prev) =>
-                              checked ? [...prev, st] : prev.filter((s) => s !== st)
+                              checked
+                                ? [...prev, st]
+                                : prev.filter((s) => s !== st)
                             )
                           }}
                         >
@@ -573,10 +641,10 @@ export default function ApprovalsPage() {
               size="sm"
               onClick={() => setShowArchived((prev) => !prev)}
               className={cn(
-                "h-8 text-xs transition-colors flex items-center gap-1.5",
+                "flex h-8 items-center gap-1.5 text-xs transition-colors",
                 showArchived
                   ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground bg-input/10 dark:bg-input/20 border-input/40"
+                  : "border-input/40 bg-input/10 text-muted-foreground hover:text-foreground dark:bg-input/20"
               )}
             >
               <Archive className="h-3.5 w-3.5" />
@@ -586,45 +654,83 @@ export default function ApprovalsPage() {
         </div>
 
         {/* Quick Time Horizon Filter Bar & Weekly Calendar Strip */}
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card border border-border/40 rounded-xl p-3 shadow-xs shrink-0">
+        <div className="flex shrink-0 flex-col items-stretch justify-between gap-4 rounded-xl border border-border/40 bg-card p-3 shadow-xs lg:flex-row lg:items-center">
           {/* Presets */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">Due presets:</span>
+            <span className="mr-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Due presets:
+            </span>
             {[
-              { key: "all", label: "All Requests", count: approvals?.filter(a => !a.isArchived).length || 0 },
-              { 
-                key: "overdue", 
-                label: "Overdue", 
-                count: approvals?.filter(a => !a.isArchived && a.status !== "Approved" && a.status !== "Declined" && a.dueDate && a.dueDate < new Date().setHours(0,0,0,0)).length || 0,
-                className: "text-red-600 hover:text-red-700 hover:bg-red-500/10 border-red-200 dark:border-red-900/30"
+              {
+                key: "all",
+                label: "All Requests",
+                count: approvals?.filter((a) => !a.isArchived).length || 0,
               },
-              { 
-                key: "today", 
-                label: "Today", 
-                count: approvals?.filter(a => !a.isArchived && a.dueDate && a.dueDate >= new Date().setHours(0,0,0,0) && a.dueDate < new Date().setHours(0,0,0,0) + 24*60*60*1000).length || 0,
-                className: "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 border-amber-200 dark:border-amber-900/30"
+              {
+                key: "overdue",
+                label: "Overdue",
+                count:
+                  approvals?.filter(
+                    (a) =>
+                      !a.isArchived &&
+                      a.status !== "Approved" &&
+                      a.status !== "Declined" &&
+                      a.dueDate &&
+                      a.dueDate < new Date().setHours(0, 0, 0, 0)
+                  ).length || 0,
+                className:
+                  "text-red-600 hover:text-red-700 hover:bg-red-500/10 border-red-200 dark:border-red-900/30",
               },
-              { 
-                key: "week", 
-                label: "This Week", 
-                count: approvals?.filter(a => {
-                  const startOfWeek = new Date().setHours(0,0,0,0) - new Date().getDay() * 24*60*60*1000
-                  const endOfWeek = startOfWeek + 7*24*60*60*1000
-                  return !a.isArchived && a.dueDate && a.dueDate >= startOfWeek && a.dueDate < endOfWeek
-                }).length || 0,
-                className: "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 dark:border-emerald-900/30"
+              {
+                key: "today",
+                label: "Today",
+                count:
+                  approvals?.filter(
+                    (a) =>
+                      !a.isArchived &&
+                      a.dueDate &&
+                      a.dueDate >= new Date().setHours(0, 0, 0, 0) &&
+                      a.dueDate <
+                        new Date().setHours(0, 0, 0, 0) + 24 * 60 * 60 * 1000
+                  ).length || 0,
+                className:
+                  "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 border-amber-200 dark:border-amber-900/30",
               },
-              { 
-                key: "later", 
-                label: "Later", 
-                count: approvals?.filter(a => {
-                  const startOfWeek = new Date().setHours(0,0,0,0) - new Date().getDay() * 24*60*60*1000
-                  const endOfWeek = startOfWeek + 7*24*60*60*1000
-                  return !a.isArchived && a.dueDate && a.dueDate >= endOfWeek
-                }).length || 0 
-              }
+              {
+                key: "week",
+                label: "This Week",
+                count:
+                  approvals?.filter((a) => {
+                    const startOfWeek =
+                      new Date().setHours(0, 0, 0, 0) -
+                      new Date().getDay() * 24 * 60 * 60 * 1000
+                    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000
+                    return (
+                      !a.isArchived &&
+                      a.dueDate &&
+                      a.dueDate >= startOfWeek &&
+                      a.dueDate < endOfWeek
+                    )
+                  }).length || 0,
+                className:
+                  "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 dark:border-emerald-900/30",
+              },
+              {
+                key: "later",
+                label: "Later",
+                count:
+                  approvals?.filter((a) => {
+                    const startOfWeek =
+                      new Date().setHours(0, 0, 0, 0) -
+                      new Date().getDay() * 24 * 60 * 60 * 1000
+                    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000
+                    return !a.isArchived && a.dueDate && a.dueDate >= endOfWeek
+                  }).length || 0,
+              },
             ].map((preset) => {
-              const isActive = timePreset === preset.key && (showAllDates || selectedTimelineDate === null)
+              const isActive =
+                timePreset === preset.key &&
+                (showAllDates || selectedTimelineDate === null)
               return (
                 <Button
                   key={preset.key}
@@ -632,8 +738,10 @@ export default function ApprovalsPage() {
                   variant={isActive ? "default" : "outline"}
                   size="sm"
                   className={cn(
-                    "h-7 text-[10px] font-semibold px-2.5 rounded-full border transition-all duration-200 cursor-pointer",
-                    !isActive && (preset.className || "bg-muted/10 hover:bg-muted/20 border-border/40")
+                    "h-7 cursor-pointer rounded-full border px-2.5 text-[10px] font-semibold transition-all duration-200",
+                    !isActive &&
+                      (preset.className ||
+                        "border-border/40 bg-muted/10 hover:bg-muted/20")
                   )}
                   onClick={() => {
                     setTimePreset(preset.key as any)
@@ -641,11 +749,13 @@ export default function ApprovalsPage() {
                   }}
                 >
                   <span>{preset.label}</span>
-                  <Badge 
-                    variant="secondary" 
+                  <Badge
+                    variant="secondary"
                     className={cn(
-                      "h-4 min-w-4 px-1 rounded-full text-[8px] font-bold flex items-center justify-center ml-1.5",
-                      isActive ? "bg-primary-foreground text-primary" : "bg-muted-foreground/15 text-muted-foreground"
+                      "ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[8px] font-bold",
+                      isActive
+                        ? "bg-primary-foreground text-primary"
+                        : "bg-muted-foreground/15 text-muted-foreground"
                     )}
                   >
                     {preset.count}
@@ -656,24 +766,31 @@ export default function ApprovalsPage() {
           </div>
 
           {/* Sliding 14-day strip */}
-          <div className="flex flex-col gap-1 overflow-hidden flex-1 lg:max-w-md xl:max-w-lg">
+          <div className="flex flex-1 flex-col gap-1 overflow-hidden lg:max-w-md xl:max-w-lg">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Horizon</span>
-              <span className="text-[10px] font-bold text-primary bg-primary/10 dark:bg-primary/20 border border-primary/20 rounded px-1.5 py-0.5 select-none shrink-0 transition-all duration-200">
+              <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Horizon
+              </span>
+              <span className="shrink-0 rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary transition-all duration-200 select-none dark:bg-primary/20">
                 {currentVisibleMonth}
               </span>
             </div>
-            <div className="flex items-center gap-3 overflow-hidden w-full">
-              <div 
+            <div className="flex w-full items-center gap-3 overflow-hidden">
+              <div
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 flex-1 max-w-full"
+                className="flex max-w-full flex-1 items-center gap-1.5 overflow-x-auto px-0.5 py-1"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
                 {getTimelineDays().map((dayTimestamp) => {
                   const date = new Date(dayTimestamp)
-                  const isSelected = selectedTimelineDate !== null && new Date(selectedTimelineDate).setHours(0,0,0,0) === new Date(dayTimestamp).setHours(0,0,0,0)
-                  const dayName = date.toLocaleDateString(undefined, { weekday: "narrow" })
+                  const isSelected =
+                    selectedTimelineDate !== null &&
+                    new Date(selectedTimelineDate).setHours(0, 0, 0, 0) ===
+                      new Date(dayTimestamp).setHours(0, 0, 0, 0)
+                  const dayName = date.toLocaleDateString(undefined, {
+                    weekday: "narrow",
+                  })
                   const dayNum = date.getDate()
                   const dayApprovalCount = getDayApprovalCount(dayTimestamp)
                   return (
@@ -686,21 +803,27 @@ export default function ApprovalsPage() {
                         setShowAllDates(false)
                       }}
                       className={cn(
-                        "relative flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-full text-[9px] font-bold transition-all active:scale-95 cursor-pointer border",
+                        "relative flex h-10 w-10 shrink-0 cursor-pointer flex-col items-center justify-center rounded-full border text-[9px] font-bold transition-all active:scale-95",
                         isSelected && !showAllDates
-                          ? "bg-primary text-primary-foreground border-primary shadow-xs scale-105"
-                          : "hover:bg-muted/40 text-muted-foreground hover:text-foreground border-border/20 bg-background"
+                          ? "scale-105 border-primary bg-primary text-primary-foreground shadow-xs"
+                          : "border-border/20 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                       )}
                     >
-                      <span className="text-[8px] opacity-75 font-normal">{dayName}</span>
-                      <span className="text-[10px] leading-none mt-0.5">{dayNum}</span>
+                      <span className="text-[8px] font-normal opacity-75">
+                        {dayName}
+                      </span>
+                      <span className="mt-0.5 text-[10px] leading-none">
+                        {dayNum}
+                      </span>
                       {dayApprovalCount > 0 && (
-                        <span className={cn(
-                          "absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center border",
-                          isSelected && !showAllDates
-                            ? "bg-amber-500 text-white border-primary"
-                            : "bg-primary text-primary-foreground border-card"
-                        )}>
+                        <span
+                          className={cn(
+                            "absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full border px-0.5 text-[8px] font-bold",
+                            isSelected && !showAllDates
+                              ? "border-primary bg-amber-500 text-white"
+                              : "border-card bg-primary text-primary-foreground"
+                          )}
+                        >
                           {dayApprovalCount}
                         </span>
                       )}
@@ -708,14 +831,17 @@ export default function ApprovalsPage() {
                   )
                 })}
               </div>
-              <div className="flex items-center gap-1.5 shrink-0 border-l border-border/50 pl-3 py-1">
+              <div className="flex shrink-0 items-center gap-1.5 border-l border-border/50 py-1 pl-3">
                 <Switch
                   id="show-all-dates"
                   checked={showAllDates}
                   onCheckedChange={setShowAllDates}
                   className="scale-90"
                 />
-                <Label htmlFor="show-all-dates" className="text-[10px] font-medium text-muted-foreground select-none cursor-pointer">
+                <Label
+                  htmlFor="show-all-dates"
+                  className="cursor-pointer text-[10px] font-medium text-muted-foreground select-none"
+                >
                   Show All
                 </Label>
               </div>
@@ -726,15 +852,26 @@ export default function ApprovalsPage() {
         {/* Active Filter Chips */}
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 pb-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-1">Active Filters:</span>
-            
+            <span className="mr-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+              Active Filters:
+            </span>
+
             {/* Statuses */}
             {filters.statuses.map((status) => (
-              <Badge key={status} variant="outline" className="h-6 gap-1 pl-2.5 pr-1 text-[10px] bg-sky-500/5 text-sky-600 dark:text-sky-400 border-sky-500/15 font-semibold">
+              <Badge
+                key={status}
+                variant="outline"
+                className="h-6 gap-1 border-sky-500/15 bg-sky-500/5 pr-1 pl-2.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400"
+              >
                 <span>Stage: {status}</span>
                 <button
-                  onClick={() => setFilters((f) => ({ ...f, statuses: f.statuses.filter((s) => s !== status) }))}
-                  className="rounded-full hover:bg-muted p-0.5"
+                  onClick={() =>
+                    setFilters((f) => ({
+                      ...f,
+                      statuses: f.statuses.filter((s) => s !== status),
+                    }))
+                  }
+                  className="rounded-full p-0.5 hover:bg-muted"
                 >
                   <X className="size-2.5" />
                 </button>
@@ -743,11 +880,20 @@ export default function ApprovalsPage() {
 
             {/* Relations */}
             {filters.relations.map((rel) => (
-              <Badge key={rel} variant="outline" className="h-6 gap-1 pl-2.5 pr-1 text-[10px] bg-indigo-500/5 text-indigo-600 dark:text-indigo-400 border-indigo-500/15 font-semibold">
+              <Badge
+                key={rel}
+                variant="outline"
+                className="h-6 gap-1 border-indigo-500/15 bg-indigo-500/5 pr-1 pl-2.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400"
+              >
                 <span>Relation: {rel}</span>
                 <button
-                  onClick={() => setFilters((f) => ({ ...f, relations: f.relations.filter((r) => r !== rel) }))}
-                  className="rounded-full hover:bg-muted p-0.5"
+                  onClick={() =>
+                    setFilters((f) => ({
+                      ...f,
+                      relations: f.relations.filter((r) => r !== rel),
+                    }))
+                  }
+                  className="rounded-full p-0.5 hover:bg-muted"
                 >
                   <X className="size-2.5" />
                 </button>
@@ -758,14 +904,23 @@ export default function ApprovalsPage() {
             {filters.peopleIds.map((pid) => {
               const mem = activeOrg.members?.find((m: any) => m.userId === pid)
               return (
-                <Badge key={pid} variant="outline" className="h-6 gap-1 pl-2 pr-1 text-[10px] bg-slate-500/5 text-foreground/80 border-border font-semibold">
+                <Badge
+                  key={pid}
+                  variant="outline"
+                  className="h-6 gap-1 border-border bg-slate-500/5 pr-1 pl-2 text-[10px] font-semibold text-foreground/80"
+                >
                   <div className="flex items-center gap-1">
                     <UserAvatar userId={pid} avatarClassName="h-3.5 w-3.5" />
                     <span>{mem?.user?.name || pid.slice(-4)}</span>
                   </div>
                   <button
-                    onClick={() => setFilters((f) => ({ ...f, peopleIds: f.peopleIds.filter((p) => p !== pid) }))}
-                    className="rounded-full hover:bg-muted p-0.5 ml-0.5"
+                    onClick={() =>
+                      setFilters((f) => ({
+                        ...f,
+                        peopleIds: f.peopleIds.filter((p) => p !== pid),
+                      }))
+                    }
+                    className="ml-0.5 rounded-full p-0.5 hover:bg-muted"
                   >
                     <X className="size-2.5" />
                   </button>
@@ -779,15 +934,15 @@ export default function ApprovalsPage() {
                 dateKey === "overdue"
                   ? "Overdue"
                   : dateKey === "today"
-                  ? "Due Today"
-                  : dateKey === "week"
-                  ? "Due This Week"
-                  : "No Due Date"
+                    ? "Due Today"
+                    : dateKey === "week"
+                      ? "Due This Week"
+                      : "No Due Date"
               return (
                 <Badge
                   key={dateKey}
                   variant="outline"
-                  className="flex items-center gap-1 h-6 px-2 text-[10px] rounded-full bg-red-500/10 text-red-500 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/10 font-semibold"
+                  className="flex h-6 items-center gap-1 rounded-full border-red-500/20 bg-red-500/10 px-2 text-[10px] font-semibold text-red-500 dark:border-red-500/10 dark:bg-red-500/20 dark:text-red-300"
                 >
                   <span>Due: {label}</span>
                   <button
@@ -798,7 +953,7 @@ export default function ApprovalsPage() {
                         dueDates: prev.dueDates.filter((d) => d !== dateKey),
                       }))
                     }
-                    className="rounded-full hover:bg-foreground/10 p-0.5 shrink-0 transition-colors"
+                    className="shrink-0 rounded-full p-0.5 transition-colors hover:bg-foreground/10"
                   >
                     <X className="size-2.5" />
                   </button>
@@ -810,7 +965,7 @@ export default function ApprovalsPage() {
               variant="ghost"
               size="sm"
               onClick={() => setFilters(defaultFilters)}
-              className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1 hover:bg-transparent"
+              className="flex h-6 items-center gap-1 px-2 text-[10px] font-semibold text-muted-foreground hover:bg-transparent hover:text-foreground"
             >
               Clear all
             </Button>
@@ -822,16 +977,16 @@ export default function ApprovalsPage() {
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="!fixed !top-4 !left-4 !bottom-4 z-50 flex !h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/80 p-0 shadow-2xl backdrop-blur-md bg-background/95 duration-300 outline-none sm:!max-w-md"
+            className="!fixed !top-4 !bottom-4 !left-4 z-50 flex !h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/80 bg-background/95 p-0 shadow-2xl backdrop-blur-md duration-300 outline-none sm:!max-w-md"
           >
-            <SheetHeader className="p-6 border-b border-border/40">
+            <SheetHeader className="border-b border-border/40 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <SheetTitle className="text-sm font-bold flex items-center gap-2">
+                  <SheetTitle className="flex items-center gap-2 text-sm font-bold">
                     <SlidersHorizontal className="size-4 text-primary" />
                     Advanced Filters
                   </SheetTitle>
-                  <SheetDescription className="text-[10px] text-muted-foreground mt-1">
+                  <SheetDescription className="mt-1 text-[10px] text-muted-foreground">
                     Narrow down approval requests by specific criteria.
                   </SheetDescription>
                 </div>
@@ -839,17 +994,17 @@ export default function ApprovalsPage() {
                   size="icon-sm"
                   variant="ghost"
                   onClick={() => setFiltersOpen(false)}
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground shrink-0"
+                  className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
+            <div className="flex-1 scrollbar-thin space-y-6 overflow-y-auto p-6">
               {/* Status */}
               <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
-                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                <h4 className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
                   Status
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
@@ -861,14 +1016,16 @@ export default function ApprovalsPage() {
                         onClick={() => {
                           setFilters((f) => ({
                             ...f,
-                            statuses: isSelected ? f.statuses.filter((s) => s !== st) : [...f.statuses, st],
+                            statuses: isSelected
+                              ? f.statuses.filter((s) => s !== st)
+                              : [...f.statuses, st],
                           }))
                         }}
                         className={cn(
-                          "px-2.5 py-1 text-[10px] font-semibold border rounded-full transition-all cursor-pointer",
+                          "cursor-pointer rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-all",
                           isSelected
-                            ? "bg-primary border-primary text-primary-foreground shadow-xs"
-                            : "bg-background border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground"
+                            ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                            : "border-border/60 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
                         {st}
@@ -880,7 +1037,7 @@ export default function ApprovalsPage() {
 
               {/* Relation */}
               <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
-                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                <h4 className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
                   Your Relation
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
@@ -892,14 +1049,16 @@ export default function ApprovalsPage() {
                         onClick={() => {
                           setFilters((f) => ({
                             ...f,
-                            relations: isSelected ? f.relations.filter((r) => r !== rel) : [...f.relations, rel],
+                            relations: isSelected
+                              ? f.relations.filter((r) => r !== rel)
+                              : [...f.relations, rel],
                           }))
                         }}
                         className={cn(
-                          "px-2.5 py-1 text-[10px] font-semibold border rounded-full transition-all cursor-pointer",
+                          "cursor-pointer rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-all",
                           isSelected
-                            ? "bg-primary border-primary text-primary-foreground shadow-xs"
-                            : "bg-background border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground"
+                            ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                            : "border-border/60 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
                         {rel}
@@ -911,7 +1070,7 @@ export default function ApprovalsPage() {
 
               {/* Due Date Presets */}
               <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
-                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                <h4 className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                   Due Date Presets
                 </h4>
@@ -936,10 +1095,10 @@ export default function ApprovalsPage() {
                           }))
                         }}
                         className={cn(
-                          "px-2.5 py-1 text-[10px] font-semibold border rounded-full transition-all cursor-pointer",
+                          "cursor-pointer rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-all",
                           selected
-                            ? "bg-primary border-primary text-primary-foreground shadow-xs"
-                            : "bg-background border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground"
+                            ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                            : "border-border/60 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
                         {item.label}
@@ -951,10 +1110,10 @@ export default function ApprovalsPage() {
 
               {/* Members */}
               <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
-                <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                <h4 className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
                   People Involved
                 </h4>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                <div className="max-h-48 space-y-1.5 overflow-y-auto">
                   {activeOrg.members?.map((m: any) => {
                     const isSelected = filters.peopleIds.includes(m.userId)
                     return (
@@ -963,27 +1122,40 @@ export default function ApprovalsPage() {
                         onClick={() => {
                           setFilters((f) => ({
                             ...f,
-                            peopleIds: isSelected ? f.peopleIds.filter((id) => id !== m.userId) : [...f.peopleIds, m.userId],
+                            peopleIds: isSelected
+                              ? f.peopleIds.filter((id) => id !== m.userId)
+                              : [...f.peopleIds, m.userId],
                           }))
                         }}
                         className={cn(
-                          "flex items-center justify-between w-full p-2 rounded-lg text-left text-xs transition-colors",
+                          "flex w-full items-center justify-between rounded-lg p-2 text-left text-xs transition-colors",
                           isSelected
-                            ? "bg-primary/5 border border-primary/20"
-                            : "hover:bg-accent/50 border border-transparent"
+                            ? "border border-primary/20 bg-primary/5"
+                            : "border border-transparent hover:bg-accent/50"
                         )}
                       >
                         <div className="flex items-center gap-2">
-                          <UserAvatar userId={m.userId} avatarClassName="h-5.5 w-5.5" />
+                          <UserAvatar
+                            userId={m.userId}
+                            avatarClassName="h-5.5 w-5.5"
+                          />
                           <div className="flex flex-col">
-                            <span className="font-semibold text-foreground">{m.user?.name}</span>
-                            <span className="text-[9px] text-muted-foreground">{m.user?.email}</span>
+                            <span className="font-semibold text-foreground">
+                              {m.user?.name}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground">
+                              {m.user?.email}
+                            </span>
                           </div>
                         </div>
-                        <div className={cn(
-                          "h-4 w-4 border rounded flex items-center justify-center",
-                          isSelected ? "bg-primary border-primary text-primary-foreground" : "border-input"
-                        )}>
+                        <div
+                          className={cn(
+                            "flex h-4 w-4 items-center justify-center rounded border",
+                            isSelected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-input"
+                          )}
+                        >
                           {isSelected && <Check className="h-3 w-3" />}
                         </div>
                       </button>
@@ -993,7 +1165,7 @@ export default function ApprovalsPage() {
               </div>
             </div>
 
-            <SheetFooter className="p-6 border-t border-border/40 bg-muted/5 flex flex-row items-center gap-3 mt-auto">
+            <SheetFooter className="mt-auto flex flex-row items-center gap-3 border-t border-border/40 bg-muted/5 p-6">
               <Button
                 variant="outline"
                 size="sm"
@@ -1018,11 +1190,13 @@ export default function ApprovalsPage() {
       </div>
 
       {/* Main content grid */}
-      <div className="flex-1 rounded-xl border border-border/80 bg-card/45 shadow-xs backdrop-blur-xs overflow-hidden">
+      <div className="flex-1 overflow-hidden rounded-xl border border-border/80 bg-card/45 shadow-xs backdrop-blur-xs">
         {approvals === undefined ? (
           <div className="flex h-64 flex-col items-center justify-center gap-2">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
-            <p className="text-xs text-muted-foreground">Loading approvals...</p>
+            <p className="text-xs text-muted-foreground">
+              Loading approvals...
+            </p>
           </div>
         ) : view === "table" ? (
           isMobile ? (
@@ -1032,11 +1206,11 @@ export default function ApprovalsPage() {
                   <div
                     key={app._id}
                     onClick={() => setSelectedApprovalId(app._id)}
-                    className="p-4 flex flex-col gap-3 hover:bg-muted/5 transition-colors cursor-pointer"
+                    className="flex cursor-pointer flex-col gap-3 p-4 transition-colors hover:bg-muted/5"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="font-semibold text-sm text-foreground">
-                        <span className="font-mono text-[10px] text-muted-foreground/60 mr-1">
+                      <span className="text-sm font-semibold text-foreground">
+                        <span className="mr-1 font-mono text-[10px] text-muted-foreground/60">
                           #{app._id.slice(-4)}
                         </span>
                         {app.title}
@@ -1044,20 +1218,27 @@ export default function ApprovalsPage() {
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      <Badge variant="outline" className={`px-2.5 py-0.5 text-[10px] font-bold border ${getStatusColor(app.status)}`}>
+                      <Badge
+                        variant="outline"
+                        className={`border px-2.5 py-0.5 text-[10px] font-bold ${getStatusColor(app.status)}`}
+                      >
                         {app.status}
                       </Badge>
 
                       <div className="flex -space-x-1 overflow-hidden">
                         {app.approverIds.map((userId: string) => (
-                          <UserAvatar key={userId} userId={userId} avatarClassName="h-5.5 w-5.5 border border-background shadow-xs" />
+                          <UserAvatar
+                            key={userId}
+                            userId={userId}
+                            avatarClassName="h-5.5 w-5.5 border border-background shadow-xs"
+                          />
                         ))}
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="h-32 flex items-center justify-center text-muted-foreground text-xs p-4">
+                <div className="flex h-32 items-center justify-center p-4 text-xs text-muted-foreground">
                   No approval requests found.
                 </div>
               )}
@@ -1068,7 +1249,9 @@ export default function ApprovalsPage() {
                 <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead className="w-[18%]">Title</TableHead>
-                    <TableHead className="w-[10%] text-center">Status</TableHead>
+                    <TableHead className="w-[10%] text-center">
+                      Status
+                    </TableHead>
                     <TableHead className="w-[10%]">Relation</TableHead>
                     <TableHead className="w-[12%]">Due Date</TableHead>
                     <TableHead className="w-[13%]">Approvers</TableHead>
@@ -1079,167 +1262,248 @@ export default function ApprovalsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredApprovals && filteredApprovals.length > 0 ? (
-                    Object.entries(getGroupedApprovals()).map(([groupKey, groupApps]) => {
-                      const isCollapsed = collapsedGroups.includes(groupKey)
-                      return (
-                        <React.Fragment key={groupKey}>
-                          {groupKey && (
-                            <TableRow
-                              className="bg-muted/40 hover:bg-muted/50 cursor-pointer select-none border-y border-border/60"
-                              onClick={() => toggleGroupCollapse(groupKey)}
-                            >
-                              <TableCell colSpan={7} className="py-2 px-3 font-semibold text-xs text-foreground/80">
-                                <div className="flex items-center gap-2">
-                                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isCollapsed ? "-rotate-90 text-muted-foreground/60" : "text-foreground/70"}`} />
-                                  <span>{groupKey}</span>
-                                  <Badge variant="secondary" className="px-1.5 py-0 h-4.5 text-[10px] font-normal text-muted-foreground/80">
-                                    {groupApps.length} {groupApps.length === 1 ? "request" : "requests"}
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-
-                          {!isCollapsed &&
-                            groupApps.map((app: any) => (
+                    Object.entries(getGroupedApprovals()).map(
+                      ([groupKey, groupApps]) => {
+                        const isCollapsed = collapsedGroups.includes(groupKey)
+                        return (
+                          <React.Fragment key={groupKey}>
+                            {groupKey && (
                               <TableRow
-                                key={app._id}
-                                className={`hover:bg-muted/15 transition-colors cursor-pointer ${app.isArchived ? "opacity-60 bg-muted/5" : ""}`}
-                                onClick={() => setSelectedApprovalId(app._id)}
+                                className="cursor-pointer border-y border-border/60 bg-muted/40 select-none hover:bg-muted/50"
+                                onClick={() => toggleGroupCollapse(groupKey)}
                               >
-                                <TableCell className="font-semibold text-xs text-foreground">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-mono text-[10px] text-muted-foreground/60 select-all font-medium cursor-pointer">
-                                      #{app._id.slice(-4)}
-                                    </span>
-                                    <span>{app.title}</span>
+                                <TableCell
+                                  colSpan={7}
+                                  className="px-3 py-2 text-xs font-semibold text-foreground/80"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <ChevronDown
+                                      className={`h-3.5 w-3.5 shrink-0 transition-transform ${isCollapsed ? "-rotate-90 text-muted-foreground/60" : "text-foreground/70"}`}
+                                    />
+                                    <span>{groupKey}</span>
+                                    <Badge
+                                      variant="secondary"
+                                      className="h-4.5 px-1.5 py-0 text-[10px] font-normal text-muted-foreground/80"
+                                    >
+                                      {groupApps.length}{" "}
+                                      {groupApps.length === 1
+                                        ? "request"
+                                        : "requests"}
+                                    </Badge>
                                   </div>
                                 </TableCell>
+                              </TableRow>
+                            )}
 
-                                <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                  <Select value={app.status} onValueChange={(val) => handleStatusChange(app._id, val)}>
-                                    <SelectTrigger className={`h-6 w-[110px] px-2 py-0 border text-[10px] font-bold rounded-full mx-auto cursor-pointer transition-all ${getStatusColor(app.status)}`}>
-                                      <SelectValue placeholder={app.status} />
-                                    </SelectTrigger>
-                                    <SelectContent className="text-xs">
-                                      <SelectItem value="Pending">Pending</SelectItem>
-                                      <SelectItem value="Approved">Approved</SelectItem>
-                                      <SelectItem value="Declined">Declined</SelectItem>
-                                      <SelectItem value="Rework">Rework</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
+                            {!isCollapsed &&
+                              groupApps.map((app: any) => (
+                                <TableRow
+                                  key={app._id}
+                                  className={`cursor-pointer transition-colors hover:bg-muted/15 ${app.isArchived ? "bg-muted/5 opacity-60" : ""}`}
+                                  onClick={() => setSelectedApprovalId(app._id)}
+                                >
+                                  <TableCell className="text-xs font-semibold text-foreground">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="cursor-pointer font-mono text-[10px] font-medium text-muted-foreground/60 select-all">
+                                        #{app._id.slice(-4)}
+                                      </span>
+                                      <span>{app.title}</span>
+                                    </div>
+                                  </TableCell>
 
-                                <TableCell>
-                                  <Badge variant="outline" className={`px-2 py-0 h-5 text-[9px] font-medium border ${getRelationStyle(getApprovalRelation(app))}`}>
-                                    {getApprovalRelation(app)}
-                                  </Badge>
-                                </TableCell>
+                                  <TableCell
+                                    className="text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Select
+                                      value={app.status}
+                                      onValueChange={(val) =>
+                                        handleStatusChange(app._id, val)
+                                      }
+                                    >
+                                      <SelectTrigger
+                                        className={`mx-auto h-6 w-[110px] cursor-pointer rounded-full border px-2 py-0 text-[10px] font-bold transition-all ${getStatusColor(app.status)}`}
+                                      >
+                                        <SelectValue placeholder={app.status} />
+                                      </SelectTrigger>
+                                      <SelectContent className="text-xs">
+                                        <SelectItem value="Pending">
+                                          Pending
+                                        </SelectItem>
+                                        <SelectItem value="Approved">
+                                          Approved
+                                        </SelectItem>
+                                        <SelectItem value="Declined">
+                                          Declined
+                                        </SelectItem>
+                                        <SelectItem value="Rework">
+                                          Rework
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
 
-                                <TableCell>
-                                  {(() => {
-                                    if (app.dueDate) {
-                                      const now = Date.now()
-                                      const startOfToday = new Date().setHours(0,0,0,0)
-                                      const isOverdue = app.dueDate < startOfToday && app.status !== "Approved" && app.status !== "Declined"
-                                      const dateStr = new Date(app.dueDate).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })
-                                      if (isOverdue) {
-                                        const diffTime = now - app.dueDate
-                                        const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                                        return (
-                                          <div className="flex flex-col gap-0.5 text-red-500 font-semibold text-[10px]">
-                                            <div className="flex items-center gap-1">
-                                              <Calendar className="h-3 w-3 shrink-0" />
-                                              <span>{dateStr}</span>
+                                  <TableCell>
+                                    <Badge
+                                      variant="outline"
+                                      className={`h-5 border px-2 py-0 text-[9px] font-medium ${getRelationStyle(getApprovalRelation(app))}`}
+                                    >
+                                      {getApprovalRelation(app)}
+                                    </Badge>
+                                  </TableCell>
+
+                                  <TableCell>
+                                    {(() => {
+                                      if (app.dueDate) {
+                                        const now = Date.now()
+                                        const startOfToday =
+                                          new Date().setHours(0, 0, 0, 0)
+                                        const isOverdue =
+                                          app.dueDate < startOfToday &&
+                                          app.status !== "Approved" &&
+                                          app.status !== "Declined"
+                                        const dateStr = new Date(
+                                          app.dueDate
+                                        ).toLocaleDateString(undefined, {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "numeric",
+                                        })
+                                        if (isOverdue) {
+                                          const diffTime = now - app.dueDate
+                                          const delayDays = Math.ceil(
+                                            diffTime / (1000 * 60 * 60 * 24)
+                                          )
+                                          return (
+                                            <div className="flex flex-col gap-0.5 text-[10px] font-semibold text-red-500">
+                                              <div className="flex items-center gap-1">
+                                                <Calendar className="h-3 w-3 shrink-0" />
+                                                <span>{dateStr}</span>
+                                              </div>
+                                              <span className="text-[9px]">
+                                                ({delayDays}d delayed)
+                                              </span>
                                             </div>
-                                            <span className="text-[9px]">({delayDays}d delayed)</span>
+                                          )
+                                        }
+                                        return (
+                                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                            <Calendar className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                                            <span>{dateStr}</span>
+                                          </div>
+                                        )
+                                      } else {
+                                        const now = Date.now()
+                                        const diffTime = now - app._creationTime
+                                        const ageDays = Math.floor(
+                                          diffTime / (1000 * 60 * 60 * 24)
+                                        )
+                                        return (
+                                          <div className="text-[10px] text-muted-foreground/60 italic">
+                                            {ageDays === 0
+                                              ? "Created today"
+                                              : `${ageDays}d old`}
                                           </div>
                                         )
                                       }
-                                      return (
-                                        <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
-                                          <Calendar className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                                          <span>{dateStr}</span>
-                                        </div>
-                                      )
-                                    } else {
-                                      const now = Date.now()
-                                      const diffTime = now - app._creationTime
-                                      const ageDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-                                      return (
-                                        <div className="text-[10px] text-muted-foreground/60 italic">
-                                          {ageDays === 0 ? "Created today" : `${ageDays}d old`}
-                                        </div>
-                                      )
-                                    }
-                                  })()}
-                                </TableCell>
+                                    })()}
+                                  </TableCell>
 
-                                <TableCell>
-                                  <div className="flex -space-x-1.5 overflow-hidden items-center">
-                                    {app.approverIds.map((userId: string) => (
-                                      <UserAvatar key={userId} userId={userId} avatarClassName="h-5.5 w-5.5 border-2 border-card shadow-xs" />
-                                    ))}
-                                  </div>
-                                </TableCell>
-
-                                <TableCell className="text-center">
-                                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-[10px]">
-                                    <Paperclip className="h-3 w-3 text-muted-foreground/60" />
-                                    <span>{app.documentCount || 0}</span>
-                                  </div>
-                                </TableCell>
-
-                                <TableCell className="text-center">
-                                  <div className="flex items-center justify-center gap-1.5 text-[10px]">
-                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                      <MessageSquare className={`h-3 w-3 ${app.unreadChatCount > 0 ? "text-blue-500 fill-blue-500/10" : "text-muted-foreground/60"}`} />
-                                      <span className={app.unreadChatCount > 0 ? "font-semibold text-foreground" : ""}>
-                                        {app.chatCount || 0}
-                                      </span>
+                                  <TableCell>
+                                    <div className="flex items-center -space-x-1.5 overflow-hidden">
+                                      {app.approverIds.map((userId: string) => (
+                                        <UserAvatar
+                                          key={userId}
+                                          userId={userId}
+                                          avatarClassName="h-5.5 w-5.5 border-2 border-card shadow-xs"
+                                        />
+                                      ))}
                                     </div>
-                                    {app.unreadChatCount > 0 && (
-                                      <Badge className="h-4 px-1 text-[9px] bg-blue-500 hover:bg-blue-600 text-white border-none scale-90 font-semibold shrink-0">
-                                        {app.unreadChatCount}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
+                                  </TableCell>
 
-                                <TableCell>
-                                  {app.lastActivity ? (
-                                    <div className="flex items-center gap-2">
-                                      <Avatar className="h-4.5 w-4.5 shrink-0">
-                                        <AvatarImage src={getAvatarUrl(app.lastActivity.actor?.image, app.lastActivity.actor?.name)} />
-                                        <AvatarFallback className="text-[8px] bg-accent text-accent-foreground font-semibold">
-                                          {app.lastActivity.actor?.name?.charAt(0) || "?"}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="flex flex-col min-w-0 select-none">
-                                        <span className="text-[10px] text-foreground font-medium truncate max-w-[100px]" title={formatAction(app.lastActivity.action)}>
-                                          {formatAction(app.lastActivity.action)}
-                                        </span>
-                                        <span className="text-[9px] text-muted-foreground truncate">
-                                          {formatTimeAgo(app.lastActivity.timestamp)}
+                                  <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                                      <Paperclip className="h-3 w-3 text-muted-foreground/60" />
+                                      <span>{app.documentCount || 0}</span>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5 text-[10px]">
+                                      <div className="flex items-center gap-1 text-muted-foreground">
+                                        <MessageSquare
+                                          className={`h-3 w-3 ${app.unreadChatCount > 0 ? "fill-blue-500/10 text-blue-500" : "text-muted-foreground/60"}`}
+                                        />
+                                        <span
+                                          className={
+                                            app.unreadChatCount > 0
+                                              ? "font-semibold text-foreground"
+                                              : ""
+                                          }
+                                        >
+                                          {app.chatCount || 0}
                                         </span>
                                       </div>
+                                      {app.unreadChatCount > 0 && (
+                                        <Badge className="h-4 shrink-0 scale-90 border-none bg-blue-500 px-1 text-[9px] font-semibold text-white hover:bg-blue-600">
+                                          {app.unreadChatCount}
+                                        </Badge>
+                                      )}
                                     </div>
-                                  ) : (
-                                    <span className="text-[10px] text-muted-foreground italic">No logs</span>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </React.Fragment>
-                      )
-                    })
+                                  </TableCell>
+
+                                  <TableCell>
+                                    {app.lastActivity ? (
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="h-4.5 w-4.5 shrink-0">
+                                          <AvatarImage
+                                            src={getAvatarUrl(
+                                              app.lastActivity.actor?.image,
+                                              app.lastActivity.actor?.name
+                                            )}
+                                          />
+                                          <AvatarFallback className="bg-accent text-[8px] font-semibold text-accent-foreground">
+                                            {app.lastActivity.actor?.name?.charAt(
+                                              0
+                                            ) || "?"}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex min-w-0 flex-col select-none">
+                                          <span
+                                            className="max-w-[100px] truncate text-[10px] font-medium text-foreground"
+                                            title={formatAction(
+                                              app.lastActivity.action
+                                            )}
+                                          >
+                                            {formatAction(
+                                              app.lastActivity.action
+                                            )}
+                                          </span>
+                                          <span className="truncate text-[9px] text-muted-foreground">
+                                            {formatTimeAgo(
+                                              app.lastActivity.timestamp
+                                            )}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-muted-foreground italic">
+                                        No logs
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </React.Fragment>
+                        )
+                      }
+                    )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell
+                        colSpan={7}
+                        className="h-32 text-center text-xs text-muted-foreground"
+                      >
                         No approval requests found.
                       </TableCell>
                     </TableRow>
@@ -1249,123 +1513,163 @@ export default function ApprovalsPage() {
             </div>
           )
         ) : view === "list" ? (
-          <div className="w-full p-4 overflow-auto max-h-[calc(100vh-220px)]">
+          <div className="max-h-[calc(100vh-220px)] w-full overflow-auto p-4">
             {filteredApprovals && filteredApprovals.length > 0 ? (
-              Object.entries(getGroupedApprovals()).map(([groupKey, groupApps]) => {
-                const isCollapsed = collapsedGroups.includes(groupKey)
-                return (
-                  <React.Fragment key={groupKey}>
-                    {groupKey && (
-                      <div
-                        className="flex items-center gap-2 py-2 px-3 mb-3 font-semibold text-xs text-foreground/80 bg-muted/40 hover:bg-muted/50 cursor-pointer select-none rounded-lg border border-border/40"
-                        onClick={() => toggleGroupCollapse(groupKey)}
-                      >
-                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isCollapsed ? "-rotate-90 text-muted-foreground/60" : "text-foreground/70"}`} />
-                        <span>{groupKey}</span>
-                        <Badge variant="secondary" className="px-1.5 py-0 h-4.5 text-[10px] font-normal text-muted-foreground/80">
-                          {groupApps.length} {groupApps.length === 1 ? "request" : "requests"}
-                        </Badge>
-                      </div>
-                    )}
-
-                    {!isCollapsed && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-                        {groupApps.map((app: any) => (
-                          <div
-                            key={app._id}
-                            className={`bg-card/50 backdrop-blur-xs border border-border/60 rounded-xl p-4 flex flex-col justify-between min-h-[160px] hover:shadow-md hover:border-primary/20 hover:bg-card/85 dark:hover:bg-card/75 transition-all duration-300 cursor-pointer group ${app.isArchived ? "opacity-60 bg-muted/5" : ""}`}
-                            onClick={() => setSelectedApprovalId(app._id)}
+              Object.entries(getGroupedApprovals()).map(
+                ([groupKey, groupApps]) => {
+                  const isCollapsed = collapsedGroups.includes(groupKey)
+                  return (
+                    <React.Fragment key={groupKey}>
+                      {groupKey && (
+                        <div
+                          className="mb-3 flex cursor-pointer items-center gap-2 rounded-lg border border-border/40 bg-muted/40 px-3 py-2 text-xs font-semibold text-foreground/80 select-none hover:bg-muted/50"
+                          onClick={() => toggleGroupCollapse(groupKey)}
+                        >
+                          <ChevronDown
+                            className={`h-3.5 w-3.5 shrink-0 transition-transform ${isCollapsed ? "-rotate-90 text-muted-foreground/60" : "text-foreground/70"}`}
+                          />
+                          <span>{groupKey}</span>
+                          <Badge
+                            variant="secondary"
+                            className="h-4.5 px-1.5 py-0 text-[10px] font-normal text-muted-foreground/80"
                           >
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="font-mono text-[9px] text-muted-foreground/60 select-all font-medium">
-                                #{app._id.slice(-4)}
-                              </span>
-                              <Badge variant="outline" className={`px-2 py-0.5 text-[9px] font-bold border ${getStatusColor(app.status)}`}>
-                                {app.status}
-                              </Badge>
-                            </div>
+                            {groupApps.length}{" "}
+                            {groupApps.length === 1 ? "request" : "requests"}
+                          </Badge>
+                        </div>
+                      )}
 
-                            <div className="flex-1 flex flex-col gap-1.5 mb-3">
-                              <span className="font-semibold text-xs text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                                {app.title}
-                              </span>
-                              {app.description && (
-                                <span className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-                                  {app.description}
+                      {!isCollapsed && (
+                        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                          {groupApps.map((app: any) => (
+                            <div
+                              key={app._id}
+                              className={`group flex min-h-[160px] cursor-pointer flex-col justify-between rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-xs transition-all duration-300 hover:border-primary/20 hover:bg-card/85 hover:shadow-md dark:hover:bg-card/75 ${app.isArchived ? "bg-muted/5 opacity-60" : ""}`}
+                              onClick={() => setSelectedApprovalId(app._id)}
+                            >
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <span className="font-mono text-[9px] font-medium text-muted-foreground/60 select-all">
+                                  #{app._id.slice(-4)}
                                 </span>
-                              )}
-                            </div>
+                                <Badge
+                                  variant="outline"
+                                  className={`border px-2 py-0.5 text-[9px] font-bold ${getStatusColor(app.status)}`}
+                                >
+                                  {app.status}
+                                </Badge>
+                              </div>
 
-                            {/* Card Due Date / Age */}
-                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-2.5 bg-muted/30 dark:bg-muted/10 rounded-md p-1 px-1.5 border border-border/20">
-                              {(() => {
-                                if (app.dueDate) {
-                                  const now = Date.now()
-                                  const startOfToday = new Date().setHours(0,0,0,0)
-                                  const isOverdue = app.dueDate < startOfToday && app.status !== "Approved" && app.status !== "Declined"
-                                  const dateStr = new Date(app.dueDate).toLocaleDateString(undefined, {
-                                    month: "short",
-                                    day: "numeric",
-                                  })
-                                  if (isOverdue) {
-                                    const diffTime = now - app.dueDate
-                                    const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                              <div className="mb-3 flex flex-1 flex-col gap-1.5">
+                                <span className="line-clamp-1 text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
+                                  {app.title}
+                                </span>
+                                {app.description && (
+                                  <span className="line-clamp-2 text-[10px] leading-relaxed text-muted-foreground">
+                                    {app.description}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Card Due Date / Age */}
+                              <div className="mb-2.5 flex items-center gap-1.5 rounded-md border border-border/20 bg-muted/30 p-1 px-1.5 text-[9px] text-muted-foreground dark:bg-muted/10">
+                                {(() => {
+                                  if (app.dueDate) {
+                                    const now = Date.now()
+                                    const startOfToday = new Date().setHours(
+                                      0,
+                                      0,
+                                      0,
+                                      0
+                                    )
+                                    const isOverdue =
+                                      app.dueDate < startOfToday &&
+                                      app.status !== "Approved" &&
+                                      app.status !== "Declined"
+                                    const dateStr = new Date(
+                                      app.dueDate
+                                    ).toLocaleDateString(undefined, {
+                                      month: "short",
+                                      day: "numeric",
+                                    })
+                                    if (isOverdue) {
+                                      const diffTime = now - app.dueDate
+                                      const delayDays = Math.ceil(
+                                        diffTime / (1000 * 60 * 60 * 24)
+                                      )
+                                      return (
+                                        <div className="flex items-center gap-1 font-semibold text-red-500">
+                                          <Calendar className="h-3 w-3 shrink-0" />
+                                          <span>
+                                            Due: {dateStr} ({delayDays}d
+                                            overdue)
+                                          </span>
+                                        </div>
+                                      )
+                                    }
                                     return (
-                                      <div className="flex items-center gap-1 text-red-500 font-semibold">
+                                      <div className="flex items-center gap-1">
                                         <Calendar className="h-3 w-3 shrink-0" />
-                                        <span>Due: {dateStr} ({delayDays}d overdue)</span>
+                                        <span>Due: {dateStr}</span>
+                                      </div>
+                                    )
+                                  } else {
+                                    const now = Date.now()
+                                    const diffTime = now - app._creationTime
+                                    const ageDays = Math.floor(
+                                      diffTime / (1000 * 60 * 60 * 24)
+                                    )
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3 shrink-0" />
+                                        <span>
+                                          Age:{" "}
+                                          {ageDays === 0
+                                            ? "Created today"
+                                            : `${ageDays} days old`}
+                                        </span>
                                       </div>
                                     )
                                   }
-                                  return (
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3 shrink-0" />
-                                      <span>Due: {dateStr}</span>
-                                    </div>
-                                  )
-                                } else {
-                                  const now = Date.now()
-                                  const diffTime = now - app._creationTime
-                                  const ageDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-                                  return (
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3 shrink-0" />
-                                      <span>Age: {ageDays === 0 ? "Created today" : `${ageDays} days old`}</span>
-                                    </div>
-                                  )
-                                }
-                              })()}
-                            </div>
+                                })()}
+                              </div>
 
-                            <div className="flex items-center justify-between pt-2 text-[10px] text-muted-foreground border-t border-dashed border-border/40">
-                              <div className="flex items-center gap-1 bg-muted/10 px-2 py-0.5 rounded border border-border/40">
-                                <span className="text-[9px]">Relation: {getApprovalRelation(app)}</span>
-                              </div>
-                              <div className="flex -space-x-1.5 overflow-hidden items-center">
-                                {app.approverIds.map((userId: string) => (
-                                  <UserAvatar key={userId} userId={userId} avatarClassName="h-5.5 w-5.5 border border-card shadow-xs" />
-                                ))}
+                              <div className="flex items-center justify-between border-t border-dashed border-border/40 pt-2 text-[10px] text-muted-foreground">
+                                <div className="flex items-center gap-1 rounded border border-border/40 bg-muted/10 px-2 py-0.5">
+                                  <span className="text-[9px]">
+                                    Relation: {getApprovalRelation(app)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center -space-x-1.5 overflow-hidden">
+                                  {app.approverIds.map((userId: string) => (
+                                    <UserAvatar
+                                      key={userId}
+                                      userId={userId}
+                                      avatarClassName="h-5.5 w-5.5 border border-card shadow-xs"
+                                    />
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </React.Fragment>
-                )
-              })
+                          ))}
+                        </div>
+                      )}
+                    </React.Fragment>
+                  )
+                }
+              )
             ) : (
-              <div className="h-32 flex items-center justify-center text-center text-muted-foreground text-xs p-4">
+              <div className="flex h-32 items-center justify-center p-4 text-center text-xs text-muted-foreground">
                 No approval requests found.
               </div>
             )}
           </div>
         ) : (
           /* Kanban View */
-          <div className="flex gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-220px)] items-stretch select-none">
+          <div className="flex h-[calc(100vh-220px)] w-full items-stretch gap-4 overflow-x-auto p-4 select-none">
             {visibleStatuses.map((status) => {
               const isCollapsed = collapsedColumns.includes(status)
-              const statusApps = filteredApprovals?.filter((a: any) => a.status === status) || []
+              const statusApps =
+                filteredApprovals?.filter((a: any) => a.status === status) || []
 
               const handleDragOver = (e: React.DragEvent) => {
                 e.preventDefault()
@@ -1375,7 +1679,9 @@ export default function ApprovalsPage() {
                 e.preventDefault()
                 const approvalId = e.dataTransfer.getData("approvalId")
                 if (!approvalId) return
-                const app = filteredApprovals?.find((a: any) => a._id === approvalId)
+                const app = filteredApprovals?.find(
+                  (a: any) => a._id === approvalId
+                )
                 if (app && app.status !== status) {
                   await handleStatusChange(approvalId, status)
                 }
@@ -1385,29 +1691,41 @@ export default function ApprovalsPage() {
                 return (
                   <div
                     key={status}
-                    onClick={() => setCollapsedColumns((prev) => prev.filter((s) => s !== status))}
-                    className="w-12 shrink-0 bg-muted/10 border border-border/30 hover:bg-muted/15 transition-all cursor-pointer rounded-xl p-3 flex flex-col items-center justify-between h-full group"
+                    onClick={() =>
+                      setCollapsedColumns((prev) =>
+                        prev.filter((s) => s !== status)
+                      )
+                    }
+                    className="group flex h-full w-12 shrink-0 cursor-pointer flex-col items-center justify-between rounded-xl border border-border/30 bg-muted/10 p-3 transition-all hover:bg-muted/15"
                   >
                     <div className="flex flex-col items-center gap-3">
                       <button
                         type="button"
-                        className="p-1 rounded-md hover:bg-muted/20 text-muted-foreground/60 group-hover:text-foreground transition-colors"
+                        className="rounded-md p-1 text-muted-foreground/60 transition-colors group-hover:text-foreground hover:bg-muted/20"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setCollapsedColumns((prev) => prev.filter((s) => s !== status))
+                          setCollapsedColumns((prev) =>
+                            prev.filter((s) => s !== status)
+                          )
                         }}
                       >
                         <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
                       </button>
                       <div className="h-px w-full bg-border/40" />
                       <span
-                        className="font-bold text-xs text-muted-foreground/80 tracking-wider whitespace-nowrap"
-                        style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+                        className="text-xs font-bold tracking-wider whitespace-nowrap text-muted-foreground/80"
+                        style={{
+                          writingMode: "vertical-rl",
+                          textOrientation: "mixed",
+                        }}
                       >
                         {status}
                       </span>
                     </div>
-                    <Badge variant="secondary" className="px-1.5 py-0 h-4.5 text-[9px] font-normal text-muted-foreground/60">
+                    <Badge
+                      variant="secondary"
+                      className="h-4.5 px-1.5 py-0 text-[9px] font-normal text-muted-foreground/60"
+                    >
                       {statusApps.length}
                     </Badge>
                   </div>
@@ -1419,33 +1737,45 @@ export default function ApprovalsPage() {
                   key={status}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
-                  className="flex-1 min-w-[280px] max-w-[340px] shrink-0 bg-muted/20 border border-border/40 rounded-xl p-3 flex flex-col h-full transition-colors duration-200"
+                  className="flex h-full max-w-[340px] min-w-[280px] flex-1 shrink-0 flex-col rounded-xl border border-border/40 bg-muted/20 p-3 transition-colors duration-200"
                 >
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
+                  <div className="mb-3 flex items-center justify-between border-b border-border/30 pb-2">
                     <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${
-                        status === "Pending" ? "bg-sky-400" :
-                        status === "Approved" ? "bg-emerald-400" :
-                        status === "Declined" ? "bg-rose-400" :
-                        "bg-amber-400"
-                      }`} />
-                      <span className="font-semibold text-xs text-foreground/90">{status}</span>
-                      <Badge variant="secondary" className="px-1.5 py-0 h-4.5 text-[10px] font-medium text-muted-foreground/80">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          status === "Pending"
+                            ? "bg-sky-400"
+                            : status === "Approved"
+                              ? "bg-emerald-400"
+                              : status === "Declined"
+                                ? "bg-rose-400"
+                                : "bg-amber-400"
+                        }`}
+                      />
+                      <span className="text-xs font-semibold text-foreground/90">
+                        {status}
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className="h-4.5 px-1.5 py-0 text-[10px] font-medium text-muted-foreground/80"
+                      >
                         {statusApps.length}
                       </Badge>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => setCollapsedColumns((prev) => [...prev, status])}
-                      className="p-1 rounded-md hover:bg-muted/30 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
+                      onClick={() =>
+                        setCollapsedColumns((prev) => [...prev, status])
+                      }
+                      className="cursor-pointer rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted/30 hover:text-foreground"
                       title="Collapse Column"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 py-1 scrollbar-thin">
+                  <div className="flex-1 scrollbar-thin space-y-2.5 overflow-y-auto py-1 pr-1">
                     {statusApps.length > 0 ? (
                       statusApps.map((app: any) => (
                         <div
@@ -1456,47 +1786,64 @@ export default function ApprovalsPage() {
                             e.dataTransfer.setData("approvalId", app._id)
                             e.dataTransfer.effectAllowed = "move"
                           }}
-                          className={`bg-card/65 backdrop-blur-xs border border-border/50 rounded-xl p-3 shadow-xs hover:shadow-md hover:border-primary/20 hover:bg-card dark:hover:bg-card/85 transition-all group ${app.isArchived ? "opacity-60 bg-muted/5 cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}`}
+                          className={`group rounded-xl border border-border/50 bg-card/65 p-3 shadow-xs backdrop-blur-xs transition-all hover:border-primary/20 hover:bg-card hover:shadow-md dark:hover:bg-card/85 ${app.isArchived ? "cursor-not-allowed bg-muted/5 opacity-60" : "cursor-grab active:cursor-grabbing"}`}
                           onClick={() => setSelectedApprovalId(app._id)}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-[9px] text-muted-foreground/60 select-all font-medium">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="font-mono text-[9px] font-medium text-muted-foreground/60 select-all">
                               #{app._id.slice(-4)}
                             </span>
-                            <Badge variant="outline" className={`px-1.5 py-0 h-4.5 text-[8px] font-medium border ${getRelationStyle(getApprovalRelation(app))}`}>
+                            <Badge
+                              variant="outline"
+                              className={`h-4.5 border px-1.5 py-0 text-[8px] font-medium ${getRelationStyle(getApprovalRelation(app))}`}
+                            >
                               {getApprovalRelation(app)}
                             </Badge>
                           </div>
 
-                          <div className="flex flex-col gap-0.5 mb-2">
-                            <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                          <div className="mb-2 flex flex-col gap-0.5">
+                            <span className="line-clamp-1 text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
                               {app.title}
                             </span>
                             {app.description && (
-                              <span className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                              <span className="line-clamp-2 text-[10px] leading-relaxed text-muted-foreground">
                                 {app.description}
                               </span>
                             )}
                           </div>
 
                           {/* Card Due Date / Age */}
-                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-2 bg-muted/30 dark:bg-muted/10 rounded-md p-1 px-1.5 border border-border/20">
+                          <div className="mb-2 flex items-center gap-1.5 rounded-md border border-border/20 bg-muted/30 p-1 px-1.5 text-[9px] text-muted-foreground dark:bg-muted/10">
                             {(() => {
                               if (app.dueDate) {
                                 const now = Date.now()
-                                const startOfToday = new Date().setHours(0,0,0,0)
-                                const isOverdue = app.dueDate < startOfToday && app.status !== "Approved" && app.status !== "Declined"
-                                const dateStr = new Date(app.dueDate).toLocaleDateString(undefined, {
+                                const startOfToday = new Date().setHours(
+                                  0,
+                                  0,
+                                  0,
+                                  0
+                                )
+                                const isOverdue =
+                                  app.dueDate < startOfToday &&
+                                  app.status !== "Approved" &&
+                                  app.status !== "Declined"
+                                const dateStr = new Date(
+                                  app.dueDate
+                                ).toLocaleDateString(undefined, {
                                   month: "short",
                                   day: "numeric",
                                 })
                                 if (isOverdue) {
                                   const diffTime = now - app.dueDate
-                                  const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                                  const delayDays = Math.ceil(
+                                    diffTime / (1000 * 60 * 60 * 24)
+                                  )
                                   return (
-                                    <div className="flex items-center gap-1 text-red-500 font-semibold">
+                                    <div className="flex items-center gap-1 font-semibold text-red-500">
                                       <Calendar className="h-3 w-3 shrink-0" />
-                                      <span>Due: {dateStr} ({delayDays}d overdue)</span>
+                                      <span>
+                                        Due: {dateStr} ({delayDays}d overdue)
+                                      </span>
                                     </div>
                                   )
                                 }
@@ -1509,31 +1856,45 @@ export default function ApprovalsPage() {
                               } else {
                                 const now = Date.now()
                                 const diffTime = now - app._creationTime
-                                const ageDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                                const ageDays = Math.floor(
+                                  diffTime / (1000 * 60 * 60 * 24)
+                                )
                                 return (
                                   <div className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3 shrink-0" />
-                                    <span>Age: {ageDays === 0 ? "Created today" : `${ageDays} days old`}</span>
+                                    <span>
+                                      Age:{" "}
+                                      {ageDays === 0
+                                        ? "Created today"
+                                        : `${ageDays} days old`}
+                                    </span>
                                   </div>
                                 )
                               }
                             })()}
                           </div>
 
-                          <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/40 text-[9px] text-muted-foreground">
+                          <div className="flex items-center justify-between border-t border-dashed border-border/40 pt-2 text-[9px] text-muted-foreground">
                             <div className="flex items-center gap-1.5">
-                              <UserAvatar userId={app.creatorId} avatarClassName="h-4.5 w-4.5" />
+                              <UserAvatar
+                                userId={app.creatorId}
+                                avatarClassName="h-4.5 w-4.5"
+                              />
                             </div>
-                            <div className="flex -space-x-1.5 overflow-hidden items-center">
+                            <div className="flex items-center -space-x-1.5 overflow-hidden">
                               {app.approverIds.map((userId: string) => (
-                                <UserAvatar key={userId} userId={userId} avatarClassName="h-5.5 w-5.5 border border-card shadow-xs" />
+                                <UserAvatar
+                                  key={userId}
+                                  userId={userId}
+                                  avatarClassName="h-5.5 w-5.5 border border-card shadow-xs"
+                                />
                               ))}
                             </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="h-20 border border-dashed border-border/40 rounded-xl flex items-center justify-center text-center text-muted-foreground text-[10px] italic">
+                      <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-border/40 text-center text-[10px] text-muted-foreground italic">
                         No approvals in this stage
                       </div>
                     )}

@@ -17,9 +17,9 @@ export function OrgGuard({ children }: { children: React.ReactNode }) {
   if (isPending || (orgs !== null && orgs.length === 0)) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-muted-foreground text-sm">Loading workspace...</p>
+        <div className="flex animate-pulse flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading workspace...</p>
         </div>
       </div>
     )

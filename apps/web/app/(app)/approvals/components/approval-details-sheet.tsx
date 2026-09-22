@@ -18,7 +18,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@workspace/ui/components/tooltip"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@workspace/ui/components/tooltip"
 import {
   Popover,
   PopoverTrigger,
@@ -100,10 +104,22 @@ export default function ApprovalDetailsSheet({
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: activeMember } = authClient.useActiveMember()
 
-  const approval = useQuery(api.approvals.getApproval, approvalId ? { approvalId } : "skip")
-  const auditLogs = useQuery(api.approvals.getApprovalAuditLogs, approvalId ? { approvalId } : "skip")
-  const attachments = useQuery(api.approvalAttachments.getAttachments, approvalId ? { approvalId } : "skip")
-  const chats = useQuery(api.approvalChats.getChats, approvalId ? { approvalId } : "skip")
+  const approval = useQuery(
+    api.approvals.getApproval,
+    approvalId ? { approvalId } : "skip"
+  )
+  const auditLogs = useQuery(
+    api.approvals.getApprovalAuditLogs,
+    approvalId ? { approvalId } : "skip"
+  )
+  const attachments = useQuery(
+    api.approvalAttachments.getAttachments,
+    approvalId ? { approvalId } : "skip"
+  )
+  const chats = useQuery(
+    api.approvalChats.getChats,
+    approvalId ? { approvalId } : "skip"
+  )
 
   const updateDetails = useMutation(api.approvals.updateApprovalDetails)
   const updateStatus = useMutation(api.approvals.updateApprovalStatus)
@@ -115,45 +131,61 @@ export default function ApprovalDetailsSheet({
   const deleteChatMsg = useMutation(api.approvalChats.deleteChat)
   const editChatMsg = useMutation(api.approvalChats.editChat)
   const markAsRead = useMutation(api.approvalChats.markChatsAsRead)
-  const archiveApproval = useMutation(api.approvals.archiveApproval).withOptimisticUpdate(
-    (localStore, args) => {
-      const { approvalId: targetId, isArchived } = args
+  const archiveApproval = useMutation(
+    api.approvals.archiveApproval
+  ).withOptimisticUpdate((localStore, args) => {
+    const { approvalId: targetId, isArchived } = args
 
-      // 1. Update approval details query
-      const currentApproval = localStore.getQuery(api.approvals.getApproval, { approvalId: targetId })
-      if (currentApproval) {
-        localStore.setQuery(
-          api.approvals.getApproval,
-          { approvalId: targetId },
-          { ...currentApproval, isArchived }
+    // 1. Update approval details query
+    const currentApproval = localStore.getQuery(api.approvals.getApproval, {
+      approvalId: targetId,
+    })
+    if (currentApproval) {
+      localStore.setQuery(
+        api.approvals.getApproval,
+        { approvalId: targetId },
+        { ...currentApproval, isArchived }
+      )
+    }
+
+    // 2. Update approvals list queries
+    if (activeOrg?.id) {
+      for (const showArchived of [true, false, undefined]) {
+        const queryArgs = { organizationId: activeOrg.id, showArchived }
+        const approvalsList = localStore.getQuery(
+          api.approvals.getApprovals,
+          queryArgs
         )
-      }
-
-      // 2. Update approvals list queries
-      if (activeOrg?.id) {
-        for (const showArchived of [true, false, undefined]) {
-          const queryArgs = { organizationId: activeOrg.id, showArchived }
-          const approvalsList = localStore.getQuery(api.approvals.getApprovals, queryArgs)
-          if (approvalsList) {
-            const updatedApprovals = approvalsList.map((a: any) => {
-              if (a._id === targetId) {
-                return { ...a, isArchived }
-              }
-              return a
-            })
-            localStore.setQuery(api.approvals.getApprovals, queryArgs, updatedApprovals)
-          }
+        if (approvalsList) {
+          const updatedApprovals = approvalsList.map((a: any) => {
+            if (a._id === targetId) {
+              return { ...a, isArchived }
+            }
+            return a
+          })
+          localStore.setQuery(
+            api.approvals.getApprovals,
+            queryArgs,
+            updatedApprovals
+          )
         }
       }
     }
-  )
+  })
 
   const handleArchiveToggle = async () => {
     if (!approval) return
     const nextArchivedState = !approval.isArchived
     try {
-      await archiveApproval({ approvalId: approval._id, isArchived: nextArchivedState })
-      toast.success(nextArchivedState ? "Approval request archived successfully!" : "Approval request restored successfully!")
+      await archiveApproval({
+        approvalId: approval._id,
+        isArchived: nextArchivedState,
+      })
+      toast.success(
+        nextArchivedState
+          ? "Approval request archived successfully!"
+          : "Approval request restored successfully!"
+      )
       if (nextArchivedState) {
         onClose()
       }
@@ -163,11 +195,15 @@ export default function ApprovalDetailsSheet({
     }
   }
 
-  const [activeTab, setActiveTab] = useState<"discussion" | "activity">("discussion")
+  const [activeTab, setActiveTab] = useState<"discussion" | "activity">(
+    "discussion"
+  )
   const [newChat, setNewChat] = useState("")
   const [isChatSending, setIsChatSending] = useState(false)
-  const [draftAttachmentFiles, setDraftAttachmentFiles] = useState<{ file: File; id?: string }[]>([])
-  
+  const [draftAttachmentFiles, setDraftAttachmentFiles] = useState<
+    { file: File; id?: string }[]
+  >([])
+
   // Status change comments & confirm dialogs
   const [statusToChange, setStatusToChange] = useState<string | null>(null)
   const [statusComment, setStatusComment] = useState("")
@@ -186,12 +222,21 @@ export default function ApprovalDetailsSheet({
 
   const currentUserId = session?.user?.id
   const isAdminOrOwner =
-    activeMember?.role === "admin" ||
-    activeMember?.role === "owner"
-  const isCreator = !!currentUserId && !!approval?.creatorId && approval.creatorId === currentUserId
+    activeMember?.role === "admin" || activeMember?.role === "owner"
+  const isCreator =
+    !!currentUserId &&
+    !!approval?.creatorId &&
+    approval.creatorId === currentUserId
   const canArchive = isAdminOrOwner || isCreator
-  const canEditApprovalDetails = (isAdminOrOwner || isCreator) && !approval?.isArchived
-  const canUpdateStatus = !!currentUserId && !!approval && !approval.isArchived && (approval.approverIds.includes(currentUserId) || approval.creatorId === currentUserId || isAdminOrOwner)
+  const canEditApprovalDetails =
+    (isAdminOrOwner || isCreator) && !approval?.isArchived
+  const canUpdateStatus =
+    !!currentUserId &&
+    !!approval &&
+    !approval.isArchived &&
+    (approval.approverIds.includes(currentUserId) ||
+      approval.creatorId === currentUserId ||
+      isAdminOrOwner)
 
   // Sync title and description when approval changes
   useEffect(() => {
@@ -230,7 +275,11 @@ export default function ApprovalDetailsSheet({
     }
   }
 
-  const handleUpdateDetails = async (fields: { title?: string; description?: string; dueDate?: number }) => {
+  const handleUpdateDetails = async (fields: {
+    title?: string
+    description?: string
+    dueDate?: number
+  }) => {
     if (!approvalId || !canEditApprovalDetails) return
     try {
       await updateDetails({
@@ -328,7 +377,9 @@ export default function ApprovalDetailsSheet({
         )
       } catch (err: any) {
         toast.error(`Failed to upload ${draft.file.name}`)
-        setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
+        setDraftAttachmentFiles((prev) =>
+          prev.filter((d) => d.file !== draft.file)
+        )
       }
     }
   }
@@ -371,17 +422,20 @@ export default function ApprovalDetailsSheet({
 
   const getDelayOrAgeInfo = (app: any) => {
     const now = Date.now()
-    const startOfToday = new Date().setHours(0,0,0,0)
+    const startOfToday = new Date().setHours(0, 0, 0, 0)
 
     if (app.dueDate) {
-      const isOverdue = app.dueDate < startOfToday && app.status !== "Approved" && app.status !== "Declined"
+      const isOverdue =
+        app.dueDate < startOfToday &&
+        app.status !== "Approved" &&
+        app.status !== "Declined"
       if (isOverdue) {
         const diffTime = now - app.dueDate
         const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
         return {
           isOverdue: true,
           label: `Delayed by ${delayDays} ${delayDays === 1 ? "day" : "days"}`,
-          style: "bg-red-500/10 text-red-500 border-red-500/20"
+          style: "bg-red-500/10 text-red-500 border-red-500/20",
         }
       } else {
         return null // Not overdue
@@ -394,13 +448,13 @@ export default function ApprovalDetailsSheet({
         return {
           isOverdue: false,
           label: "Created today",
-          style: "bg-muted text-muted-foreground border-border/40"
+          style: "bg-muted text-muted-foreground border-border/40",
         }
       }
       return {
         isOverdue: false,
         label: `${ageDays} ${ageDays === 1 ? "day" : "days"} old`,
-        style: "bg-muted text-muted-foreground border-border/40"
+        style: "bg-muted text-muted-foreground border-border/40",
       }
     }
   }
@@ -410,7 +464,7 @@ export default function ApprovalDetailsSheet({
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="!fixed !top-4 !right-4 !bottom-4 z-50 flex !h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/80 p-0 shadow-2xl backdrop-blur-md bg-background/95 duration-300 outline-none sm:!max-w-xl"
+        className="!fixed !top-4 !right-4 !bottom-4 z-50 flex !h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/80 bg-background/95 p-0 shadow-2xl backdrop-blur-md duration-300 outline-none sm:!max-w-xl"
       >
         <SheetTitle className="sr-only">Approval Request Details</SheetTitle>
         <SheetDescription className="sr-only">
@@ -420,7 +474,9 @@ export default function ApprovalDetailsSheet({
         {approval === undefined ? (
           <div className="flex h-full flex-col items-center justify-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-xs text-muted-foreground">Loading request details...</p>
+            <p className="text-xs text-muted-foreground">
+              Loading request details...
+            </p>
           </div>
         ) : !approval ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-6">
@@ -450,9 +506,11 @@ export default function ApprovalDetailsSheet({
                   onClick={(e) => {
                     e.stopPropagation()
                     navigator.clipboard.writeText(`#${approval._id.slice(-4)}`)
-                    toast.success(`Copied Approval ID #${approval._id.slice(-4)} to clipboard!`)
+                    toast.success(
+                      `Copied Approval ID #${approval._id.slice(-4)} to clipboard!`
+                    )
                   }}
-                  className="text-[11px] font-medium font-mono text-muted-foreground/50 hover:text-foreground transition-colors select-all cursor-pointer"
+                  className="cursor-pointer font-mono text-[11px] font-medium text-muted-foreground/50 transition-colors select-all hover:text-foreground"
                 >
                   #{approval._id.slice(-4)}
                 </span>
@@ -481,7 +539,11 @@ export default function ApprovalDetailsSheet({
                     variant="ghost"
                     onClick={handleArchiveToggle}
                     className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                    title={approval.isArchived ? "Restore Request" : "Archive Request"}
+                    title={
+                      approval.isArchived
+                        ? "Restore Request"
+                        : "Archive Request"
+                    }
                   >
                     {approval.isArchived ? (
                       <ArchiveRestore className="h-4 w-4" />
@@ -494,14 +556,17 @@ export default function ApprovalDetailsSheet({
             </div>
 
             {/* Scrollable Container */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {approval.isArchived && (
                 <div className="m-6 mb-0 flex items-center gap-2.5 rounded-xl border border-amber-200/50 bg-amber-500/10 p-4 text-xs text-amber-700 dark:border-amber-800/30 dark:text-amber-400">
                   <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
-                  <span>This approval request is archived. Unarchive it to allow status changes, comments, or attachments.</span>
+                  <span>
+                    This approval request is archived. Unarchive it to allow
+                    status changes, comments, or attachments.
+                  </span>
                 </div>
               )}
-              <div className="p-6 space-y-6">
+              <div className="space-y-6 p-6">
                 {/* Title Section */}
                 <div>
                   {isEditingDetails && canEditApprovalDetails ? (
@@ -509,10 +574,14 @@ export default function ApprovalDetailsSheet({
                       <span
                         onClick={(e) => {
                           e.stopPropagation()
-                          navigator.clipboard.writeText(`#${approval._id.slice(-4)}`)
-                          toast.success(`Copied Approval ID #${approval._id.slice(-4)} to clipboard!`)
+                          navigator.clipboard.writeText(
+                            `#${approval._id.slice(-4)}`
+                          )
+                          toast.success(
+                            `Copied Approval ID #${approval._id.slice(-4)} to clipboard!`
+                          )
                         }}
-                        className="text-muted-foreground/50 font-mono text-xl font-medium select-all shrink-0 select-none cursor-pointer hover:text-foreground transition-colors"
+                        className="shrink-0 cursor-pointer font-mono text-xl font-medium text-muted-foreground/50 transition-colors select-all select-none hover:text-foreground"
                       >
                         #{approval._id.slice(-4)}
                       </span>
@@ -532,14 +601,18 @@ export default function ApprovalDetailsSheet({
                       />
                     </div>
                   ) : (
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2 flex-wrap">
+                    <h2 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
                       <span
                         onClick={(e) => {
                           e.stopPropagation()
-                          navigator.clipboard.writeText(`#${approval._id.slice(-4)}`)
-                          toast.success(`Copied Approval ID #${approval._id.slice(-4)} to clipboard!`)
+                          navigator.clipboard.writeText(
+                            `#${approval._id.slice(-4)}`
+                          )
+                          toast.success(
+                            `Copied Approval ID #${approval._id.slice(-4)} to clipboard!`
+                          )
                         }}
-                        className="font-mono text-muted-foreground/60 hover:text-foreground transition-colors mr-2 text-xl font-medium select-all cursor-pointer"
+                        className="mr-2 cursor-pointer font-mono text-xl font-medium text-muted-foreground/60 transition-colors select-all hover:text-foreground"
                       >
                         #{approval._id.slice(-4)}
                       </span>
@@ -556,7 +629,11 @@ export default function ApprovalDetailsSheet({
                     <span>Creator</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <UserAvatar userId={approval.creatorId} showName={true} avatarClassName="h-6 w-6 border border-card shadow-xs" />
+                    <UserAvatar
+                      userId={approval.creatorId}
+                      showName={true}
+                      avatarClassName="h-6 w-6 border border-card shadow-xs"
+                    />
                   </div>
 
                   {/* Created Time */}
@@ -565,14 +642,17 @@ export default function ApprovalDetailsSheet({
                     <span>Created time</span>
                   </div>
                   <div className="font-medium text-foreground/80">
-                    {new Date(approval._creationTime).toLocaleString(undefined, {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                    {new Date(approval._creationTime).toLocaleString(
+                      undefined,
+                      {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      }
+                    )}
                   </div>
 
                   {/* Status */}
@@ -586,14 +666,18 @@ export default function ApprovalDetailsSheet({
                         value={approval.status}
                         onValueChange={(val) => setStatusToChange(val)}
                       >
-                        <SelectTrigger className={`h-8 w-[150px] text-xs font-semibold rounded-full border px-2.5 ${getStatusColor(approval.status)}`}>
+                        <SelectTrigger
+                          className={`h-8 w-[150px] rounded-full border px-2.5 text-xs font-semibold ${getStatusColor(approval.status)}`}
+                        >
                           <SelectValue placeholder={approval.status} />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
                           <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem 
-                            value="Approved" 
-                            disabled={!!approval.formId && !approval.formResponseId}
+                          <SelectItem
+                            value="Approved"
+                            disabled={
+                              !!approval.formId && !approval.formResponseId
+                            }
                           >
                             Approved
                           </SelectItem>
@@ -624,18 +708,21 @@ export default function ApprovalDetailsSheet({
                           <Button
                             variant="outline"
                             className={cn(
-                              "h-8 justify-start text-left font-normal text-xs bg-background/50 border-border/80 px-3 py-1",
+                              "h-8 justify-start border-border/80 bg-background/50 px-3 py-1 text-left text-xs font-normal",
                               !approval.dueDate && "text-muted-foreground"
                             )}
                           >
                             <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/80" />
                             {approval.dueDate ? (
                               <span>
-                                {new Date(approval.dueDate).toLocaleDateString(undefined, {
-                                  month: "long",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {new Date(approval.dueDate).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    month: "long",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )}
                               </span>
                             ) : (
                               <span>Pick due date</span>
@@ -645,7 +732,11 @@ export default function ApprovalDetailsSheet({
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={approval.dueDate ? new Date(approval.dueDate) : undefined}
+                            selected={
+                              approval.dueDate
+                                ? new Date(approval.dueDate)
+                                : undefined
+                            }
                             onSelect={(date) => {
                               handleUpdateDetails({
                                 dueDate: date ? date.getTime() : 0,
@@ -656,15 +747,16 @@ export default function ApprovalDetailsSheet({
                       </Popover>
                     ) : (
                       <span className="font-medium text-foreground/80">
-                        {approval.dueDate ? (
-                          new Date(approval.dueDate).toLocaleDateString(undefined, {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })
-                        ) : (
-                          "No due date"
-                        )}
+                        {approval.dueDate
+                          ? new Date(approval.dueDate).toLocaleDateString(
+                              undefined,
+                              {
+                                month: "long",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )
+                          : "No due date"}
                       </span>
                     )}
                   </div>
@@ -677,7 +769,11 @@ export default function ApprovalDetailsSheet({
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1.5 overflow-hidden">
                       {approval.approverIds.map((userId) => (
-                        <UserAvatar key={userId} userId={userId} avatarClassName="h-6 w-6 border border-card shadow-xs" />
+                        <UserAvatar
+                          key={userId}
+                          userId={userId}
+                          avatarClassName="h-6 w-6 border border-card shadow-xs"
+                        />
                       ))}
                     </div>
                     {canEditApprovalDetails && (
@@ -691,29 +787,42 @@ export default function ApprovalDetailsSheet({
                             <UserPlus className="h-3 w-3" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-56 p-2 z-50">
-                          <span className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase">Manage Approvers</span>
-                          <div className="space-y-0.5 max-h-40 overflow-y-auto mt-1">
+                        <PopoverContent className="z-50 w-56 p-2">
+                          <span className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase">
+                            Manage Approvers
+                          </span>
+                          <div className="mt-1 max-h-40 space-y-0.5 overflow-y-auto">
                             {activeOrg.members?.map((m: any) => {
-                              const isApprover = approval.approverIds.includes(m.userId)
+                              const isApprover = approval.approverIds.includes(
+                                m.userId
+                              )
                               return (
                                 <button
                                   type="button"
                                   key={m.id}
                                   onClick={async () => {
                                     const newApprovers = isApprover
-                                      ? approval.approverIds.filter((id) => id !== m.userId)
+                                      ? approval.approverIds.filter(
+                                          (id) => id !== m.userId
+                                        )
                                       : [...approval.approverIds, m.userId]
                                     if (newApprovers.length === 0) {
-                                      toast.error("At least one approver required")
+                                      toast.error(
+                                        "At least one approver required"
+                                      )
                                       return
                                     }
-                                    await inviteApprvs({ approvalId, approverIds: newApprovers })
+                                    await inviteApprvs({
+                                      approvalId,
+                                      approverIds: newApprovers,
+                                    })
                                   }}
-                                  className="flex items-center justify-between w-full text-xs p-1.5 hover:bg-accent rounded text-left"
+                                  className="flex w-full items-center justify-between rounded p-1.5 text-left text-xs hover:bg-accent"
                                 >
                                   <span>{m.user?.name}</span>
-                                  {isApprover && <Check className="h-3.5 w-3.5 text-primary" />}
+                                  {isApprover && (
+                                    <Check className="h-3.5 w-3.5 text-primary" />
+                                  )}
                                 </button>
                               )
                             })}
@@ -730,12 +839,19 @@ export default function ApprovalDetailsSheet({
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1.5 overflow-hidden">
-                      {approval.subscriberIds && approval.subscriberIds.length > 0 ? (
+                      {approval.subscriberIds &&
+                      approval.subscriberIds.length > 0 ? (
                         approval.subscriberIds.map((userId) => (
-                          <UserAvatar key={userId} userId={userId} avatarClassName="h-6 w-6 border border-card shadow-xs" />
+                          <UserAvatar
+                            key={userId}
+                            userId={userId}
+                            avatarClassName="h-6 w-6 border border-card shadow-xs"
+                          />
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">No subscribers</span>
+                        <span className="text-xs text-muted-foreground italic">
+                          No subscribers
+                        </span>
                       )}
                     </div>
                     <Popover>
@@ -748,28 +864,42 @@ export default function ApprovalDetailsSheet({
                           <UserPlus className="h-3 w-3" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-56 p-2 z-50">
-                        <span className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase">Manage Subscribers</span>
-                        <div className="space-y-0.5 max-h-40 overflow-y-auto mt-1">
+                      <PopoverContent className="z-50 w-56 p-2">
+                        <span className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase">
+                          Manage Subscribers
+                        </span>
+                        <div className="mt-1 max-h-40 space-y-0.5 overflow-y-auto">
                           {activeOrg.members?.map((m: any) => {
-                            const isSub = (approval.subscriberIds || []).includes(m.userId)
-                            const isApprv = approval.approverIds.includes(m.userId)
+                            const isSub = (
+                              approval.subscriberIds || []
+                            ).includes(m.userId)
+                            const isApprv = approval.approverIds.includes(
+                              m.userId
+                            )
                             if (isApprv) return null
                             return (
                               <button
                                 type="button"
                                 key={m.id}
                                 onClick={async () => {
-                                  const currentSubs = approval.subscriberIds || []
+                                  const currentSubs =
+                                    approval.subscriberIds || []
                                   const newSubs = isSub
-                                    ? currentSubs.filter((id) => id !== m.userId)
+                                    ? currentSubs.filter(
+                                        (id) => id !== m.userId
+                                      )
                                     : [...currentSubs, m.userId]
-                                  await inviteSubs({ approvalId, subscriberIds: newSubs })
+                                  await inviteSubs({
+                                    approvalId,
+                                    subscriberIds: newSubs,
+                                  })
                                 }}
-                                className="flex items-center justify-between w-full text-xs p-1.5 hover:bg-accent rounded text-left"
+                                className="flex w-full items-center justify-between rounded p-1.5 text-left text-xs hover:bg-accent"
                               >
                                 <span>{m.user?.name}</span>
-                                {isSub && <Check className="h-3.5 w-3.5 text-primary" />}
+                                {isSub && (
+                                  <Check className="h-3.5 w-3.5 text-primary" />
+                                )}
                               </button>
                             )
                           })}
@@ -786,9 +916,17 @@ export default function ApprovalDetailsSheet({
                   <div>
                     {(() => {
                       const info = getDelayOrAgeInfo(approval)
-                      if (!info) return <span className="text-muted-foreground italic">-</span>
+                      if (!info)
+                        return (
+                          <span className="text-muted-foreground italic">
+                            -
+                          </span>
+                        )
                       return (
-                        <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-semibold border rounded-full ${info.style}`}>
+                        <Badge
+                          variant="outline"
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${info.style}`}
+                        >
                           {info.label}
                         </Badge>
                       )
@@ -803,7 +941,11 @@ export default function ApprovalDetailsSheet({
                         formId={approval.formId}
                         formResponseId={approval.formResponseId}
                         organizationId={approval.organizationId}
-                        isApproverOrCreator={approval.approverIds.includes(currentUserId!) || isCreator || isAdminOrOwner}
+                        isApproverOrCreator={
+                          approval.approverIds.includes(currentUserId!) ||
+                          isCreator ||
+                          isAdminOrOwner
+                        }
                       />
                     </div>
                   )}
@@ -834,126 +976,185 @@ export default function ApprovalDetailsSheet({
                 </div>
 
                 {/* Tab layout: Discussion & Activity logs */}
-                <Tabs defaultValue="discussion" className="w-full flex flex-col min-h-0 flex-1">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="discussion" onClick={() => setActiveTab("discussion")} className="text-xs font-semibold flex items-center gap-1">
+                <Tabs
+                  defaultValue="discussion"
+                  className="flex min-h-0 w-full flex-1 flex-col"
+                >
+                  <TabsList className="mb-4 grid w-full grid-cols-2">
+                    <TabsTrigger
+                      value="discussion"
+                      onClick={() => setActiveTab("discussion")}
+                      className="flex items-center gap-1 text-xs font-semibold"
+                    >
                       <MessageSquare className="h-3.5 w-3.5" />
                       Discussion
                     </TabsTrigger>
-                    <TabsTrigger value="activity" onClick={() => setActiveTab("activity")} className="text-xs font-semibold flex items-center gap-1">
+                    <TabsTrigger
+                      value="activity"
+                      onClick={() => setActiveTab("activity")}
+                      className="flex items-center gap-1 text-xs font-semibold"
+                    >
                       <Clock className="h-3.5 w-3.5" />
                       Activity Log
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="discussion" className="mt-0 outline-none flex flex-col min-h-0 flex-1 pt-0">
-                    <div className="flex flex-col flex-1 min-h-[420px] max-h-[550px] border border-border/20 rounded-xl bg-card overflow-hidden">
+                  <TabsContent
+                    value="discussion"
+                    className="mt-0 flex min-h-0 flex-1 flex-col pt-0 outline-none"
+                  >
+                    <div className="flex max-h-[550px] min-h-[420px] flex-1 flex-col overflow-hidden rounded-xl border border-border/20 bg-card">
                       {/* Chat Header */}
-                      <div className="border-b border-border/20 bg-muted/20 px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center justify-between border-b border-border/20 bg-muted/20 px-4 py-3">
                         <div className="flex items-center gap-2">
                           <MessageSquare className="h-4 w-4 text-primary" />
-                          <span className="text-xs font-semibold text-foreground">Approval Discussions</span>
+                          <span className="text-xs font-semibold text-foreground">
+                            Approval Discussions
+                          </span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-medium">
+                        <span className="text-[10px] font-medium text-muted-foreground">
                           {chats ? `${chats.length} messages` : "Loading..."}
                         </span>
                       </div>
 
                       {/* Messages Stream */}
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
                         {chats === undefined ? (
                           <div className="flex h-full items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           </div>
                         ) : chats.length === 0 ? (
-                          <div className="flex h-full flex-col items-center justify-center text-center p-6">
-                            <MessageSquare className="mb-2 size-8 text-muted-foreground/30 animate-bounce" />
-                            <span className="text-xs font-semibold text-foreground">No messages yet</span>
-                            <span className="text-[10px] text-muted-foreground max-w-xs mt-1">
-                              Be the first to say something or ask a question about this request.
+                          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+                            <MessageSquare className="mb-2 size-8 animate-bounce text-muted-foreground/30" />
+                            <span className="text-xs font-semibold text-foreground">
+                              No messages yet
+                            </span>
+                            <span className="mt-1 max-w-xs text-[10px] text-muted-foreground">
+                              Be the first to say something or ask a question
+                              about this request.
                             </span>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3.5">
                             {chats.map((chat: any) => (
-                              <div key={chat._id} className={`flex gap-3 text-xs ${chat.isSystem ? "bg-muted/30 border border-border/20 rounded-lg p-2 items-center justify-between" : ""}`}>
+                              <div
+                                key={chat._id}
+                                className={`flex gap-3 text-xs ${chat.isSystem ? "items-center justify-between rounded-lg border border-border/20 bg-muted/30 p-2" : ""}`}
+                              >
                                 {!chat.isSystem && (
-                                  <UserAvatar userId={chat.userId} avatarClassName="h-6 w-6 mt-0.5 shrink-0" />
+                                  <UserAvatar
+                                    userId={chat.userId}
+                                    avatarClassName="h-6 w-6 mt-0.5 shrink-0"
+                                  />
                                 )}
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                   {!chat.isSystem && (
-                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                    <div className="mb-0.5 flex items-center gap-1.5">
                                       <AvatarHoverCard userId={chat.userId}>
-                                        <span className="font-semibold text-foreground cursor-pointer hover:underline">
-                                          {chat.userId === currentUserId ? "You" : "User"}
+                                        <span className="cursor-pointer font-semibold text-foreground hover:underline">
+                                          {chat.userId === currentUserId
+                                            ? "You"
+                                            : "User"}
                                         </span>
                                       </AvatarHoverCard>
                                       <span className="text-[9px] text-muted-foreground">
-                                        {new Date(chat._creationTime).toLocaleTimeString(undefined, {
+                                        {new Date(
+                                          chat._creationTime
+                                        ).toLocaleTimeString(undefined, {
                                           hour: "2-digit",
                                           minute: "2-digit",
                                         })}
                                       </span>
                                     </div>
                                   )}
-                                  <p className={`leading-relaxed text-foreground/90 ${chat.isSystem ? "text-[10px] text-muted-foreground/80 italic font-medium" : ""}`}>
+                                  <p
+                                    className={`leading-relaxed text-foreground/90 ${chat.isSystem ? "text-[10px] font-medium text-muted-foreground/80 italic" : ""}`}
+                                  >
                                     {chat.content}
                                   </p>
-                                  
+
                                   {/* Attachment preview if any */}
-                                  {chat.attachmentIds && chat.attachmentIds.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                      {attachments
-                                        ?.filter((a) => chat.attachmentIds?.includes(a._id))
-                                        .map((attach) => (
-                                          <div key={attach._id} className="flex items-center justify-between border rounded-lg bg-card p-2 text-xs">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                              <File className="h-4 w-4 text-primary shrink-0" />
-                                              <div className="flex flex-col min-w-0">
-                                                <span className="font-medium truncate">{attach.fileName}</span>
-                                                <span className="text-[9px] text-muted-foreground">{formatFileSize(attach.fileSize)}</span>
+                                  {chat.attachmentIds &&
+                                    chat.attachmentIds.length > 0 && (
+                                      <div className="mt-2 space-y-1">
+                                        {attachments
+                                          ?.filter((a) =>
+                                            chat.attachmentIds?.includes(a._id)
+                                          )
+                                          .map((attach) => (
+                                            <div
+                                              key={attach._id}
+                                              className="flex items-center justify-between rounded-lg border bg-card p-2 text-xs"
+                                            >
+                                              <div className="flex min-w-0 items-center gap-2">
+                                                <File className="h-4 w-4 shrink-0 text-primary" />
+                                                <div className="flex min-w-0 flex-col">
+                                                  <span className="truncate font-medium">
+                                                    {attach.fileName}
+                                                  </span>
+                                                  <span className="text-[9px] text-muted-foreground">
+                                                    {formatFileSize(
+                                                      attach.fileSize
+                                                    )}
+                                                  </span>
+                                                </div>
                                               </div>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                              <Button size="icon-sm" variant="ghost" className="h-6 w-6">
-                                                <Download className="h-3.5 w-3.5" />
-                                              </Button>
-                                              {(attach.uploaderId === currentUserId || approval.creatorId === currentUserId) && (
+                                              <div className="flex items-center gap-1">
                                                 <Button
                                                   size="icon-sm"
                                                   variant="ghost"
-                                                  className="h-6 w-6 text-destructive"
-                                                  onClick={() => handleDeleteAttachment(attach._id)}
+                                                  className="h-6 w-6"
                                                 >
-                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                  <Download className="h-3.5 w-3.5" />
                                                 </Button>
-                                              )}
+                                                {(attach.uploaderId ===
+                                                  currentUserId ||
+                                                  approval.creatorId ===
+                                                    currentUserId) && (
+                                                  <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    className="h-6 w-6 text-destructive"
+                                                    onClick={() =>
+                                                      handleDeleteAttachment(
+                                                        attach._id
+                                                      )
+                                                    }
+                                                  >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                  </Button>
+                                                )}
+                                              </div>
                                             </div>
-                                          </div>
-                                        ))}
-                                    </div>
-                                  )}
+                                          ))}
+                                      </div>
+                                    )}
                                 </div>
 
                                 {/* Options dropdown for message sender */}
-                                {!chat.isSystem && chat.userId === currentUserId && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button size="icon-sm" variant="ghost" className="h-6 w-6 text-muted-foreground self-start shrink-0">
-                                        <MoreHorizontal className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem
-                                        className="text-xs text-destructive flex items-center gap-1.5 cursor-pointer"
-                                        onClick={() => setChatToDelete(chat)}
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                        Delete message
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
+                                {!chat.isSystem &&
+                                  chat.userId === currentUserId && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          size="icon-sm"
+                                          variant="ghost"
+                                          className="h-6 w-6 shrink-0 self-start text-muted-foreground"
+                                        >
+                                          <MoreHorizontal className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                          className="flex cursor-pointer items-center gap-1.5 text-xs text-destructive"
+                                          onClick={() => setChatToDelete(chat)}
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                          Delete message
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
                               </div>
                             ))}
                             <div ref={chatEndRef} />
@@ -963,26 +1164,36 @@ export default function ApprovalDetailsSheet({
 
                       {/* Chat Input Bar & Toolbar */}
                       {approval.isArchived ? (
-                        <div className="border-t border-border/20 p-4 bg-muted/5 text-center text-xs text-muted-foreground italic shrink-0">
-                          New messages cannot be added to archived approval requests.
+                        <div className="shrink-0 border-t border-border/20 bg-muted/5 p-4 text-center text-xs text-muted-foreground italic">
+                          New messages cannot be added to archived approval
+                          requests.
                         </div>
                       ) : (
-                        <div className="border-t border-border/20 bg-muted/20 p-3 flex flex-col gap-2 shrink-0">
+                        <div className="flex shrink-0 flex-col gap-2 border-t border-border/20 bg-muted/20 p-3">
                           {/* File drafts */}
                           {draftAttachmentFiles.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto pb-1">
+                            <div className="flex max-h-20 flex-wrap gap-1.5 overflow-y-auto pb-1">
                               {draftAttachmentFiles.map((draft, idx) => (
-                                <div key={idx} className="flex items-center gap-1 px-2 py-1 bg-background border rounded-md text-[10px]">
-                                  <span className="max-w-[100px] truncate">{draft.file.name}</span>
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px]"
+                                >
+                                  <span className="max-w-[100px] truncate">
+                                    {draft.file.name}
+                                  </span>
                                   {!draft.id ? (
                                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                                   ) : (
                                     <button
                                       onClick={() => {
                                         handleDeleteAttachment(draft.id)
-                                        setDraftAttachmentFiles((prev) => prev.filter((d) => d.file !== draft.file))
+                                        setDraftAttachmentFiles((prev) =>
+                                          prev.filter(
+                                            (d) => d.file !== draft.file
+                                          )
+                                        )
                                       }}
-                                      className="text-destructive hover:scale-110 ml-0.5"
+                                      className="ml-0.5 text-destructive hover:scale-110"
                                     >
                                       <X className="h-3 w-3" />
                                     </button>
@@ -1006,8 +1217,12 @@ export default function ApprovalDetailsSheet({
                               <Button
                                 type="button"
                                 variant="outline"
-                                className="h-7 px-2.5 text-[10px] font-medium rounded-full bg-background/60 hover:bg-muted border-border/30 hover:border-border/60 transition-all flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                                onClick={() => document.getElementById("approval-file-upload")?.click()}
+                                className="flex h-7 items-center gap-1.5 rounded-full border-border/30 bg-background/60 px-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:border-border/60 hover:bg-muted hover:text-foreground"
+                                onClick={() =>
+                                  document
+                                    .getElementById("approval-file-upload")
+                                    ?.click()
+                                }
                               >
                                 <Paperclip className="h-3 w-3 shrink-0" />
                                 <span>Add File</span>
@@ -1015,40 +1230,55 @@ export default function ApprovalDetailsSheet({
                             </div>
 
                             {/* Status update selector triggers */}
-                            {(approval.approverIds.includes(currentUserId!) || approval.creatorId === currentUserId || activeMember?.role === "admin") && (
+                            {(approval.approverIds.includes(currentUserId!) ||
+                              approval.creatorId === currentUserId ||
+                              activeMember?.role === "admin") && (
                               <div className="flex items-center gap-1">
-                                {["Approved", "Declined", "Rework"].map((st) => {
-                                  if (st === approval.status) return null
-                                  const isApproveBlocked = st === "Approved" && !!approval.formId && !approval.formResponseId
-                                  return (
-                                    <Button
-                                      key={st}
-                                      type="button"
-                                      variant="outline"
-                                      disabled={isApproveBlocked}
-                                      className="h-7 px-2.5 text-[10px] font-semibold rounded-full bg-background/60 border-border/30 hover:bg-muted transition-all hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
-                                      onClick={() => {
-                                        setStatusToChange(st)
-                                      }}
-                                    >
-                                      <span>Set {st}</span>
-                                    </Button>
-                                  )
-                                })}
+                                {["Approved", "Declined", "Rework"].map(
+                                  (st) => {
+                                    if (st === approval.status) return null
+                                    const isApproveBlocked =
+                                      st === "Approved" &&
+                                      !!approval.formId &&
+                                      !approval.formResponseId
+                                    return (
+                                      <Button
+                                        key={st}
+                                        type="button"
+                                        variant="outline"
+                                        disabled={isApproveBlocked}
+                                        className="h-7 rounded-full border-border/30 bg-background/60 px-2.5 text-[10px] font-semibold transition-all hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                                        onClick={() => {
+                                          setStatusToChange(st)
+                                        }}
+                                      >
+                                        <span>Set {st}</span>
+                                      </Button>
+                                    )
+                                  }
+                                )}
                               </div>
                             )}
                           </div>
 
                           {/* Input Text Form */}
-                          <form onSubmit={handleSendChatMessage} className="flex gap-2 items-center">
+                          <form
+                            onSubmit={handleSendChatMessage}
+                            className="flex items-center gap-2"
+                          >
                             <Input
                               placeholder="Ask a question or add a status update comment..."
                               value={newChat}
                               onChange={(e) => setNewChat(e.target.value)}
                               disabled={isChatSending}
-                              className="h-9 text-xs flex-1"
+                              className="h-9 flex-1 text-xs"
                             />
-                            <Button type="submit" size="icon" className="h-9 w-9 shrink-0" disabled={isChatSending}>
+                            <Button
+                              type="submit"
+                              size="icon"
+                              className="h-9 w-9 shrink-0"
+                              disabled={isChatSending}
+                            >
                               {isChatSending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
@@ -1061,26 +1291,31 @@ export default function ApprovalDetailsSheet({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="activity" className="pt-4 space-y-3">
+                  <TabsContent value="activity" className="space-y-3 pt-4">
                     {auditLogs === undefined ? (
                       <div className="flex justify-center py-4">
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                       </div>
                     ) : auditLogs.length === 0 ? (
-                      <div className="text-center text-xs text-muted-foreground py-6">
+                      <div className="py-6 text-center text-xs text-muted-foreground">
                         No activity logged yet.
                       </div>
                     ) : (
-                      <div className="relative border-l border-border/50 ml-3 pl-4 space-y-4 py-2">
+                      <div className="relative ml-3 space-y-4 border-l border-border/50 py-2 pl-4">
                         {auditLogs.map((log) => (
-                          <div key={log._id} className="relative flex flex-col gap-0.5 text-xs">
-                            <span className="absolute -left-[21px] top-0.5 flex h-2 w-2 rounded-full bg-primary" />
-                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
+                          <div
+                            key={log._id}
+                            className="relative flex flex-col gap-0.5 text-xs"
+                          >
+                            <span className="absolute top-0.5 -left-[21px] flex h-2 w-2 rounded-full bg-primary" />
+                            <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
                               <span>Action: {log.action}</span>
                               <span>•</span>
-                              <span>{new Date(log.timestamp).toLocaleDateString()}</span>
+                              <span>
+                                {new Date(log.timestamp).toLocaleDateString()}
+                              </span>
                             </div>
-                            <p className="text-foreground/80 text-[11px] leading-relaxed">
+                            <p className="text-[11px] leading-relaxed text-foreground/80">
                               Performed by actor ID {log.actorId.slice(-4)}
                             </p>
                           </div>
@@ -1105,14 +1340,19 @@ export default function ApprovalDetailsSheet({
             </div>
 
             {/* Status Change Dialog with Comment */}
-            <AlertDialog open={statusToChange !== null} onOpenChange={(open) => !open && setStatusToChange(null)}>
+            <AlertDialog
+              open={statusToChange !== null}
+              onOpenChange={(open) => !open && setStatusToChange(null)}
+            >
               <AlertDialogContent className="sm:max-w-[400px]">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-sm font-bold flex items-center gap-1.5">
+                  <AlertDialogTitle className="flex items-center gap-1.5 text-sm font-bold">
                     Confirm Transition to {statusToChange}
                   </AlertDialogTitle>
-                  <AlertDialogDescription className="text-xs text-muted-foreground mt-1">
-                    Please provide an additional status transition comment. {statusToChange === "Rework" && "This will automatically generate a task for the creator to rework on the files by EOD."}
+                  <AlertDialogDescription className="mt-1 text-xs text-muted-foreground">
+                    Please provide an additional status transition comment.{" "}
+                    {statusToChange === "Rework" &&
+                      "This will automatically generate a task for the creator to rework on the files by EOD."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-2">
@@ -1120,16 +1360,18 @@ export default function ApprovalDetailsSheet({
                     placeholder="Enter transition comment (optional)..."
                     value={statusComment}
                     onChange={(e) => setStatusComment(e.target.value)}
-                    className="text-xs h-9"
+                    className="h-9 text-xs"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleStatusTransitionSubmit()
                     }}
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="text-xs h-8">Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="h-8 text-xs">
+                    Cancel
+                  </AlertDialogCancel>
                   <AlertDialogAction
-                    className="text-xs h-8"
+                    className="h-8 text-xs"
                     onClick={handleStatusTransitionSubmit}
                     disabled={isStatusChanging}
                   >
@@ -1140,35 +1382,50 @@ export default function ApprovalDetailsSheet({
             </AlertDialog>
 
             {/* Message Delete Alert Dialog */}
-            <AlertDialog open={chatToDelete !== null} onOpenChange={(open) => !open && setChatToDelete(null)}>
+            <AlertDialog
+              open={chatToDelete !== null}
+              onOpenChange={(open) => !open && setChatToDelete(null)}
+            >
               <AlertDialogContent className="sm:max-w-[400px]">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-sm font-bold flex items-center gap-2 text-destructive">
+                  <AlertDialogTitle className="flex items-center gap-2 text-sm font-bold text-destructive">
                     Delete Chat Message?
                   </AlertDialogTitle>
                   <AlertDialogDescription className="text-xs text-muted-foreground">
-                    This action is permanent. Do you want to delete this message?
+                    This action is permanent. Do you want to delete this
+                    message?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                {chatToDelete?.attachmentIds && chatToDelete.attachmentIds.length > 0 && (
-                  <div className="flex items-center gap-2 py-2 border rounded-lg p-2.5 bg-muted/10 my-1">
-                    <input
-                      type="checkbox"
-                      id="delete-attachments-chk"
-                      checked={deleteAttachmentWithMsg}
-                      onChange={(e) => setDeleteAttachmentWithMsg(e.target.checked)}
-                      className="cursor-pointer rounded border-border"
-                    />
-                    <label htmlFor="delete-attachments-chk" className="text-[11px] font-semibold text-foreground/80 cursor-pointer select-none">
-                      Also delete all file attachments loaded in this message.
-                    </label>
-                  </div>
-                )}
+                {chatToDelete?.attachmentIds &&
+                  chatToDelete.attachmentIds.length > 0 && (
+                    <div className="my-1 flex items-center gap-2 rounded-lg border bg-muted/10 p-2.5 py-2">
+                      <input
+                        type="checkbox"
+                        id="delete-attachments-chk"
+                        checked={deleteAttachmentWithMsg}
+                        onChange={(e) =>
+                          setDeleteAttachmentWithMsg(e.target.checked)
+                        }
+                        className="cursor-pointer rounded border-border"
+                      />
+                      <label
+                        htmlFor="delete-attachments-chk"
+                        className="cursor-pointer text-[11px] font-semibold text-foreground/80 select-none"
+                      >
+                        Also delete all file attachments loaded in this message.
+                      </label>
+                    </div>
+                  )}
 
                 <AlertDialogFooter className="mt-2">
-                  <AlertDialogCancel className="text-xs h-8">Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/95" onClick={handleDeleteMessage}>
+                  <AlertDialogCancel className="h-8 text-xs">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="text-destructive-foreground h-8 bg-destructive text-xs hover:bg-destructive/95"
+                    onClick={handleDeleteMessage}
+                  >
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -1186,7 +1443,7 @@ function ApprovalCompletionForm({
   formId,
   formResponseId,
   organizationId,
-  isApproverOrCreator
+  isApproverOrCreator,
 }: {
   approvalId: any
   formId: any
@@ -1222,7 +1479,7 @@ function ApprovalCompletionForm({
 
   if (form === undefined) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground p-3">
+      <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin text-primary" />
         <span>Loading form questions...</span>
       </div>
@@ -1232,32 +1489,40 @@ function ApprovalCompletionForm({
   if (form === null) return null
 
   const handleTextChange = (fieldId: string, val: string) => {
-    setAnswers(prev => ({ ...prev, [fieldId]: val }))
+    setAnswers((prev) => ({ ...prev, [fieldId]: val }))
   }
 
-  const handleCheckboxChange = (fieldId: string, option: string, checked: boolean) => {
+  const handleCheckboxChange = (
+    fieldId: string,
+    option: string,
+    checked: boolean
+  ) => {
     const current = answers[fieldId] || []
-    const updated = checked 
-      ? [...current, option] 
+    const updated = checked
+      ? [...current, option]
       : current.filter((o: string) => o !== option)
-    setAnswers(prev => ({ ...prev, [fieldId]: updated }))
+    setAnswers((prev) => ({ ...prev, [fieldId]: updated }))
   }
 
-  const handleFileUpload = (fieldId: string, type: "file" | "image", file: File | null) => {
+  const handleFileUpload = (
+    fieldId: string,
+    type: "file" | "image",
+    file: File | null
+  ) => {
     if (!file) {
-      setAnswers(prev => ({ ...prev, [fieldId]: "" }))
+      setAnswers((prev) => ({ ...prev, [fieldId]: "" }))
       return
     }
-    
+
     if (type === "image") {
-      setAnswers(prev => ({ 
-        ...prev, 
-        [fieldId]: `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`
+      setAnswers((prev) => ({
+        ...prev,
+        [fieldId]: `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`,
       }))
     } else {
-      setAnswers(prev => ({ 
-        ...prev, 
-        [fieldId]: `https://ground-control.mock/attachments/${Date.now()}-${file.name}` 
+      setAnswers((prev) => ({
+        ...prev,
+        [fieldId]: `https://ground-control.mock/attachments/${Date.now()}-${file.name}`,
       }))
     }
     toast.success(`${file.name} uploaded successfully (mock)`)
@@ -1282,16 +1547,18 @@ function ApprovalCompletionForm({
 
     setIsSubmitting(true)
     try {
-      const payloadAnswers = Object.entries(answers).map(([fieldId, value]) => ({
-        fieldId,
-        value
-      }))
+      const payloadAnswers = Object.entries(answers).map(
+        ([fieldId, value]) => ({
+          fieldId,
+          value,
+        })
+      )
 
       await submitFormResponse({
         formId: form._id,
         answers: payloadAnswers,
         approvalId,
-        organizationId
+        organizationId,
       })
 
       toast.success("Required form submitted successfully!")
@@ -1304,14 +1571,17 @@ function ApprovalCompletionForm({
 
   if (formResponseId) {
     return (
-      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
+      <div className="space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
         <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2 select-none">
-          <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
             <span>Completion Form Submitted</span>
           </div>
           {response && (
-            <Badge variant="outline" className="text-[9px] font-semibold text-emerald-600 bg-emerald-500/5 border-emerald-500/15">
+            <Badge
+              variant="outline"
+              className="border-emerald-500/15 bg-emerald-500/5 text-[9px] font-semibold text-emerald-600"
+            >
               Verified Response
             </Badge>
           )}
@@ -1325,16 +1595,31 @@ function ApprovalCompletionForm({
 
               return (
                 <div key={f.id} className="flex flex-col gap-0.5">
-                  <span className="font-semibold text-foreground/80">{f.label}</span>
-                  <div className="text-muted-foreground pl-2 border-l border-border/80 text-[11px] py-0.5 leading-relaxed font-medium">
+                  <span className="font-semibold text-foreground/80">
+                    {f.label}
+                  </span>
+                  <div className="border-l border-border/80 py-0.5 pl-2 text-[11px] leading-relaxed font-medium text-muted-foreground">
                     {val === undefined || val === "" ? (
-                      <span className="italic text-muted-foreground/50 text-[10px]">No answer provided</span>
+                      <span className="text-[10px] text-muted-foreground/50 italic">
+                        No answer provided
+                      </span>
                     ) : Array.isArray(val) ? (
                       val.join(", ")
                     ) : f.type === "file" || f.type === "image" ? (
-                      <a href={val} target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold flex items-center gap-1">
-                        {f.type === "image" ? <ImageIcon className="h-3 w-3" /> : <FileIcon className="h-3 w-3" />}
-                        <span className="truncate max-w-[180px]">{val.split("/").pop() || "Attachment Link"}</span>
+                      <a
+                        href={val}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 font-semibold text-primary hover:underline"
+                      >
+                        {f.type === "image" ? (
+                          <ImageIcon className="h-3 w-3" />
+                        ) : (
+                          <FileIcon className="h-3 w-3" />
+                        )}
+                        <span className="max-w-[180px] truncate">
+                          {val.split("/").pop() || "Attachment Link"}
+                        </span>
                       </a>
                     ) : (
                       String(val)
@@ -1343,26 +1628,33 @@ function ApprovalCompletionForm({
                 </div>
               )
             })}
-            <div className="pt-2 border-t border-emerald-500/10 flex items-center justify-between text-[10px] text-muted-foreground/75 font-semibold">
-              <span>Submitted by: {activeOrg?.members?.find((m: any) => m.userId === response.submitterId)?.user?.name || "Member"}</span>
+            <div className="flex items-center justify-between border-t border-emerald-500/10 pt-2 text-[10px] font-semibold text-muted-foreground/75">
+              <span>
+                Submitted by:{" "}
+                {activeOrg?.members?.find(
+                  (m: any) => m.userId === response.submitterId
+                )?.user?.name || "Member"}
+              </span>
               <span>{new Date(response.submittedAt).toLocaleDateString()}</span>
             </div>
           </div>
         ) : (
-          <p className="text-[10px] text-muted-foreground italic">Loading submitted responses...</p>
+          <p className="text-[10px] text-muted-foreground italic">
+            Loading submitted responses...
+          </p>
         )}
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4 space-y-4 shadow-2xs">
+    <div className="space-y-4 rounded-xl border border-border/70 bg-card p-4 shadow-2xs">
       <div className="border-b border-border/40 pb-2">
-        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 animate-pulse">
+        <h4 className="flex animate-pulse items-center gap-1.5 text-xs font-bold text-foreground">
           <FileText className="h-4 w-4 text-primary" />
           <span>Required Completion Form: {form.title}</span>
         </h4>
-        <p className="text-[10px] text-muted-foreground mt-0.5">
+        <p className="mt-0.5 text-[10px] text-muted-foreground">
           You must fill out this form to complete this approval request.
         </p>
       </div>
@@ -1373,9 +1665,11 @@ function ApprovalCompletionForm({
 
           return (
             <div key={f.id} className="flex flex-col gap-1.5 text-xs">
-              <label className="font-semibold text-foreground/80 flex items-center gap-1">
+              <label className="flex items-center gap-1 font-semibold text-foreground/80">
                 <span>{f.label}</span>
-                {f.required && <span className="text-red-500 font-bold">*</span>}
+                {f.required && (
+                  <span className="font-bold text-red-500">*</span>
+                )}
               </label>
 
               {/* Text Field */}
@@ -1386,7 +1680,7 @@ function ApprovalCompletionForm({
                   onChange={(e) => handleTextChange(f.id, e.target.value)}
                   required={f.required}
                   disabled={isSubmitting || !isApproverOrCreator}
-                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                  className="h-8.5 border-input/60 bg-muted/5 text-xs"
                 />
               )}
 
@@ -1399,7 +1693,7 @@ function ApprovalCompletionForm({
                   required={f.required}
                   disabled={isSubmitting || !isApproverOrCreator}
                   rows={3}
-                  className="flex w-full rounded-md border border-input/60 bg-muted/5 px-3 py-1.5 text-xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full rounded-md border border-input/60 bg-muted/5 px-3 py-1.5 text-xs transition-colors placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                 />
               )}
 
@@ -1407,7 +1701,10 @@ function ApprovalCompletionForm({
               {f.type === "radio" && (
                 <div className="flex flex-col gap-1.5 pl-1.5">
                   {f.options?.map((opt: string, oIdx: number) => (
-                    <label key={oIdx} className="flex items-center gap-2 font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                    <label
+                      key={oIdx}
+                      className="flex cursor-pointer items-center gap-2 font-medium text-muted-foreground select-none hover:text-foreground"
+                    >
                       <input
                         type="radio"
                         name={f.id}
@@ -1415,7 +1712,7 @@ function ApprovalCompletionForm({
                         onChange={() => handleTextChange(f.id, opt)}
                         required={f.required && !val}
                         disabled={isSubmitting || !isApproverOrCreator}
-                        className="size-3 border-input accent-primary cursor-pointer"
+                        className="size-3 cursor-pointer border-input accent-primary"
                       />
                       <span>{opt}</span>
                     </label>
@@ -1429,13 +1726,18 @@ function ApprovalCompletionForm({
                   {f.options?.map((opt: string, oIdx: number) => {
                     const isChecked = (val || []).includes(opt)
                     return (
-                      <label key={oIdx} className="flex items-center gap-2 font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                      <label
+                        key={oIdx}
+                        className="flex cursor-pointer items-center gap-2 font-medium text-muted-foreground select-none hover:text-foreground"
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={(e) => handleCheckboxChange(f.id, opt, e.target.checked)}
+                          onChange={(e) =>
+                            handleCheckboxChange(f.id, opt, e.target.checked)
+                          }
                           disabled={isSubmitting || !isApproverOrCreator}
-                          className="size-3 rounded-sm border-input accent-primary cursor-pointer"
+                          className="size-3 cursor-pointer rounded-sm border-input accent-primary"
                         />
                         <span>{opt}</span>
                       </label>
@@ -1450,12 +1752,14 @@ function ApprovalCompletionForm({
                   value={val || ""}
                   onValueChange={(value) => handleTextChange(f.id, value)}
                 >
-                  <SelectTrigger className="h-8.5 w-full text-xs font-semibold bg-background border-border/60">
+                  <SelectTrigger className="h-8.5 w-full border-border/60 bg-background text-xs font-semibold">
                     <SelectValue placeholder="Select option..." />
                   </SelectTrigger>
-                  <SelectContent className="text-xs bg-popover z-50">
+                  <SelectContent className="z-50 bg-popover text-xs">
                     {f.options?.map((opt: string, oIdx: number) => (
-                      <SelectItem key={oIdx} value={opt}>{opt}</SelectItem>
+                      <SelectItem key={oIdx} value={opt}>
+                        {opt}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1469,7 +1773,7 @@ function ApprovalCompletionForm({
                   onChange={(e) => handleTextChange(f.id, e.target.value)}
                   required={f.required}
                   disabled={isSubmitting || !isApproverOrCreator}
-                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                  className="h-8.5 border-input/60 bg-muted/5 text-xs"
                 />
               )}
 
@@ -1482,7 +1786,7 @@ function ApprovalCompletionForm({
                   onChange={(e) => handleTextChange(f.id, e.target.value)}
                   required={f.required}
                   disabled={isSubmitting || !isApproverOrCreator}
-                  className="h-8.5 text-xs bg-muted/5 border-input/60"
+                  className="h-8.5 border-input/60 bg-muted/5 text-xs"
                 />
               )}
 
@@ -1491,13 +1795,19 @@ function ApprovalCompletionForm({
                 <div className="flex flex-col gap-1.5">
                   <Input
                     type="file"
-                    onChange={(e) => handleFileUpload(f.id, "file", e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileUpload(
+                        f.id,
+                        "file",
+                        e.target.files?.[0] || null
+                      )
+                    }
                     required={f.required && !val}
                     disabled={isSubmitting || !isApproverOrCreator}
-                    className="text-xs h-8.5 bg-background border-input/60 cursor-pointer"
+                    className="h-8.5 cursor-pointer border-input/60 bg-background text-xs"
                   />
                   {val && (
-                    <div className="flex items-center gap-1 text-[10px] text-primary font-semibold">
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-primary">
                       <FileIcon className="h-3 w-3" />
                       <span>Uploaded File Mock</span>
                     </div>
@@ -1511,21 +1821,27 @@ function ApprovalCompletionForm({
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleFileUpload(f.id, "image", e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileUpload(
+                        f.id,
+                        "image",
+                        e.target.files?.[0] || null
+                      )
+                    }
                     required={f.required && !val}
                     disabled={isSubmitting || !isApproverOrCreator}
-                    className="text-xs h-8.5 bg-background border-input/60 cursor-pointer"
+                    className="h-8.5 cursor-pointer border-input/60 bg-background text-xs"
                   />
                   {val && (
-                    <div className="mt-1 flex flex-col gap-1 items-start">
-                      <div className="flex items-center gap-1 text-[10px] text-primary font-semibold mb-1">
+                    <div className="mt-1 flex flex-col items-start gap-1">
+                      <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-primary">
                         <ImageIcon className="h-3 w-3" />
                         <span>Image uploaded</span>
                       </div>
-                      <img 
-                        src={val} 
-                        alt="Uploaded mockup" 
-                        className="h-16 w-16 object-cover rounded-lg border border-border"
+                      <img
+                        src={val}
+                        alt="Uploaded mockup"
+                        className="h-16 w-16 rounded-lg border border-border object-cover"
                       />
                     </div>
                   )}
@@ -1536,10 +1852,10 @@ function ApprovalCompletionForm({
         })}
 
         {isApproverOrCreator ? (
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSubmitting}
-            className="h-8.5 text-xs font-bold w-full rounded-xl flex items-center justify-center gap-1 shadow-xs hover:shadow-sm cursor-pointer"
+            className="flex h-8.5 w-full cursor-pointer items-center justify-center gap-1 rounded-xl text-xs font-bold shadow-xs hover:shadow-sm"
           >
             {isSubmitting ? (
               <>
@@ -1551,7 +1867,7 @@ function ApprovalCompletionForm({
             )}
           </Button>
         ) : (
-          <div className="text-[10px] text-muted-foreground/75 font-semibold bg-muted/20 border border-border/40 p-2.5 rounded-lg text-center select-none">
+          <div className="rounded-lg border border-border/40 bg-muted/20 p-2.5 text-center text-[10px] font-semibold text-muted-foreground/75 select-none">
             Only approvers or the creator can submit this completion form.
           </div>
         )}
@@ -1559,4 +1875,3 @@ function ApprovalCompletionForm({
     </div>
   )
 }
-

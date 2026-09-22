@@ -45,7 +45,9 @@ export const getAttachments = query({
     const isSubscriber = approval.subscriberIds?.includes(user._id) || false
 
     if (!isAdminOrOwner && !isCreator && !isApprover && !isSubscriber) {
-      throw new Error("Permission denied to read attachments for this approval request")
+      throw new Error(
+        "Permission denied to read attachments for this approval request"
+      )
     }
 
     return await ctx.db
@@ -67,9 +69,10 @@ export const registerAttachment = mutation({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
     const approval = await ctx.db.get(args.approvalId)
-    
+
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot add attachment to archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot add attachment to archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -78,7 +81,9 @@ export const registerAttachment = mutation({
     const isSubscriber = approval.subscriberIds?.includes(user._id) || false
 
     if (!isAdminOrOwner && !isCreator && !isApprover && !isSubscriber) {
-      throw new Error("Permission denied to register attachment on this approval request")
+      throw new Error(
+        "Permission denied to register attachment on this approval request"
+      )
     }
 
     const attachmentId = await ctx.db.insert("approvalAttachments", {
@@ -126,7 +131,8 @@ export const deleteAttachment = mutation({
 
     const approval = await ctx.db.get(attachment.approvalId)
     if (!approval) throw new Error("Approval request not found")
-    if (approval.isArchived) throw new Error("Cannot delete attachment from archived approval request")
+    if (approval.isArchived)
+      throw new Error("Cannot delete attachment from archived approval request")
 
     const member = await requireMember(ctx, user._id, approval.organizationId)
     const isAdminOrOwner = member.role === "admin" || member.role === "owner"
@@ -143,7 +149,10 @@ export const deleteAttachment = mutation({
       approvalId: attachment.approvalId,
       actorId: user._id,
       action: "ATTACHMENT_DELETED",
-      details: { fileName: attachment.fileName, attachmentId: args.attachmentId },
+      details: {
+        fileName: attachment.fileName,
+        attachmentId: args.attachmentId,
+      },
       timestamp: Date.now(),
     })
 

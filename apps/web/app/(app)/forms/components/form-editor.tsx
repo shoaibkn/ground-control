@@ -20,17 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
-import { 
-  Plus, 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown, 
-  Save, 
-  FileText, 
-  Settings, 
-  ClipboardList, 
-  Check, 
-  X, 
+import {
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Save,
+  FileText,
+  Settings,
+  ClipboardList,
+  Check,
+  X,
   Loader2,
   Calendar,
   Layers,
@@ -38,7 +38,7 @@ import {
   Eye,
   FileIcon,
   ImageIcon,
-  Copy
+  Copy,
 } from "lucide-react"
 
 interface FormEditorProps {
@@ -57,22 +57,32 @@ interface FormField {
 export function FormEditor({ formId }: FormEditorProps) {
   const router = useRouter()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  
+
   // Tabs: "build" | "responses" | "settings"
-  const [activeTab, setActiveTab] = useState<"build" | "responses" | "settings">("build")
-  
+  const [activeTab, setActiveTab] = useState<
+    "build" | "responses" | "settings"
+  >("build")
+
   // Editor States
   const [title, setTitle] = useState("Untitled Form")
   const [description, setDescription] = useState("")
   const [isStandalone, setIsStandalone] = useState(true)
   const [fields, setFields] = useState<FormField[]>([
-    { id: "field_1", type: "text", label: "Untitled Question", required: false }
+    {
+      id: "field_1",
+      type: "text",
+      label: "Untitled Question",
+      required: false,
+    },
   ])
 
   // Queries & Mutations
   const form = useQuery(api.forms.getForm, formId ? { formId } : "skip")
-  const responses = useQuery(api.forms.getFormResponses, formId ? { formId } : "skip")
-  
+  const responses = useQuery(
+    api.forms.getFormResponses,
+    formId ? { formId } : "skip"
+  )
+
   const createForm = useMutation(api.forms.createForm)
   const updateForm = useMutation(api.forms.updateForm)
 
@@ -92,7 +102,12 @@ export function FormEditor({ formId }: FormEditorProps) {
     const newField: FormField = {
       id: newId,
       type,
-      label: type === "text" ? "Single Line Question" : type === "textarea" ? "Long Answer Question" : "Untitled Question",
+      label:
+        type === "text"
+          ? "Single Line Question"
+          : type === "textarea"
+            ? "Long Answer Question"
+            : "Untitled Question",
       required: false,
     }
     if (["radio", "checkbox", "select"].includes(type)) {
@@ -103,17 +118,23 @@ export function FormEditor({ formId }: FormEditorProps) {
 
   // Update field helper
   const updateField = (id: string, key: keyof FormField, value: any) => {
-    setFields(fields.map(f => {
-      if (f.id === id) {
-        const updated = { ...f, [key]: value }
-        // Ensure options list exists if changing to options type
-        if (key === "type" && ["radio", "checkbox", "select"].includes(value) && !f.options) {
-          updated.options = ["Option 1", "Option 2"]
+    setFields(
+      fields.map((f) => {
+        if (f.id === id) {
+          const updated = { ...f, [key]: value }
+          // Ensure options list exists if changing to options type
+          if (
+            key === "type" &&
+            ["radio", "checkbox", "select"].includes(value) &&
+            !f.options
+          ) {
+            updated.options = ["Option 1", "Option 2"]
+          }
+          return updated
         }
-        return updated
-      }
-      return f
-    }))
+        return f
+      })
+    )
   }
 
   // Remove field helper
@@ -122,7 +143,7 @@ export function FormEditor({ formId }: FormEditorProps) {
       toast.warning("Forms must contain at least one question.")
       return
     }
-    setFields(fields.filter(f => f.id !== id))
+    setFields(fields.filter((f) => f.id !== id))
   }
 
   // Move field order helper
@@ -140,44 +161,55 @@ export function FormEditor({ formId }: FormEditorProps) {
 
   // Add field option helper
   const addOption = (fieldId: string) => {
-    setFields(fields.map(f => {
-      if (f.id === fieldId) {
-        return {
-          ...f,
-          options: [...(f.options || []), `Option ${(f.options?.length || 0) + 1}`]
+    setFields(
+      fields.map((f) => {
+        if (f.id === fieldId) {
+          return {
+            ...f,
+            options: [
+              ...(f.options || []),
+              `Option ${(f.options?.length || 0) + 1}`,
+            ],
+          }
         }
-      }
-      return f
-    }))
+        return f
+      })
+    )
   }
 
   // Update field option helper
   const updateOption = (fieldId: string, optIndex: number, val: string) => {
-    setFields(fields.map(f => {
-      if (f.id === fieldId && f.options) {
-        const newOpts = [...f.options]
-        newOpts[optIndex] = val
-        return { ...f, options: newOpts }
-      }
-      return f
-    }))
+    setFields(
+      fields.map((f) => {
+        if (f.id === fieldId && f.options) {
+          const newOpts = [...f.options]
+          newOpts[optIndex] = val
+          return { ...f, options: newOpts }
+        }
+        return f
+      })
+    )
   }
 
   // Remove field option helper
   const removeOption = (fieldId: string, optIndex: number) => {
-    setFields(fields.map(f => {
-      if (f.id === fieldId && f.options) {
-        if (f.options.length <= 1) {
-          toast.warning("Select type questions must have at least one option.")
-          return f
+    setFields(
+      fields.map((f) => {
+        if (f.id === fieldId && f.options) {
+          if (f.options.length <= 1) {
+            toast.warning(
+              "Select type questions must have at least one option."
+            )
+            return f
+          }
+          return {
+            ...f,
+            options: f.options.filter((_, idx) => idx !== optIndex),
+          }
         }
-        return {
-          ...f,
-          options: f.options.filter((_, idx) => idx !== optIndex)
-        }
-      }
-      return f
-    }))
+        return f
+      })
+    )
   }
 
   // Submit/Save Form builder definition
@@ -194,7 +226,7 @@ export function FormEditor({ formId }: FormEditorProps) {
           title,
           description,
           fields,
-          isStandalone
+          isStandalone,
         })
         toast.success("Form updated successfully")
       } else {
@@ -207,7 +239,7 @@ export function FormEditor({ formId }: FormEditorProps) {
           description,
           fields,
           isStandalone,
-          organizationId: activeOrg.id
+          organizationId: activeOrg.id,
         })
         toast.success("Form created successfully")
         router.push(`/forms/${newFormId}/edit`)
@@ -221,15 +253,15 @@ export function FormEditor({ formId }: FormEditorProps) {
   const activeResponse = responses?.find((r: any) => r._id === activeResponseId)
 
   return (
-    <div className="flex flex-col gap-6 h-full pb-10">
+    <div className="flex h-full flex-col gap-6 pb-10">
       {/* Header bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 bg-card border border-border/40 p-5 rounded-2xl shadow-xs">
+      <div className="flex shrink-0 flex-col justify-between gap-4 rounded-2xl border border-border/40 bg-card p-5 shadow-xs md:flex-row md:items-center">
         <div className="flex items-center gap-2">
-          <div className="p-2.5 bg-primary/10 text-primary rounded-xl shrink-0">
+          <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary">
             <ClipboardList className="h-5.5 w-5.5" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-base font-bold text-foreground line-clamp-1">
+            <h1 className="line-clamp-1 text-base font-bold text-foreground">
               {formId ? `Edit Form: ${title}` : "Create New Custom Form"}
             </h1>
             <p className="text-[10px] text-muted-foreground">
@@ -240,11 +272,11 @@ export function FormEditor({ formId }: FormEditorProps) {
 
         <div className="flex flex-wrap items-center gap-2.5">
           {formId && (
-            <Button 
-              asChild 
-              size="sm" 
-              variant="outline" 
-              className="h-9 text-xs font-semibold px-3 rounded-xl flex items-center gap-1.5"
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
             >
               <Link href={`/shared-forms/${formId}`} target="_blank">
                 <Eye className="h-4 w-4 text-muted-foreground" />
@@ -252,19 +284,19 @@ export function FormEditor({ formId }: FormEditorProps) {
               </Link>
             </Button>
           )}
-          <Button 
-            size="sm" 
-            onClick={handleSave} 
-            className="h-9 text-xs font-semibold px-4 rounded-xl flex items-center gap-1.5 shadow-xs shrink-0"
+          <Button
+            size="sm"
+            onClick={handleSave}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-4 text-xs font-semibold shadow-xs"
           >
             <Save className="h-4 w-4" />
             <span>Save Form</span>
           </Button>
-          <Button 
+          <Button
             variant="outline"
-            size="sm" 
-            onClick={() => router.push("/forms")} 
-            className="h-9 text-xs font-semibold px-3 rounded-xl shrink-0"
+            size="sm"
+            onClick={() => router.push("/forms")}
+            className="h-9 shrink-0 rounded-xl px-3 text-xs font-semibold"
           >
             Cancel
           </Button>
@@ -273,10 +305,14 @@ export function FormEditor({ formId }: FormEditorProps) {
 
       {/* Tabs list (if formId exists) */}
       {formId && (
-        <div className="flex items-center gap-2 border-b border-border/40 pb-px shrink-0">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border/40 pb-px">
           {[
             { id: "build", label: "Form Builder", icon: ClipboardList },
-            { id: "responses", label: `Responses (${responses === undefined ? "..." : responses.length})`, icon: FileText },
+            {
+              id: "responses",
+              label: `Responses (${responses === undefined ? "..." : responses.length})`,
+              icon: FileText,
+            },
             { id: "settings", label: "Form Settings", icon: Settings },
           ].map((tab) => {
             const isActive = activeTab === tab.id
@@ -285,9 +321,9 @@ export function FormEditor({ formId }: FormEditorProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-                  isActive 
-                    ? "border-primary text-primary" 
+                className={`flex cursor-pointer items-center gap-2 border-b-2 px-4 py-2 text-xs font-semibold transition-all ${
+                  isActive
+                    ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -302,51 +338,55 @@ export function FormEditor({ formId }: FormEditorProps) {
       {/* Tab Contents */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === "build" ? (
-          <div className="flex flex-col lg:flex-row gap-6 items-start pb-8">
+          <div className="flex flex-col items-start gap-6 pb-8 lg:flex-row">
             {/* Field Editor Block */}
-            <div className="flex-1 flex flex-col gap-4 w-full">
+            <div className="flex w-full flex-1 flex-col gap-4">
               {/* Form Title Card */}
-              <div className="bg-card border border-border/50 rounded-2xl p-6 flex flex-col gap-3 shadow-xs bg-linear-to-b from-card to-muted/5 border-l-4 border-l-primary">
+              <div className="flex flex-col gap-3 rounded-2xl border border-l-4 border-border/50 border-l-primary bg-card bg-linear-to-b from-card to-muted/5 p-6 shadow-xs">
                 <input
                   type="text"
                   placeholder="Form Title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="bg-transparent text-lg font-bold border-b border-transparent hover:border-border focus:border-primary outline-none py-1 transition-colors text-foreground w-full"
+                  className="w-full border-b border-transparent bg-transparent py-1 text-lg font-bold text-foreground transition-colors outline-none hover:border-border focus:border-primary"
                 />
                 <textarea
                   placeholder="Form Description (optional)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="bg-transparent text-xs text-muted-foreground border-b border-transparent hover:border-border focus:border-primary outline-none py-1 resize-none h-14 transition-colors w-full"
+                  className="h-14 w-full resize-none border-b border-transparent bg-transparent py-1 text-xs text-muted-foreground transition-colors outline-none hover:border-border focus:border-primary"
                 />
               </div>
 
               {/* Questions list */}
               {fields.map((field, idx) => (
-                <div 
-                  key={field.id} 
-                  className="bg-card border border-border/40 rounded-2xl p-5 shadow-xs flex flex-col gap-4 hover:border-border/80 transition-colors"
+                <div
+                  key={field.id}
+                  className="flex flex-col gap-4 rounded-2xl border border-border/40 bg-card p-5 shadow-xs transition-colors hover:border-border/80"
                 >
                   <div className="flex items-start justify-between gap-3">
                     {/* Index + Question label */}
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-xs font-bold text-muted-foreground/60 select-none bg-muted/65 h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+                    <div className="flex flex-1 items-center gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/65 text-xs font-bold text-muted-foreground/60 select-none">
                         {idx + 1}
                       </span>
                       <input
                         type="text"
                         value={field.label}
                         placeholder="Question label..."
-                        onChange={(e) => updateField(field.id, "label", e.target.value)}
-                        className="bg-transparent text-xs font-semibold border-b border-transparent hover:border-border focus:border-primary outline-none py-0.5 transition-colors text-foreground flex-1"
+                        onChange={(e) =>
+                          updateField(field.id, "label", e.target.value)
+                        }
+                        className="flex-1 border-b border-transparent bg-transparent py-0.5 text-xs font-semibold text-foreground transition-colors outline-none hover:border-border focus:border-primary"
                       />
                     </div>
 
                     {/* Field type dropdown selector */}
                     <Select
                       value={field.type}
-                      onValueChange={(val) => updateField(field.id, "type", val)}
+                      onValueChange={(val) =>
+                        updateField(field.id, "type", val)
+                      }
                     >
                       <SelectTrigger className="h-8 w-[160px] text-xs font-semibold">
                         <SelectValue />
@@ -354,9 +394,15 @@ export function FormEditor({ formId }: FormEditorProps) {
                       <SelectContent className="text-xs">
                         <SelectItem value="text">Single Line Text</SelectItem>
                         <SelectItem value="textarea">Paragraph Text</SelectItem>
-                        <SelectItem value="radio">Multiple Choice (Radio)</SelectItem>
-                        <SelectItem value="checkbox">Checkboxes (Multi-select)</SelectItem>
-                        <SelectItem value="select">Dropdown (Select List)</SelectItem>
+                        <SelectItem value="radio">
+                          Multiple Choice (Radio)
+                        </SelectItem>
+                        <SelectItem value="checkbox">
+                          Checkboxes (Multi-select)
+                        </SelectItem>
+                        <SelectItem value="select">
+                          Dropdown (Select List)
+                        </SelectItem>
                         <SelectItem value="date">Date picker</SelectItem>
                         <SelectItem value="number">Number input</SelectItem>
                         <SelectItem value="file">File attachment</SelectItem>
@@ -370,29 +416,39 @@ export function FormEditor({ formId }: FormEditorProps) {
                     <Input
                       placeholder="User placeholder text..."
                       value={field.placeholder || ""}
-                      onChange={(e) => updateField(field.id, "placeholder", e.target.value)}
-                      className="h-8 text-xs bg-muted/10 border-input/60 max-w-sm"
+                      onChange={(e) =>
+                        updateField(field.id, "placeholder", e.target.value)
+                      }
+                      className="h-8 max-w-sm border-input/60 bg-muted/10 text-xs"
                     />
                   )}
 
                   {/* Options builder for lists */}
                   {["radio", "checkbox", "select"].includes(field.type) && (
                     <div className="flex flex-col gap-2 border-l-2 border-border/50 pl-3">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5 select-none">Options:</span>
+                      <span className="mb-0.5 text-[10px] font-bold tracking-wider text-muted-foreground uppercase select-none">
+                        Options:
+                      </span>
                       {field.options?.map((opt, optIdx) => (
                         <div key={optIdx} className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-muted-foreground/60 w-3.5 select-none">
-                            {field.type === "radio" ? "○" : field.type === "checkbox" ? "□" : "•"}
+                          <span className="w-3.5 text-xs font-bold text-muted-foreground/60 select-none">
+                            {field.type === "radio"
+                              ? "○"
+                              : field.type === "checkbox"
+                                ? "□"
+                                : "•"}
                           </span>
                           <input
                             type="text"
                             value={opt}
-                            onChange={(e) => updateOption(field.id, optIdx, e.target.value)}
-                            className="bg-transparent text-xs border-b border-border/40 hover:border-border focus:border-primary outline-none py-0.5 transition-colors text-foreground w-48 font-medium"
+                            onChange={(e) =>
+                              updateOption(field.id, optIdx, e.target.value)
+                            }
+                            className="w-48 border-b border-border/40 bg-transparent py-0.5 text-xs font-medium text-foreground transition-colors outline-none hover:border-border focus:border-primary"
                           />
                           <button
                             onClick={() => removeOption(field.id, optIdx)}
-                            className="text-muted-foreground hover:text-red-500 rounded p-0.5 hover:bg-muted cursor-pointer transition-colors"
+                            className="cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
                             title="Delete option"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -403,7 +459,7 @@ export function FormEditor({ formId }: FormEditorProps) {
                         size="sm"
                         variant="outline"
                         onClick={() => addOption(field.id)}
-                        className="h-6 w-28 text-[9px] font-semibold rounded-full mt-1 cursor-pointer flex items-center justify-center gap-1"
+                        className="mt-1 flex h-6 w-28 cursor-pointer items-center justify-center gap-1 rounded-full text-[9px] font-semibold"
                       >
                         <Plus className="h-3 w-3" />
                         <span>Add Option</span>
@@ -412,18 +468,20 @@ export function FormEditor({ formId }: FormEditorProps) {
                   )}
 
                   {/* Field Control footer */}
-                  <div className="flex items-center justify-between border-t border-border/30 pt-3 mt-1.5">
+                  <div className="mt-1.5 flex items-center justify-between border-t border-border/30 pt-3">
                     {/* Required flag toggle */}
                     <div className="flex items-center gap-1.5">
                       <Switch
                         id={`req-${field.id}`}
                         checked={field.required}
-                        onCheckedChange={(checked) => updateField(field.id, "required", checked)}
+                        onCheckedChange={(checked) =>
+                          updateField(field.id, "required", checked)
+                        }
                         className="scale-85"
                       />
-                      <Label 
-                        htmlFor={`req-${field.id}`} 
-                        className="text-[10px] font-semibold text-muted-foreground select-none cursor-pointer"
+                      <Label
+                        htmlFor={`req-${field.id}`}
+                        className="cursor-pointer text-[10px] font-semibold text-muted-foreground select-none"
                       >
                         Required Question
                       </Label>
@@ -436,7 +494,7 @@ export function FormEditor({ formId }: FormEditorProps) {
                         size="sm"
                         onClick={() => moveField(idx, "up")}
                         disabled={idx === 0}
-                        className="h-7 w-7 rounded-full p-0 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                        className="h-7 w-7 cursor-pointer rounded-full p-0 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
                       </Button>
@@ -445,7 +503,7 @@ export function FormEditor({ formId }: FormEditorProps) {
                         size="sm"
                         onClick={() => moveField(idx, "down")}
                         disabled={idx === fields.length - 1}
-                        className="h-7 w-7 rounded-full p-0 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                        className="h-7 w-7 cursor-pointer rounded-full p-0 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
                       </Button>
@@ -453,7 +511,7 @@ export function FormEditor({ formId }: FormEditorProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => removeField(field.id)}
-                        className="h-7 w-7 rounded-full p-0 cursor-pointer text-muted-foreground hover:text-red-500 hover:bg-red-500/5 hover:border-red-500/20"
+                        className="h-7 w-7 cursor-pointer rounded-full p-0 text-muted-foreground hover:border-red-500/20 hover:bg-red-500/5 hover:text-red-500"
                         title="Delete question"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -464,8 +522,10 @@ export function FormEditor({ formId }: FormEditorProps) {
               ))}
 
               {/* Add question bottom actions */}
-              <div className="flex flex-wrap items-center gap-2 border border-dashed border-border/80 rounded-2xl p-4 bg-muted/5 justify-center py-5">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-2 select-none">Add Question Type:</span>
+              <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-muted/5 p-4 py-5">
+                <span className="mr-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase select-none">
+                  Add Question Type:
+                </span>
                 {[
                   { type: "text", label: "Text Field" },
                   { type: "textarea", label: "Paragraph" },
@@ -476,13 +536,13 @@ export function FormEditor({ formId }: FormEditorProps) {
                   { type: "number", label: "Number" },
                   { type: "file", label: "File" },
                   { type: "image", label: "Image" },
-                ].map(item => (
+                ].map((item) => (
                   <Button
                     key={item.type}
                     size="sm"
                     variant="outline"
                     onClick={() => addField(item.type)}
-                    className="h-7.5 text-[10px] font-semibold px-2.5 rounded-full cursor-pointer hover:bg-primary/5 hover:text-primary hover:border-primary/20 flex items-center gap-1"
+                    className="flex h-7.5 cursor-pointer items-center gap-1 rounded-full px-2.5 text-[10px] font-semibold hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
                   >
                     <Plus className="h-3 w-3" />
                     <span>{item.label}</span>
@@ -492,20 +552,28 @@ export function FormEditor({ formId }: FormEditorProps) {
             </div>
 
             {/* Quick Summary sidebar (Right Panel) */}
-            <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 bg-card border border-border/40 p-5 rounded-2xl shadow-xs">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border pb-1 select-none">Form Overview</span>
-              <div className="flex flex-col gap-3.5 mt-1.5 text-xs text-muted-foreground">
+            <div className="flex w-full shrink-0 flex-col gap-4 rounded-2xl border border-border/40 bg-card p-5 shadow-xs lg:w-72">
+              <span className="border-b border-border pb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase select-none">
+                Form Overview
+              </span>
+              <div className="mt-1.5 flex flex-col gap-3.5 text-xs text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Questions Count</span>
-                  <span className="font-semibold text-foreground">{fields.length}</span>
+                  <span className="font-semibold text-foreground">
+                    {fields.length}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Required Fields</span>
-                  <span className="font-semibold text-foreground">{fields.filter(f => f.required).length}</span>
+                  <span className="font-semibold text-foreground">
+                    {fields.filter((f) => f.required).length}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Standalone Sharing</span>
-                  <span className="font-semibold text-foreground">{isStandalone ? "Enabled" : "Disabled"}</span>
+                  <span className="font-semibold text-foreground">
+                    {isStandalone ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -515,34 +583,53 @@ export function FormEditor({ formId }: FormEditorProps) {
             {responses === undefined ? (
               <div className="flex h-32 flex-col items-center justify-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-xs text-muted-foreground">Loading response logs...</p>
+                <p className="text-xs text-muted-foreground">
+                  Loading response logs...
+                </p>
               </div>
             ) : responses.length > 0 ? (
-              <div className="flex flex-col md:flex-row gap-6 items-stretch">
+              <div className="flex flex-col items-stretch gap-6 md:flex-row">
                 {/* Responses list (Left) */}
-                <div className="flex-1 border border-border/50 rounded-2xl bg-card overflow-hidden h-[420px] flex flex-col">
-                  <div className="bg-muted/30 border-b border-border/40 p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider select-none shrink-0">Submissions</div>
-                  <div className="flex-1 overflow-y-auto divide-y divide-border/30">
+                <div className="flex h-[420px] flex-1 flex-col overflow-hidden rounded-2xl border border-border/50 bg-card">
+                  <div className="shrink-0 border-b border-border/40 bg-muted/30 p-3 text-[10px] font-bold tracking-wider text-muted-foreground uppercase select-none">
+                    Submissions
+                  </div>
+                  <div className="flex-1 divide-y divide-border/30 overflow-y-auto">
                     {responses.map((resp: any) => {
-                      const age = new Date(resp.submittedAt).toLocaleDateString(undefined, {
-                        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-                      })
+                      const age = new Date(resp.submittedAt).toLocaleDateString(
+                        undefined,
+                        {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )
                       const isActive = activeResponseId === resp._id
                       return (
-                        <div 
+                        <div
                           key={resp._id}
                           onClick={() => setActiveResponseId(resp._id)}
-                          className={`flex items-center justify-between p-3.5 hover:bg-muted/5 transition-colors cursor-pointer ${
-                            isActive ? "bg-primary/5 hover:bg-primary/5 border-l-2 border-l-primary pl-3" : ""
+                          className={`flex cursor-pointer items-center justify-between p-3.5 transition-colors hover:bg-muted/5 ${
+                            isActive
+                              ? "border-l-2 border-l-primary bg-primary/5 pl-3 hover:bg-primary/5"
+                              : ""
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <UserAvatar userId={resp.submitterId} avatarClassName="h-7 w-7" />
+                            <UserAvatar
+                              userId={resp.submitterId}
+                              avatarClassName="h-7 w-7"
+                            />
                             <div className="flex flex-col">
                               <span className="text-xs font-semibold text-foreground">
-                                {activeOrg?.members?.find((m: any) => m.userId === resp.submitterId)?.user?.name || "Member User"}
+                                {activeOrg?.members?.find(
+                                  (m: any) => m.userId === resp.submitterId
+                                )?.user?.name || "Member User"}
                               </span>
-                              <span className="text-[10px] text-muted-foreground">{age}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {age}
+                              </span>
                             </div>
                           </div>
                           <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
@@ -553,54 +640,90 @@ export function FormEditor({ formId }: FormEditorProps) {
                 </div>
 
                 {/* Response Viewer card (Right) */}
-                <div className="flex-1 border border-border/50 rounded-2xl bg-card p-5 overflow-y-auto h-[420px]">
+                <div className="h-[420px] flex-1 overflow-y-auto rounded-2xl border border-border/50 bg-card p-5">
                   {activeResponse ? (
                     <div className="flex flex-col gap-4">
                       {/* Submitter Info header */}
-                      <div className="border-b border-border pb-3 flex items-center gap-3">
-                        <UserAvatar userId={activeResponse.submitterId} avatarClassName="h-9 w-9" />
+                      <div className="flex items-center gap-3 border-b border-border pb-3">
+                        <UserAvatar
+                          userId={activeResponse.submitterId}
+                          avatarClassName="h-9 w-9"
+                        />
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-foreground">
-                            {activeOrg?.members?.find((m: any) => m.userId === activeResponse.submitterId)?.user?.name || "Member User"}
+                            {activeOrg?.members?.find(
+                              (m: any) =>
+                                m.userId === activeResponse.submitterId
+                            )?.user?.name || "Member User"}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
-                            Submitted on {new Date(activeResponse.submittedAt).toLocaleString()}
+                            Submitted on{" "}
+                            {new Date(
+                              activeResponse.submittedAt
+                            ).toLocaleString()}
                           </span>
                         </div>
                       </div>
 
                       {/* Answers grid */}
-                      <div className="flex flex-col gap-4 mt-2">
+                      <div className="mt-2 flex flex-col gap-4">
                         {fields.map((f) => {
-                          const ans = activeResponse.answers.find((a: any) => a.fieldId === f.id)
+                          const ans = activeResponse.answers.find(
+                            (a: any) => a.fieldId === f.id
+                          )
                           const value = ans ? ans.value : undefined
 
                           return (
-                            <div key={f.id} className="flex flex-col gap-1 text-xs">
-                              <span className="font-semibold text-foreground/80 flex items-center gap-1.5">
+                            <div
+                              key={f.id}
+                              className="flex flex-col gap-1 text-xs"
+                            >
+                              <span className="flex items-center gap-1.5 font-semibold text-foreground/80">
                                 <span>{f.label}</span>
-                                {f.required && <span className="text-red-500 font-bold">*</span>}
+                                {f.required && (
+                                  <span className="font-bold text-red-500">
+                                    *
+                                  </span>
+                                )}
                               </span>
-                              <div className="bg-muted/15 border border-border/30 rounded-lg p-2.5 min-h-[34px] font-medium text-foreground/95 bg-linear-to-b from-card to-muted/5 flex items-center gap-2">
+                              <div className="flex min-h-[34px] items-center gap-2 rounded-lg border border-border/30 bg-muted/15 bg-linear-to-b from-card to-muted/5 p-2.5 font-medium text-foreground/95">
                                 {value === undefined || value === "" ? (
-                                  <span className="text-muted-foreground/50 italic text-[10px]">No answer provided</span>
+                                  <span className="text-[10px] text-muted-foreground/50 italic">
+                                    No answer provided
+                                  </span>
                                 ) : Array.isArray(value) ? (
                                   <div className="flex flex-wrap gap-1.5">
                                     {value.map((v, i) => (
-                                      <Badge key={i} variant="secondary" className="text-[9px] px-2.5 rounded-full font-bold bg-muted/65 text-muted-foreground border-border/30">
+                                      <Badge
+                                        key={i}
+                                        variant="secondary"
+                                        className="rounded-full border-border/30 bg-muted/65 px-2.5 text-[9px] font-bold text-muted-foreground"
+                                      >
                                         {v}
                                       </Badge>
                                     ))}
                                   </div>
                                 ) : f.type === "file" || f.type === "image" ? (
-                                  <div className="flex items-center gap-2 text-primary font-semibold hover:underline">
-                                    {f.type === "image" ? <ImageIcon className="h-4 w-4 shrink-0 text-primary/75" /> : <FileIcon className="h-4 w-4 shrink-0 text-primary/75" />}
-                                    <a href={value} target="_blank" rel="noreferrer" className="truncate max-w-[200px] text-[10.5px]">
-                                      {value.split("/").pop() || "Attachment Link"}
+                                  <div className="flex items-center gap-2 font-semibold text-primary hover:underline">
+                                    {f.type === "image" ? (
+                                      <ImageIcon className="h-4 w-4 shrink-0 text-primary/75" />
+                                    ) : (
+                                      <FileIcon className="h-4 w-4 shrink-0 text-primary/75" />
+                                    )}
+                                    <a
+                                      href={value}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="max-w-[200px] truncate text-[10.5px]"
+                                    >
+                                      {value.split("/").pop() ||
+                                        "Attachment Link"}
                                     </a>
                                   </div>
                                 ) : (
-                                  <span className="whitespace-pre-wrap leading-relaxed text-[11px]">{String(value)}</span>
+                                  <span className="text-[11px] leading-relaxed whitespace-pre-wrap">
+                                    {String(value)}
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -609,20 +732,26 @@ export function FormEditor({ formId }: FormEditorProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground/60 italic text-xs select-none">
-                      <FileText className="h-8 w-8 text-muted-foreground/45 stroke-[1.5]" />
-                      <span>Select a response on the left to view submitted answers.</span>
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-xs text-muted-foreground/60 italic select-none">
+                      <FileText className="h-8 w-8 stroke-[1.5] text-muted-foreground/45" />
+                      <span>
+                        Select a response on the left to view submitted answers.
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center gap-3 py-16 border border-dashed border-border/80 rounded-2xl bg-card/20">
-                <FileText className="h-10 w-10 text-muted-foreground/55 stroke-[1.5]" />
-                <div className="text-center gap-1 flex flex-col">
-                  <p className="text-sm font-semibold text-foreground">No responses yet</p>
-                  <p className="text-xs text-muted-foreground max-w-xs">
-                    This form hasn't received any submissions. Share the standalone link or link it to a task to start collecting data.
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/80 bg-card/20 py-16">
+                <FileText className="h-10 w-10 stroke-[1.5] text-muted-foreground/55" />
+                <div className="flex flex-col gap-1 text-center">
+                  <p className="text-sm font-semibold text-foreground">
+                    No responses yet
+                  </p>
+                  <p className="max-w-xs text-xs text-muted-foreground">
+                    This form hasn't received any submissions. Share the
+                    standalone link or link it to a task to start collecting
+                    data.
                   </p>
                 </div>
               </div>
@@ -630,17 +759,25 @@ export function FormEditor({ formId }: FormEditorProps) {
           </div>
         ) : (
           /* Settings tab */
-          <div className="max-w-xl bg-card border border-border/50 rounded-2xl p-6 shadow-xs flex flex-col gap-6">
+          <div className="flex max-w-xl flex-col gap-6 rounded-2xl border border-border/50 bg-card p-6 shadow-xs">
             <div className="flex flex-col gap-1 border-b border-border pb-3 select-none">
-              <span className="text-sm font-bold text-foreground">Form Share Settings</span>
-              <span className="text-xs text-muted-foreground">Configure visibility and standalone access rules.</span>
+              <span className="text-sm font-bold text-foreground">
+                Form Share Settings
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Configure visibility and standalone access rules.
+              </span>
             </div>
 
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-foreground">Allow Standalone Submissions</span>
-                <span className="text-[10px] text-muted-foreground max-w-md">
-                  Enable this to generate a public standalone URL that allows organization members to fill and submit the form directly. Anonymous submissions are always disabled.
+                <span className="text-xs font-bold text-foreground">
+                  Allow Standalone Submissions
+                </span>
+                <span className="max-w-md text-[10px] text-muted-foreground">
+                  Enable this to generate a public standalone URL that allows
+                  organization members to fill and submit the form directly.
+                  Anonymous submissions are always disabled.
                 </span>
               </div>
               <Switch
@@ -653,22 +790,30 @@ export function FormEditor({ formId }: FormEditorProps) {
 
             {isStandalone && formId && (
               <div className="flex flex-col gap-2 border-t border-border pt-4">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider select-none">Standalone Link:</span>
+                <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase select-none">
+                  Standalone Link:
+                </span>
                 <div className="flex items-center gap-2">
                   <Input
                     readOnly
-                    value={typeof window !== "undefined" ? `${window.location.origin}/shared-forms/${formId}` : `/shared-forms/${formId}`}
-                    className="text-xs font-mono h-9 bg-muted/15 border-input/60 select-all"
+                    value={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/shared-forms/${formId}`
+                        : `/shared-forms/${formId}`
+                    }
+                    className="h-9 border-input/60 bg-muted/15 font-mono text-xs select-all"
                   />
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => {
                       const origin = window.location.origin
-                      navigator.clipboard.writeText(`${origin}/shared-forms/${formId}`)
+                      navigator.clipboard.writeText(
+                        `${origin}/shared-forms/${formId}`
+                      )
                       toast.success("Standalone link copied!")
                     }}
-                    className="h-9 font-semibold shrink-0 cursor-pointer flex items-center gap-1"
+                    className="flex h-9 shrink-0 cursor-pointer items-center gap-1 font-semibold"
                   >
                     <Copy className="h-3.5 w-3.5" />
                     <span>Copy</span>
