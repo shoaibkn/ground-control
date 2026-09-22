@@ -2,10 +2,15 @@
   "extends": "@workspace/typescript-config/base.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "declaration": false,
+    "declarationMap": false,
     "paths": {
       "@/*": ["./convex/*"]
     }
   },
   "include": ["convex/**/*"],
-  "exclude": ["node_modules", "convex/_generated"]
+  "exclude": ["node_modules"]
 }
