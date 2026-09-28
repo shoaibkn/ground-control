@@ -199,6 +199,8 @@ const updateStatus = useMutation(api.tasks.updateStatus).withOptimisticUpdate(
 )
 ```
 
-For more architectural details and contributing guides, refer to:
+For more architectural details, deployment instructions, and contributing guides, refer to:
 - [ARCHITECTURE.md](file:///Users/shoaibkn/Documents/Projects/ground-control/ARCHITECTURE.md)
+- [DEPLOYMENT.md](file:///Users/shoaibkn/Documents/Projects/ground-control/DEPLOYMENT.md)
 - [CONTRIBUTING.md](file:///Users/shoaibkn/Documents/Projects/ground-control/CONTRIBUTING.md)
+- [SENTDM_TEMPLATES.md](file:///Users/shoaibkn/Documents/Projects/ground-control/SENTDM_TEMPLATES.md)

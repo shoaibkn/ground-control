@@ -2,9 +2,6 @@
 
 This guide provides end-to-end, production-ready instructions for deploying all components of the **Ground Control** platform: the **Convex backend**, the **Next.js web application**, the **Expo mobile application**, and integrated third-party services (**Better Auth**, **Google OAuth**, **Resend**, and **Sent.dm**).
 
-> [!NOTE]
-> The primary copy of this deployment guide is maintained at the root of the repository in [DEPLOYMENT.md](file:///Users/shoaibkn/Documents/Projects/ground-control/DEPLOYMENT.md).
-
 ---
 
 ## 1. System Architecture & Topology
