@@ -45,6 +45,10 @@ export default defineSchema({
     subscriberIds: v.optional(v.array(v.string())),
     isArchived: v.boolean(),
     lastOverdueNotifiedAt: v.optional(v.number()),
+    overdueNotificationCount: v.optional(v.number()),
+    lastDueSoonNotifiedAt: v.optional(v.number()),
+    dueSoonNotifiedHours: v.optional(v.array(v.number())),
+    lastManualReminderAt: v.optional(v.number()),
     timeOfDay: v.optional(v.string()),
     recurrence: v.optional(
       v.object({
@@ -255,6 +259,44 @@ export default defineSchema({
         form_response_submitted: v.optional(v.string()),
       })
     ),
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }).index("by_organization", ["organizationId"]),
+
+  organizationReminderSettings: defineTable({
+    organizationId: v.string(),
+
+    // Due Soon Advance Policy
+    dueSoonEnabled: v.boolean(),
+    dueSoonNoticeHours: v.array(v.number()), // e.g. [24, 2]
+    dueSoonRecipients: v.object({
+      assignees: v.boolean(),
+      creator: v.boolean(),
+      collaborators: v.boolean(),
+    }),
+    dueSoonMinPriority: v.string(), // "all" | "medium_and_above" | "high_and_urgent"
+
+    // Overdue Alert Policy
+    overdueEnabled: v.boolean(),
+    overdueGraceMinutes: v.number(), // e.g. 0, 15, 30, 60
+    overdueRepeatIntervalHours: v.number(), // e.g. 24 (daily), 12, 48, 0 (once only)
+    overdueMaxRepetitions: v.optional(v.number()), // e.g. 3, 5, or undefined (unlimited)
+    overdueRecipients: v.object({
+      assignees: v.boolean(),
+      creator: v.boolean(),
+      adminsOnEscalation: v.boolean(),
+    }),
+    overdueEscalationThresholdDays: v.optional(v.number()), // e.g. 3 days
+
+    // Quiet Hours & Timezone
+    quietHoursEnabled: v.optional(v.boolean()),
+    timezone: v.optional(v.string()), // e.g. "UTC"
+    quietHoursStart: v.optional(v.string()), // "22:00"
+    quietHoursEnd: v.optional(v.string()), // "08:00"
+
+    // Custom Note
+    customReminderMessage: v.optional(v.string()),
+
     updatedAt: v.number(),
     updatedBy: v.string(),
   }).index("by_organization", ["organizationId"]),

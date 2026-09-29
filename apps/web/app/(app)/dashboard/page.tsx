@@ -1,18 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "../../../../../packages/backend/convex/_generated/api"
+import { authClient } from "@/lib/auth-client"
 import {
   TrendingUp,
   CheckCircle2,
   MessageSquare,
   Clock,
-  ArrowUpRight,
   Activity,
   CheckSquare,
   Calendar,
   Sparkles,
   ArrowRight,
   Plus,
+  FolderKanban,
+  Building,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -24,131 +29,220 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+import { toast } from "sonner"
+import { format, formatDistanceToNow } from "date-fns"
 import { usePageTitle } from "@/hooks/use-page-title"
-
-interface Task {
-  id: string
-  title: string
-  status: "Pending" | "In Progress" | "Completed"
-  priority: "High" | "Medium" | "Low"
-  dueDate: string
-}
-
-interface ActivityItem {
-  id: string
-  user: string
-  action: string
-  target: string
-  time: string
-  type: "task" | "approval" | "chat"
-}
+import { CreateTaskDialog } from "../tasks/components/create-task-dialog"
 
 export default function DashboardPage() {
+  const router = useRouter()
   usePageTitle("Dashboard")
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Review marketing launch campaign assets",
-      status: "In Progress",
-      priority: "High",
-      dueDate: "Today, 5:00 PM",
-    },
-    {
-      id: "2",
-      title: "Approve development sprint budget expansion",
-      status: "Pending",
-      priority: "Medium",
-      dueDate: "Tomorrow",
-    },
-    {
-      id: "3",
-      title: "Set up analytics tracking for new onboard flow",
-      status: "Completed",
-      priority: "Low",
-      dueDate: "Completed",
-    },
-    {
-      id: "4",
-      title: "Update security compliance documentation",
-      status: "Pending",
-      priority: "High",
-      dueDate: "May 25",
-    },
-  ])
+  const { data: session } = authClient.useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: activeMember } = authClient.useActiveMember()
 
-  const [activities, setActivities] = useState<ActivityItem[]>([
-    {
-      id: "1",
-      user: "Sarah Jenkins",
-      action: "created task",
-      target: "Design UI prototype components",
-      time: "10m ago",
-      type: "task",
-    },
-    {
-      id: "2",
-      user: "Michael Chen",
-      action: "requested approval for",
-      target: "Sprint 4 deploy guidelines",
-      time: "42m ago",
-      type: "approval",
-    },
-    {
-      id: "3",
-      user: "Alex Rivera",
-      action: "posted a message in",
-      target: "#product-launch",
-      time: "2 hours ago",
-      type: "chat",
-    },
-  ])
+  const orgId = activeOrg?.id
+
+  // Live Convex Queries
+  const tasks = useQuery(
+    api.tasks.getTasks,
+    orgId ? { organizationId: orgId } : "skip"
+  )
+
+  const approvals = useQuery(
+    api.approvals.getApprovals,
+    orgId ? { organizationId: orgId } : "skip"
+  )
+
+  const threads = useQuery(
+    api.inbox.getInboxThreads,
+    orgId ? { organizationId: orgId } : "skip"
+  )
+
+  const notifications = useQuery(
+    api.notifications.getUserNotifications,
+    orgId ? { organizationId: orgId, limit: 6 } : "skip"
+  )
+
+  const unreadCount = useQuery(
+    api.notifications.getUnreadCount,
+    orgId ? { organizationId: orgId } : "skip"
+  )
+
+  // Live Convex Mutations
+  const updateTaskStatus = useMutation(api.tasks.updateTaskStatus)
+
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
+
+  // User Greeting
+  const userFullName = session?.user?.name
+  const userFirstName = userFullName
+    ? userFullName.split(" ")[0]
+    : session?.user?.email
+      ? session.user.email.split("@")[0]
+      : "there"
+
+  // Metrics Calculation
+  const totalTasks = tasks?.length ?? 0
+  const activeTasks = useMemo(
+    () =>
+      tasks?.filter(
+        (t) => t.status !== "Completed" && t.status !== "Cancelled"
+      ) ?? [],
+    [tasks]
+  )
+  const completedTasks = useMemo(
+    () => tasks?.filter((t) => t.status === "Completed") ?? [],
+    [tasks]
+  )
+
+  const highPriorityActiveCount = useMemo(
+    () =>
+      activeTasks.filter(
+        (t) =>
+          t.priority === "High" ||
+          t.priority === "Urgent" ||
+          t.priority === "Critical"
+      ).length,
+    [activeTasks]
+  )
+
+  const pendingApprovalsCount = useMemo(
+    () => approvals?.filter((a) => a.status === "Pending").length ?? 0,
+    [approvals]
+  )
+
+  const completionRate =
+    totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0
+
+  const activeThreadsCount = threads?.length ?? 0
+  const unreadAlerts = unreadCount ?? 0
 
   const stats = [
     {
       title: "Active Tasks",
-      value: tasks.filter((t) => t.status !== "Completed").length.toString(),
-      description: "2 high priority items",
+      value: tasks === undefined ? "—" : activeTasks.length.toString(),
+      description:
+        tasks === undefined
+          ? "Loading tasks..."
+          : highPriorityActiveCount > 0
+            ? `${highPriorityActiveCount} high priority items`
+            : "All items on schedule",
       icon: CheckSquare,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
       title: "Pending Approvals",
-      value: "3",
-      description: "Requires action from you",
+      value: approvals === undefined ? "—" : pendingApprovalsCount.toString(),
+      description:
+        approvals === undefined
+          ? "Loading approvals..."
+          : pendingApprovalsCount > 0
+            ? `${pendingApprovalsCount} requiring action`
+            : "No pending reviews",
       icon: Clock,
       color: "text-amber-500",
       bg: "bg-amber-500/10",
     },
     {
-      title: "Active Chats",
-      value: "8",
-      description: "12 unread notifications",
+      title: "Active Threads",
+      value: threads === undefined ? "—" : activeThreadsCount.toString(),
+      description:
+        unreadAlerts > 0
+          ? `${unreadAlerts} unread notification${unreadAlerts > 1 ? "s" : ""}`
+          : "All discussions read",
       icon: MessageSquare,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
     },
     {
-      title: "Team Velocity",
-      value: "+18.4%",
-      description: "Compared to last sprint",
+      title: "Completion Rate",
+      value: tasks === undefined ? "—" : `${completionRate}%`,
+      description:
+        tasks === undefined
+          ? "Calculating..."
+          : `${completedTasks.length} of ${totalTasks} completed`,
       icon: TrendingUp,
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
     },
   ]
 
-  const handleToggleTask = (id: string) => {
-    setTasks(
-      tasks.map((t) => {
-        if (t.id === id) {
-          const newStatus = t.status === "Completed" ? "Pending" : "Completed"
-          return { ...t, status: newStatus }
-        }
-        return t
+  // Top 5 checklist tasks (active first, sorted by due date)
+  const sortedTasks = useMemo(() => {
+    if (!tasks) return []
+    return [...tasks]
+      .sort((a, b) => {
+        const aDone = a.status === "Completed" || a.status === "Cancelled"
+        const bDone = b.status === "Completed" || b.status === "Cancelled"
+        if (aDone !== bDone) return aDone ? 1 : -1
+        if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate
+        if (a.dueDate) return -1
+        if (b.dueDate) return 1
+        return b._creationTime - a._creationTime
       })
-    )
+      .slice(0, 5)
+  }, [tasks])
+
+  const handleToggleTask = async (
+    e: React.MouseEvent,
+    taskId: any,
+    currentStatus: string
+  ) => {
+    e.stopPropagation()
+    const newStatus = currentStatus === "Completed" ? "Pending" : "Completed"
+    try {
+      await updateTaskStatus({ taskId, status: newStatus })
+      toast.success(
+        newStatus === "Completed"
+          ? "Task marked as completed"
+          : "Task marked as pending"
+      )
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update task status")
+    }
+  }
+
+  const getPriorityBadgeProps = (priority: string) => {
+    const num = parseInt(priority, 10)
+    if (!isNaN(num)) {
+      if (num <= 3) return { variant: "outline" as const, label: `P${num} Low` }
+      if (num <= 7) return { variant: "secondary" as const, label: `P${num} Medium` }
+      return { variant: "destructive" as const, label: `P${num} High` }
+    }
+    switch (priority) {
+      case "Critical":
+      case "Urgent":
+      case "High":
+        return { variant: "destructive" as const, label: priority }
+      case "Normal":
+      case "Medium":
+        return { variant: "secondary" as const, label: priority }
+      default:
+        return { variant: "outline" as const, label: priority }
+    }
+  }
+
+  const formatDueDate = (timestamp?: number) => {
+    if (!timestamp) return { text: "No deadline", isOverdue: false }
+    const date = new Date(timestamp)
+    const isOverdue = timestamp < Date.now()
+    return {
+      text: format(date, "MMM d, yyyy"),
+      isOverdue,
+    }
+  }
+
+  const formatRelativeTime = (timestamp?: number) => {
+    if (!timestamp) return "recently"
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+    } catch {
+      return "recently"
+    }
   }
 
   return (
@@ -165,19 +259,32 @@ export default function DashboardPage() {
                 className="rounded-full border-primary/50 bg-primary/10 px-2.5 py-0.5 text-xs text-primary-foreground backdrop-blur-xs"
               >
                 <Sparkles className="mr-1 size-3.5 animate-pulse text-amber-400" />
-                V2 Layout Active
+                {activeOrg ? activeOrg.name : "Ground Control"}
               </Badge>
+              {activeMember?.role && (
+                <Badge
+                  variant="secondary"
+                  className="rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider"
+                >
+                  {activeMember.role}
+                </Badge>
+              )}
             </div>
             <h2 className="text-xl font-bold tracking-tight md:text-2xl">
-              Welcome back, John!
+              Welcome back, {userFirstName}!
             </h2>
             <p className="mt-1 text-sm text-neutral-400">
-              Here is what is happening across your projects today.
+              Here is what is happening across {activeOrg?.name || "your organization"} today.
             </p>
           </div>
-          <Button className="gap-1 rounded-xl bg-primary text-xs font-medium text-primary-foreground shadow-lg transition-all hover:bg-primary/95 hover:shadow-primary/20">
-            <Plus className="size-3.5" /> Quick Action
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => setIsCreateTaskOpen(true)}
+              className="gap-1.5 rounded-xl bg-primary text-xs font-medium text-primary-foreground shadow-lg transition-all hover:bg-primary/95 hover:shadow-primary/20"
+            >
+              <Plus className="size-3.5" data-icon="inline-start" /> Create Task
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -230,66 +337,108 @@ export default function DashboardPage() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => router.push("/tasks")}
               className="h-8 gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
             >
               View All <ArrowRight className="size-3" />
             </Button>
           </CardHeader>
-          <CardContent className="space-y-3 px-4 pt-0 pb-4">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                onClick={() => handleToggleTask(task.id)}
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all select-none ${
-                  task.status === "Completed"
-                    ? "border-muted/50 bg-muted/20 opacity-70"
-                    : "border-border/60 bg-card hover:border-border"
-                }`}
-              >
-                <div className="mt-0.5">
-                  <div
-                    className={`flex size-4 items-center justify-center rounded-sm border ${
-                      task.status === "Completed"
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-muted-foreground/40 hover:border-primary"
-                    }`}
-                  >
-                    {task.status === "Completed" && (
-                      <CheckCircle2 className="size-3 fill-emerald-500 text-white" />
-                    )}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`truncate text-xs leading-tight font-semibold ${
-                      task.status === "Completed"
-                        ? "text-muted-foreground line-through"
-                        : "text-foreground"
-                    }`}
-                  >
-                    {task.title}
-                  </p>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Calendar className="size-3" />
-                      {task.dueDate}
-                    </span>
-                    <Badge
-                      variant={
-                        task.priority === "High"
-                          ? "destructive"
-                          : task.priority === "Medium"
-                            ? "default"
-                            : "secondary"
-                      }
-                      className="rounded-md px-1.5 py-0 text-[9px]"
-                    >
-                      {task.priority}
-                    </Badge>
-                  </div>
-                </div>
+          <CardContent className="flex flex-col gap-3 px-4 pt-0 pb-4">
+            {tasks === undefined ? (
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
               </div>
-            ))}
+            ) : sortedTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/70 p-8 text-center">
+                <FolderKanban className="size-8 text-muted-foreground/60 mb-2" />
+                <p className="text-xs font-semibold text-foreground">
+                  No tasks recorded in this workspace
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground max-w-xs">
+                  Create a task to assign milestones, track progress, and organize team delivery.
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-3.5 h-8 gap-1 text-xs"
+                  onClick={() => setIsCreateTaskOpen(true)}
+                >
+                  <Plus className="size-3.5" data-icon="inline-start" /> Create Task
+                </Button>
+              </div>
+            ) : (
+              sortedTasks.map((task) => {
+                const priorityBadge = getPriorityBadgeProps(task.priority)
+                const dueInfo = formatDueDate(task.dueDate)
+                const isCompleted = task.status === "Completed"
+
+                return (
+                  <div
+                    key={task._id}
+                    onClick={() => router.push(`/tasks?taskId=${task._id}`)}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all select-none ${
+                      isCompleted
+                        ? "border-muted/50 bg-muted/20 opacity-70"
+                        : "border-border/60 bg-card hover:border-border hover:shadow-xs"
+                    }`}
+                  >
+                    <div
+                      className="mt-0.5"
+                      onClick={(e) => handleToggleTask(e, task._id, task.status)}
+                    >
+                      <div
+                        className={`flex size-4.5 items-center justify-center rounded-sm border transition-colors ${
+                          isCompleted
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-muted-foreground/40 hover:border-primary"
+                        }`}
+                      >
+                        {isCompleted && (
+                          <CheckCircle2 className="size-3.5 fill-emerald-500 text-white" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`truncate text-xs leading-tight font-semibold ${
+                          isCompleted
+                            ? "text-muted-foreground line-through"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {task.title}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`flex items-center gap-1 text-[10px] ${
+                            dueInfo.isOverdue && !isCompleted
+                              ? "font-medium text-rose-500"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          <Calendar className="size-3" />
+                          {dueInfo.isOverdue && !isCompleted ? "Overdue: " : ""}
+                          {dueInfo.text}
+                        </span>
+                        <Badge
+                          variant={priorityBadge.variant}
+                          className="rounded-md px-1.5 py-0 text-[9px]"
+                        >
+                          {priorityBadge.label}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="rounded-md px-1.5 py-0 text-[9px] text-muted-foreground"
+                        >
+                          {task.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </CardContent>
         </Card>
 
@@ -301,43 +450,70 @@ export default function DashboardPage() {
               Recent Feed
             </CardTitle>
             <CardDescription className="text-[10px]">
-              Updates from members of your organization.
+              Updates and dispatches from members of your workspace.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 space-y-4 px-4 pt-0 pb-4">
-            {activities.map((item, idx) => (
-              <div key={item.id} className="relative flex gap-3 text-xs">
-                {idx !== activities.length - 1 && (
-                  <div className="absolute top-6 bottom-[-20px] left-[9px] w-0.5 bg-border" />
-                )}
-                <div className="mt-0.5 flex size-5 items-center justify-center rounded-full border bg-muted text-[9px] font-semibold">
-                  {item.user[0]}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs leading-normal text-muted-foreground">
-                    <span className="font-semibold text-foreground">
-                      {item.user}
-                    </span>{" "}
-                    {item.action}{" "}
-                    <span className="font-semibold text-foreground">
-                      {item.target}
-                    </span>
-                  </p>
-                  <span className="mt-0.5 block text-[10px] text-muted-foreground">
-                    {item.time}
-                  </span>
-                </div>
+          <CardContent className="flex-1 flex flex-col gap-4 px-4 pt-0 pb-4">
+            {notifications === undefined ? (
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
               </div>
-            ))}
+            ) : notifications.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                <Activity className="size-8 text-muted-foreground/50 mb-2" />
+                <p className="text-xs font-medium text-foreground">No recent alerts</p>
+                <p className="text-[10px] mt-0.5 text-muted-foreground max-w-xs">
+                  Activity feeds, task notices, and approvals will populate here as work happens.
+                </p>
+              </div>
+            ) : (
+              notifications.map((item, idx) => {
+                const hasLink = !!item.link
+                return (
+                  <div
+                    key={item._id}
+                    onClick={() => {
+                      if (item.link) router.push(item.link)
+                    }}
+                    className={`relative flex gap-3 text-xs ${
+                      hasLink ? "cursor-pointer rounded-lg p-1.5 hover:bg-muted/40 transition-colors" : ""
+                    }`}
+                  >
+                    {idx !== notifications.length - 1 && (
+                      <div className="absolute top-6 bottom-[-20px] left-[9px] w-0.5 bg-border/60" />
+                    )}
+                    <div className="mt-0.5 flex size-5.5 shrink-0 items-center justify-center rounded-full border border-border bg-primary/10 text-primary text-[9px] font-bold">
+                      {item.title.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs leading-snug text-foreground font-medium">
+                        {item.title}
+                      </p>
+                      {item.message && (
+                        <p className="text-[11px] leading-snug text-muted-foreground line-clamp-2 mt-0.5">
+                          {item.message}
+                        </p>
+                      )}
+                      <span className="mt-1 block text-[9px] text-muted-foreground/80">
+                        {formatRelativeTime(item.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </CardContent>
-          <CardFooter className="border-t bg-muted/10 p-4">
+          <CardFooter className="border-t border-border/60 bg-muted/10 p-4">
             <div className="flex w-full items-center justify-between text-xs">
-              <span className="text-[10px] text-muted-foreground">
-                3 connected integrations
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                <Building className="size-3 text-muted-foreground" />
+                {activeOrg?.name || "Workspace"}
               </span>
               <Badge
                 variant="outline"
-                className="border-emerald-500/20 bg-emerald-500/5 text-[9px] text-emerald-500"
+                className="border-emerald-500/20 bg-emerald-500/5 text-[9px] text-emerald-500 font-medium"
               >
                 All Systems Normal
               </Badge>
@@ -345,6 +521,12 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
       </div>
+
+      {/* Create Task Dialog */}
+      <CreateTaskDialog
+        isOpen={isCreateTaskOpen}
+        setIsOpen={setIsCreateTaskOpen}
+      />
     </div>
   )
 }

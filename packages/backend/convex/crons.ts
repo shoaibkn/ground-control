@@ -10,10 +10,10 @@ crons.interval(
   internal.taskCron.checkOverdueTasks
 )
 
-// Run due soon task reminder check every 4 hours
+// Run due soon task reminder check every hour
 crons.interval(
   "Check due soon tasks",
-  { hours: 4 },
+  { hours: 1 },
   internal.taskCron.checkDueSoonTasks
 )
 

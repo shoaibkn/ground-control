@@ -62,6 +62,7 @@ import {
   Plus,
   Loader2,
   UserPlus,
+  BellRing,
   CheckSquare,
   Square,
   Sparkles,
@@ -682,6 +683,12 @@ export default function TaskDetailsSheet({
   const [chatToDelete, setChatToDelete] = useState<any | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
+  // Manual reminder state
+  const sendManualReminder = useMutation(api.taskReminders.sendManualTaskReminder)
+  const [isSendingReminder, setIsSendingReminder] = useState(false)
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false)
+  const [reminderNote, setReminderNote] = useState("")
+
   // Sync details when task updates
   useEffect(() => {
     if (task) {
@@ -751,6 +758,29 @@ export default function TaskDetailsSheet({
   }
 
   const canArchive = isAdminOrOwner || isCreator
+  const canSendReminder =
+    (isAdminOrOwner || isCreator) &&
+    Boolean(task?.assigneeIds && task.assigneeIds.length > 0)
+
+  const handleSendManualReminder = async () => {
+    if (!task) return
+    setIsSendingReminder(true)
+    try {
+      const res = await sendManualReminder({
+        taskId: task._id,
+        customNote: reminderNote.trim() || undefined,
+      })
+      toast.success(
+        `Reminder dispatched to ${res.recipientsCount} assignee(s)!`
+      )
+      setIsReminderDialogOpen(false)
+      setReminderNote("")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to dispatch reminder")
+    } finally {
+      setIsSendingReminder(false)
+    }
+  }
   const canEditTaskDetails = (isAdminOrOwner || isCreator) && !task?.isArchived
   const canUpdateStatus =
     (isAdminOrOwner || isCreator || isAssignee || isCollaborator) &&
@@ -1320,6 +1350,19 @@ export default function TaskDetailsSheet({
               </div>
 
               <div className="flex items-center gap-1.5">
+                {/* Manual Reminder Nudge */}
+                {canSendReminder && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => setIsReminderDialogOpen(true)}
+                    className="h-8 w-8 rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                    title="Nudge / Send Reminder to Assignees"
+                  >
+                    <BellRing className="h-4 w-4" />
+                  </Button>
+                )}
+
                 {/* Edit Icon (only accessible to admins and task creator) */}
                 {canEditTaskDetails && (
                   <Button
@@ -3515,6 +3558,50 @@ export default function TaskDetailsSheet({
                     onClick={handleDeleteTask}
                   >
                     Delete Task
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog
+              open={isReminderDialogOpen}
+              onOpenChange={setIsReminderDialogOpen}
+            >
+              <AlertDialogContent className="sm:max-w-[425px]">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <BellRing className="h-4 w-4 text-primary" />
+                    Send Reminder Nudge?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-xs text-muted-foreground">
+                    This will immediately dispatch an advance reminder notification to all assigned team members across In-App, Email, Push, and Messaging channels.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-2 space-y-1.5">
+                  <label className="text-[11px] font-semibold text-foreground">
+                    Optional Dispatch Note
+                  </label>
+                  <Input
+                    placeholder="e.g. Please review before today's standup."
+                    value={reminderNote}
+                    onChange={(e) => setReminderNote(e.target.value)}
+                    className="text-xs h-8"
+                  />
+                </div>
+                <AlertDialogFooter className="mt-2">
+                  <AlertDialogCancel className="h-8 text-xs">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isSendingReminder}
+                    className="h-8 bg-primary text-xs hover:bg-primary/95"
+                    onClick={handleSendManualReminder}
+                  >
+                    {isSendingReminder ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <BellRing className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Send Reminder
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

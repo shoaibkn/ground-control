@@ -26,6 +26,7 @@ import type * as permissions from "../permissions.js";
 import type * as taskAttachments from "../taskAttachments.js";
 import type * as taskChats from "../taskChats.js";
 import type * as taskCron from "../taskCron.js";
+import type * as taskReminders from "../taskReminders.js";
 import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
 
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   taskAttachments: typeof taskAttachments;
   taskChats: typeof taskChats;
   taskCron: typeof taskCron;
+  taskReminders: typeof taskReminders;
   tasks: typeof tasks;
   users: typeof users;
 }>;

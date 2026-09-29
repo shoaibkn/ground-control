@@ -1,143 +1,38 @@
 "use client"
 
+import React, { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Menu,
+  X,
   Loader2,
   LogOut,
   User,
-  Rocket,
+  Radio,
+  Sparkles,
+  ChevronRight,
+  ShieldCheck,
   CheckCircle2,
-  FileText,
-  Shield,
-  Activity,
   ClipboardList,
+  FileText,
+  MessageSquare,
+  Activity,
+  Layers,
 } from "lucide-react"
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@workspace/ui/components/accordion"
 import { Button } from "@workspace/ui/components/button"
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@workspace/ui/components/navigation-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet"
 import { cn } from "@workspace/ui/lib/utils"
-import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
-import { useRouter } from "next/navigation"
 
-interface MenuItem {
-  title: string
-  url: string
-  description?: string
-  icon?: React.ReactNode
-  items?: MenuItem[]
-}
-
-interface Navbar1Props {
+interface HeaderProps {
   className?: string
-  logo?: {
-    url: string
-    src: string
-    alt: string
-    title: string
-    className?: string
-  }
-  menu?: MenuItem[]
-  auth?: {
-    login: {
-      title: string
-      url: string
-    }
-    signup: {
-      title: string
-      url: string
-    }
-  }
 }
 
-const Navbar1 = ({
-  logo = {
-    url: "/",
-    src: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/logos/shadcnblockscom-icon.svg",
-    alt: "logo",
-    title: "Ground Control",
-  },
-  menu = [
-    { title: "Home", url: "/" },
-    {
-      title: "Features",
-      url: "#features",
-      items: [
-        {
-          title: "Task Management",
-          description:
-            "Multi-view tasks with status workflows, priorities, and recurring schedules",
-          icon: <CheckCircle2 className="size-5 shrink-0" />,
-          url: "#features",
-        },
-        {
-          title: "Approval Workflows",
-          description:
-            "Create approvals, assign approvers, and track decisions in real-time",
-          icon: <ClipboardList className="size-5 shrink-0" />,
-          url: "#features",
-        },
-        {
-          title: "Forms Builder",
-          description:
-            "Dynamic form builder with shareable forms linked to tasks and approvals",
-          icon: <FileText className="size-5 shrink-0" />,
-          url: "#features",
-        },
-        {
-          title: "Role-Based Permissions",
-          description:
-            "Granular permission matrices per organization with admin/member/guest control",
-          icon: <Shield className="size-5 shrink-0" />,
-          url: "#features",
-        },
-        {
-          title: "Real-Time Collaboration",
-          description:
-            "Chat threads, file attachments, reactions, and read receipts",
-          icon: <Activity className="size-5 shrink-0" />,
-          url: "#features",
-        },
-        {
-          title: "Audit Trail",
-          description:
-            "Comprehensive audit logging, notifications, and overdue task monitoring",
-          icon: <Rocket className="size-5 shrink-0" />,
-          url: "#features",
-        },
-      ],
-    },
-    { title: "How It Works", url: "#how-it-works" },
-    { title: "Beta", url: "#beta" },
-  ],
-  auth = {
-    login: { title: "Login", url: "/sign-in" },
-    signup: { title: "Sign up", url: "/sign-up" },
-  },
-  className,
-}: Navbar1Props) => {
+export function LandingHeader({ className }: HeaderProps) {
   const { data: session, isPending } = authClient.useSession()
   const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = async () => {
     await authClient.signOut({
@@ -151,252 +46,209 @@ const Navbar1 = ({
 
   const handleSmoothScroll = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    url: string
+    targetId: string
   ) => {
-    if (url.startsWith("#")) {
+    if (targetId.startsWith("#")) {
       e.preventDefault()
-      const el = document.getElementById(url.slice(1))
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth" })
+      setMobileMenuOpen(false)
+      const element = document.getElementById(targetId.slice(1))
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" })
       }
     }
   }
 
   return (
-    <section className={cn("py-4", className)}>
-      <div className="container">
-        {/* Desktop Menu */}
-        <nav className="hidden items-center justify-between lg:flex">
-          <div className="flex items-center gap-6">
-            {/* Logo */}
-            <Link href={logo.url} className="flex items-center gap-2">
-              <img
-                src={logo.src}
-                className="max-h-8 dark:invert"
-                alt={logo.alt}
-              />
-              <span className="text-lg font-semibold tracking-tighter">
-                {logo.title}
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full border-b border-white/[0.08] bg-[#07080a]/80 backdrop-blur-xl transition-all duration-300",
+        className
+      )}
+    >
+      <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Brand / Logo */}
+        <Link
+          href="/"
+          className="group flex items-center gap-3 transition-transform hover:scale-[1.02]"
+        >
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-zinc-950 shadow-[0_0_15px_rgba(6,182,212,0.25)] transition-all duration-300 group-hover:border-cyan-400/60 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+            <Radio className="size-4.5 text-cyan-400 transition-transform duration-500 group-hover:rotate-12" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+            </span>
+          </div>
+
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="font-heading text-base font-extrabold tracking-tight text-white">
+                GROUND CONTROL
               </span>
-            </Link>
-            <div className="flex items-center">
-              <NavigationMenu>
-                <NavigationMenuList>
-                  {menu.map((item) => renderMenuItem(item, handleSmoothScroll))}
-                </NavigationMenuList>
-              </NavigationMenu>
+              <span className="hidden rounded border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-cyan-400 uppercase sm:inline-block">
+                v1.0
+              </span>
             </div>
+            <span className="font-mono text-[9px] tracking-wider text-zinc-500 uppercase">
+              Mission Operations Platform
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            {isPending ? (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            ) : session ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="size-4" />
-                  <span>{session.user.name}</span>
-                </div>
-                <Button size="sm" variant="outline" onClick={handleLogout}>
-                  <LogOut className="mr-2 size-4" />
-                  Logout
-                </Button>
-                <Button size="sm" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={auth.login.url}>{auth.login.title}</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href={auth.signup.url}>{auth.signup.title}</Link>
-                </Button>
-              </>
-            )}
-          </div>
+        </Link>
+
+        {/* Desktop Navigation Links */}
+        <nav className="hidden items-center gap-1 md:flex">
+          <a
+            href="#capabilities"
+            onClick={(e) => handleSmoothScroll(e, "#capabilities")}
+            className="rounded-md px-3 py-1.5 font-mono text-xs font-medium text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+          >
+            Capabilities
+          </a>
+          <a
+            href="#command-center"
+            onClick={(e) => handleSmoothScroll(e, "#command-center")}
+            className="rounded-md px-3 py-1.5 font-mono text-xs font-medium text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+          >
+            Command Deck
+          </a>
+          <a
+            href="#sentdm"
+            onClick={(e) => handleSmoothScroll(e, "#sentdm")}
+            className="rounded-md px-3 py-1.5 font-mono text-xs font-medium text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+          >
+            Omnichannel
+          </a>
+          <a
+            href="#workflow"
+            onClick={(e) => handleSmoothScroll(e, "#workflow")}
+            className="rounded-md px-3 py-1.5 font-mono text-xs font-medium text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+          >
+            Workflow
+          </a>
+          <a
+            href="#beta-access"
+            onClick={(e) => handleSmoothScroll(e, "#beta-access")}
+            className="rounded-md px-3 py-1.5 font-mono text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10"
+          >
+            Beta Access
+          </a>
         </nav>
 
-        {/* Mobile Menu */}
-        <div className="block lg:hidden">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link href={logo.url} className="flex items-center gap-2">
-              <img
-                src={logo.src}
-                className="max-h-8 dark:invert"
-                alt={logo.alt}
-              />
-            </Link>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Menu className="size-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>
-                    <Link href={logo.url} className="flex items-center gap-2">
-                      <img
-                        src={logo.src}
-                        className="max-h-8 dark:invert"
-                        alt={logo.alt}
-                      />
-                    </Link>
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="flex flex-col gap-6 p-4">
-                  <Accordion
-                    type="single"
-                    collapsible
-                    className="flex w-full flex-col gap-4"
-                  >
-                    {menu.map((item) => renderMobileMenuItem(item))}
-                  </Accordion>
-
-                  {/* Legal Links */}
-                  <div className="flex flex-col gap-2 border-t border-zinc-800 pt-4">
-                    <Link
-                      href="/privacy"
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      Privacy Policy
-                    </Link>
-                    <Link
-                      href="/terms"
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      Terms of Service
-                    </Link>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {isPending ? (
-                      <Loader2 className="size-4 animate-spin self-center" />
-                    ) : session ? (
-                      <>
-                        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-                          <User className="size-4" />
-                          <span>{session.user.name}</span>
-                        </div>
-                        <Button variant="outline" onClick={handleLogout}>
-                          Logout
-                        </Button>
-                        <Button asChild>
-                          <Link href="/dashboard">Dashboard</Link>
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button asChild variant="outline">
-                          <Link href={auth.login.url}>{auth.login.title}</Link>
-                        </Button>
-                        <Button asChild>
-                          <Link href={auth.signup.url}>
-                            {auth.signup.title}
-                          </Link>
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+        {/* Live Status + Auth Action Group */}
+        <div className="flex items-center gap-3">
+          {/* Status Badge */}
+          <div className="hidden items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] text-zinc-400 xl:flex">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+            </span>
+            <span className="text-zinc-500">TELEMETRY:</span>
+            <span className="text-emerald-400">ACTIVE</span>
           </div>
+
+          {isPending ? (
+            <div className="flex h-9 w-20 items-center justify-center">
+              <Loader2 className="size-4 animate-spin text-zinc-400" />
+            </div>
+          ) : session ? (
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                size="sm"
+                className="h-8 border border-cyan-500/40 bg-cyan-500/10 px-3 font-mono text-xs text-cyan-300 hover:bg-cyan-500/20"
+              >
+                <Link href="/dashboard" className="flex items-center gap-1.5">
+                  <Activity className="size-3.5" />
+                  Console
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="h-8 px-2 text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
+                title="Sign out"
+              >
+                <LogOut className="size-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 font-mono text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+              >
+                <Link href="/sign-in">Sign In</Link>
+              </Button>
+
+              <Button
+                asChild
+                size="sm"
+                className="group relative h-8 overflow-hidden rounded-md border border-cyan-400/40 bg-gradient-to-r from-cyan-500 to-emerald-500 px-3.5 font-mono text-xs font-semibold text-zinc-950 shadow-[0_0_15px_rgba(6,182,212,0.35)] transition-all hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+              >
+                <Link href="/sign-up" className="flex items-center gap-1">
+                  <span>Deploy</span>
+                  <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {/* Mobile Menu Toggle Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.02] text-zinc-400 transition-colors hover:text-white md:hidden"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+          </button>
         </div>
       </div>
-    </section>
+
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="border-b border-white/[0.08] bg-[#07080a]/95 px-6 py-6 backdrop-blur-2xl md:hidden">
+          <nav className="flex flex-col space-y-3 font-mono text-sm">
+            <a
+              href="#capabilities"
+              onClick={(e) => handleSmoothScroll(e, "#capabilities")}
+              className="py-1 text-zinc-400 transition-colors hover:text-white"
+            >
+              Capabilities
+            </a>
+            <a
+              href="#command-center"
+              onClick={(e) => handleSmoothScroll(e, "#command-center")}
+              className="py-1 text-zinc-400 transition-colors hover:text-white"
+            >
+              Command Deck
+            </a>
+            <a
+              href="#sentdm"
+              onClick={(e) => handleSmoothScroll(e, "#sentdm")}
+              className="py-1 text-zinc-400 transition-colors hover:text-white"
+            >
+              Omnichannel Sent.dm
+            </a>
+            <a
+              href="#workflow"
+              onClick={(e) => handleSmoothScroll(e, "#workflow")}
+              className="py-1 text-zinc-400 transition-colors hover:text-white"
+            >
+              Mission Workflow
+            </a>
+            <a
+              href="#beta-access"
+              onClick={(e) => handleSmoothScroll(e, "#beta-access")}
+              className="py-1 text-cyan-400 transition-colors hover:text-cyan-300"
+            >
+              Request Beta Clearance
+            </a>
+          </nav>
+        </div>
+      )}
+    </header>
   )
 }
-
-const renderMenuItem = (
-  item: MenuItem,
-  handleSmoothScroll: (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    url: string
-  ) => void
-) => {
-  if (item.items) {
-    return (
-      <NavigationMenuItem key={item.title}>
-        <NavigationMenuTrigger>{item.title}</NavigationMenuTrigger>
-        <NavigationMenuContent className="bg-popover text-popover-foreground">
-          <div className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-            {item.items.map((subItem) => (
-              <SubMenuLink
-                key={subItem.title}
-                item={subItem}
-                onSmoothScroll={handleSmoothScroll}
-              />
-            ))}
-          </div>
-        </NavigationMenuContent>
-      </NavigationMenuItem>
-    )
-  }
-
-  return (
-    <NavigationMenuItem key={item.title}>
-      <NavigationMenuLink
-        asChild
-        className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-accent-foreground focus:bg-muted focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-      >
-        <Link href={item.url} onClick={(e) => handleSmoothScroll(e, item.url)}>
-          {item.title}
-        </Link>
-      </NavigationMenuLink>
-    </NavigationMenuItem>
-  )
-}
-
-const renderMobileMenuItem = (item: MenuItem) => {
-  if (item.items) {
-    return (
-      <AccordionItem key={item.title} value={item.title} className="border-b-0">
-        <AccordionTrigger className="text-md py-0 font-semibold hover:no-underline">
-          {item.title}
-        </AccordionTrigger>
-        <AccordionContent className="mt-2">
-          {item.items.map((subItem) => (
-            <SubMenuLink key={subItem.title} item={subItem} />
-          ))}
-        </AccordionContent>
-      </AccordionItem>
-    )
-  }
-
-  return (
-    <Link key={item.title} href={item.url} className="text-md font-semibold">
-      {item.title}
-    </Link>
-  )
-}
-
-const SubMenuLink = ({
-  item,
-  onSmoothScroll,
-}: {
-  item: MenuItem
-  onSmoothScroll?: (e: React.MouseEvent<HTMLAnchorElement>, url: string) => void
-}) => {
-  return (
-    <Link
-      className="flex flex-row gap-4 rounded-md p-3 leading-none no-underline transition-colors outline-none select-none hover:bg-muted hover:text-accent-foreground"
-      href={item.url}
-      onClick={onSmoothScroll ? (e) => onSmoothScroll(e, item.url) : undefined}
-    >
-      <div className="text-foreground">{item.icon}</div>
-      <div>
-        <div className="text-sm font-semibold">{item.title}</div>
-        {item.description && (
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {item.description}
-          </p>
-        )}
-      </div>
-    </Link>
-  )
-}
-
-export { Navbar1 }
+export { LandingHeader as Navbar1 }

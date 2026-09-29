@@ -18,6 +18,7 @@ import { Label } from "@workspace/ui/components/label"
 import { Switch } from "@workspace/ui/components/switch"
 import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
+import { Spinner } from "@workspace/ui/components/spinner"
 import { toast } from "sonner"
 import {
   Bell,
@@ -426,19 +427,19 @@ export default function NotificationSettings() {
   if (isOrgPending || profile === undefined) {
     return (
       <div className="flex h-48 w-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner className="size-6 text-muted-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       {/* Header Banner */}
       <div className="rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-muted/20 p-5 shadow-sm">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
+              <Bell className="size-5 text-primary" />
               <h3 className="text-lg font-semibold tracking-tight">
                 Notification Center
               </h3>
@@ -457,7 +458,7 @@ export default function NotificationSettings() {
             size="sm"
             className="shadow-sm"
           >
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving && <Spinner data-icon="inline-start" />}
             Save Preferences
           </Button>
         </div>

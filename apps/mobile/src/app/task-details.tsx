@@ -22,7 +22,8 @@ import {
   Send, 
   Trash2, 
   UserPlus,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ export default function TaskDetails() {
   const createComment = useMutation(api.taskChats.addChat);
   const registerAttachment = useMutation(api.taskAttachments.registerAttachment);
   const deleteAttachment = useMutation(api.taskAttachments.deleteAttachment);
+  const sendManualReminder = useMutation(api.taskReminders.sendManualTaskReminder);
 
   // States
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
@@ -64,6 +66,10 @@ export default function TaskDetails() {
   const [submittingSubtask, setSubmittingSubtask] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderNote, setReminderNote] = useState("");
+  const [sendingReminder, setSendingReminder] = useState(false);
 
   if (!activeOrg || task === undefined) {
     return (
@@ -114,6 +120,34 @@ export default function TaskDetails() {
   const canManageSubscribers = isAdminOrOwner || isCreator || isAssignee;
   const canAddComments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber;
   const canAddAttachments = isAdminOrOwner || isCreator || isAssignee || isCollaborator || isSubscriber;
+  const canSendReminder = (isAdminOrOwner || isCreator) && task.status !== "Completed" && task.status !== "Cancelled";
+
+  const handleSendManualReminder = async () => {
+    if (!task) return;
+    if (!task.assigneeIds || task.assigneeIds.length === 0) {
+      Alert.alert("No Assignees", "Please assign at least one member to the task before sending a reminder.");
+      return;
+    }
+
+    setSendingReminder(true);
+    try {
+      const res = await sendManualReminder({
+        taskId: task._id,
+        customNote: reminderNote.trim() || undefined,
+      });
+      setReminderModalOpen(false);
+      setReminderNote("");
+      Alert.alert(
+        "Reminder Dispatched",
+        `Sent instant notification to ${res.recipientsCount} assignee(s).`
+      );
+    } catch (err: any) {
+      console.error("Failed to send reminder", err);
+      Alert.alert("Failed to send reminder", err?.message || String(err));
+    } finally {
+      setSendingReminder(false);
+    }
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -394,6 +428,27 @@ export default function TaskDetails() {
                 </Text>
               </View>
             </View>
+
+            {/* On-Demand Reminder Nudge Button */}
+            {canSendReminder && (
+              <View className="pt-3 mt-1 border-t border-border">
+                <TouchableOpacity
+                  onPress={() => setReminderModalOpen(true)}
+                  className="flex-row items-center justify-center gap-2 py-2 px-3 rounded-lg bg-primary/10 border border-primary/20 active:bg-primary/20"
+                >
+                  <Bell size={13} className="text-primary" />
+                  <Text className="text-xs font-semibold text-primary">
+                    {task.lastManualReminderAt ? "Nudge Assignees Again" : "Send Reminder Now"}
+                  </Text>
+                </TouchableOpacity>
+                {task.lastManualReminderAt && (
+                  <Text className="text-[10px] text-muted-foreground text-center mt-1.5">
+                    Last reminder dispatched {new Date(task.lastManualReminderAt).toLocaleDateString()} at{" "}
+                    {new Date(task.lastManualReminderAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
         </Card>
 
@@ -694,6 +749,91 @@ export default function TaskDetails() {
               Done
             </Button>
           </Card>
+        </Pressable>
+      </Modal>
+
+      {/* Send Manual Reminder Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={reminderModalOpen}
+        onRequestClose={() => !sendingReminder && setReminderModalOpen(false)}
+      >
+        <Pressable 
+          className="flex-1 bg-black/75 justify-center items-center p-6"
+          onPress={() => !sendingReminder && setReminderModalOpen(false)}
+        >
+          <Pressable 
+            className="w-full"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Card className="w-full p-5 gap-4 bg-background border-border shadow-2xl">
+              <View className="flex-row items-center gap-2.5">
+                <View className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center">
+                  <Bell size={16} className="text-primary" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-foreground">
+                    Send Reminder
+                  </Text>
+                  <Text className="text-xs text-muted-foreground">
+                    Dispatches an immediate alert to all assigned members
+                  </Text>
+                </View>
+              </View>
+
+              <View className="p-3 bg-card border border-border rounded-lg">
+                <Text className="text-xs text-foreground font-semibold">
+                  Recipients ({task.assigneeIds?.length || 0}):
+                </Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
+                  {(task.assigneeIds || [])
+                    .map((id) => getMemberDetails(id)?.name || "Member")
+                    .join(", ") || "No assignees"}
+                </Text>
+              </View>
+
+              <View className="gap-1.5">
+                <Text className="text-xs font-semibold text-foreground">
+                  Custom Note (optional)
+                </Text>
+                <TextInput
+                  className="bg-card border border-border rounded-lg p-2.5 text-xs text-foreground min-h-[70px]"
+                  placeholder="e.g. Please update your progress ahead of today's review..."
+                  placeholderTextColor="#64748B"
+                  value={reminderNote}
+                  onChangeText={setReminderNote}
+                  editable={!sendingReminder}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View className="flex-row gap-2 mt-1">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10 border-border"
+                  onPress={() => setReminderModalOpen(false)}
+                  disabled={sendingReminder}
+                >
+                  <Text className="text-xs text-foreground font-medium">Cancel</Text>
+                </Button>
+                <Button
+                  className="flex-1 h-10 bg-primary"
+                  onPress={handleSendManualReminder}
+                  disabled={sendingReminder || !task.assigneeIds?.length}
+                >
+                  {sendingReminder ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text className="text-xs text-primary-foreground font-semibold">
+                      Send Nudge
+                    </Text>
+                  )}
+                </Button>
+              </View>
+            </Card>
+          </Pressable>
         </Pressable>
       </Modal>
     </SafeAreaView>

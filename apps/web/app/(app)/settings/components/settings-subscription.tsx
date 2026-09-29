@@ -1,4 +1,5 @@
 "use client"
+
 import { authClient } from "@/lib/auth-client"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 
 export default function SubscriptionSettings() {
   const { data: activeMember, isPending } = authClient.useActiveMember()
@@ -19,9 +21,13 @@ export default function SubscriptionSettings() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {!isPending && !canManageSubscription && (
-        <div className="animate-in rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs font-medium text-destructive duration-200 fade-in md:col-span-2 lg:col-span-3">
-          Subscription plan management is restricted to organization owners and
-          administrators.
+        <div className="md:col-span-2 lg:col-span-3">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Subscription plan management is restricted to organization owners
+              and administrators.
+            </AlertDescription>
+          </Alert>
         </div>
       )}
 
@@ -37,7 +43,7 @@ export default function SubscriptionSettings() {
               /mo
             </span>
           </div>
-          <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
             <li className="flex items-center">✓ 1 Member limit</li>
             <li className="flex items-center">✓ Basic support</li>
           </ul>
@@ -64,7 +70,7 @@ export default function SubscriptionSettings() {
               /mo
             </span>
           </div>
-          <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
             <li className="flex items-center">✓ Up to 10 Members</li>
             <li className="flex items-center">✓ Priority support</li>
             <li className="flex items-center">✓ Advanced analytics</li>
@@ -92,7 +98,7 @@ export default function SubscriptionSettings() {
               /mo
             </span>
           </div>
-          <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
             <li className="flex items-center">✓ Unlimited Members</li>
             <li className="flex items-center">✓ 24/7 dedicated support</li>
             <li className="flex items-center">✓ Custom integrations</li>

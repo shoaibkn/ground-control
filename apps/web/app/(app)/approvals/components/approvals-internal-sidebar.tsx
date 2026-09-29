@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
+import { Badge } from "@workspace/ui/components/badge"
 import {
   Filter,
   Inbox,
@@ -119,7 +120,7 @@ export default function ApprovalsSidebar({
                   <div className="flex items-center gap-2.5">
                     <Icon
                       className={cn(
-                        "h-4 w-4 shrink-0",
+                        "size-4 shrink-0",
                         activeFilter === filter.id
                           ? "text-primary-foreground"
                           : filter.color
@@ -127,16 +128,17 @@ export default function ApprovalsSidebar({
                     />
                     <span>{filter.label}</span>
                   </div>
-                  <span
+                  <Badge
+                    variant={activeFilter === filter.id ? "secondary" : "outline"}
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-xs",
+                      "px-1.5 py-0.5 text-[10px]",
                       activeFilter === filter.id
-                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        ? "bg-primary-foreground/20 text-primary-foreground border-transparent"
                         : "bg-muted text-muted-foreground group-hover:bg-background"
                     )}
                   >
                     {filter.count}
-                  </span>
+                  </Badge>
                 </button>
               )
             })}

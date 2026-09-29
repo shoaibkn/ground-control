@@ -10,8 +10,13 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import { Input } from "@workspace/ui/components/input"
-import { Label } from "@workspace/ui/components/label"
-import { Loader2 } from "lucide-react"
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+} from "@workspace/ui/components/field"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
+import { Spinner } from "@workspace/ui/components/spinner"
 import { useEffect, useState } from "react"
 
 export default function OrganisationSettings() {
@@ -55,48 +60,51 @@ export default function OrganisationSettings() {
   }
 
   return (
-    <Card className="w-full p-2 md:w-2/3 lg:w-1/2">
-      <CardHeader className="p-0">
-        <CardTitle className="p-0">Organization Details</CardTitle>
-        <CardDescription className="p-0">
+    <Card className="w-full md:w-2/3 lg:w-1/2">
+      <CardHeader>
+        <CardTitle>Organization Details</CardTitle>
+        <CardDescription>
           Update your organization's general information.
         </CardDescription>
       </CardHeader>
-      <form className="p-0" onSubmit={handleUpdateOrg}>
-        <CardContent className="space-y-4 p-0">
-          <div className="space-y-1">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="Acme Inc."
-              disabled={isPending || !isOwner}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="slug">Slug</Label>
-            <Input
-              id="slug"
-              value={orgSlug}
-              onChange={(e) => setOrgSlug(e.target.value)}
-              placeholder="acme-inc"
-              disabled={isPending || !isOwner}
-            />
-          </div>
-          {!isPending && !isOwner && (
-            <p className="mt-2 animate-in text-xs text-destructive duration-200 fade-in">
-              Only organization owners can modify organization details.
-            </p>
-          )}
+      <form onSubmit={handleUpdateOrg}>
+        <CardContent>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="name">Name</FieldLabel>
+              <Input
+                id="name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="Acme Inc."
+                disabled={isPending || !isOwner}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="slug">Slug</FieldLabel>
+              <Input
+                id="slug"
+                value={orgSlug}
+                onChange={(e) => setOrgSlug(e.target.value)}
+                placeholder="acme-inc"
+                disabled={isPending || !isOwner}
+              />
+            </Field>
+            {!isPending && !isOwner && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Only organization owners can modify organization details.
+                </AlertDescription>
+              </Alert>
+            )}
+          </FieldGroup>
         </CardContent>
-        <CardFooter className="p-0">
+        <CardFooter className="justify-end">
           <Button
-            className="mt-4"
             type="submit"
             disabled={isUpdatingOrg || isPending || !activeOrg || !isOwner}
           >
-            {isUpdatingOrg && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isUpdatingOrg && <Spinner data-icon="inline-start" />}
             Save changes
           </Button>
         </CardFooter>

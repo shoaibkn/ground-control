@@ -18,6 +18,7 @@ import { Label } from "@workspace/ui/components/label"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -383,20 +384,25 @@ export function CreateTaskDialog({ isOpen, setIsOpen }: CreateTaskDialogProps) {
                   task.
                 </p>
               </div>
-              <select
-                id="required-form"
+              <Select
                 value={formId}
-                onChange={(e) => setFormId(e.target.value)}
+                onValueChange={setFormId}
                 disabled={isSubmitting}
-                className="mt-1 w-full cursor-pointer rounded-md border border-border/75 bg-background px-2 py-1.5 text-xs font-medium text-foreground outline-none hover:bg-muted/30"
               >
-                <option value="none">None (No form required)</option>
-                {forms?.map((f: any) => (
-                  <option key={f._id} value={f._id}>
-                    {f.title}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="required-form" className="mt-1 w-full text-xs">
+                  <SelectValue placeholder="Select form" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="none">None (No form required)</SelectItem>
+                    {forms?.map((f: any) => (
+                      <SelectItem key={f._id} value={f._id}>
+                        {f.title}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Recurring Task Toggle */}

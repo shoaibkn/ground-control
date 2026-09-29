@@ -15,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
+import { Spinner } from "@workspace/ui/components/spinner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -480,9 +482,9 @@ export default function MemberSettings() {
           </CardHeader>
           <form className="p-0" onSubmit={handleInviteMember}>
             {errorMessage && (
-              <div className="mb-4 animate-in rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs font-medium text-destructive duration-200 fade-in">
-                {errorMessage}
-              </div>
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
             )}
             <CardContent className="flex flex-col gap-4 p-0 sm:flex-row">
               <div className="flex-1 space-y-1">
@@ -530,9 +532,7 @@ export default function MemberSettings() {
                   isInviting || !inviteEmail || !activeOrg || isMemberPending
                 }
               >
-                {isInviting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isInviting && <Spinner data-icon="inline-start" />}
                 Send Invite
               </Button>
             </CardFooter>
@@ -550,7 +550,7 @@ export default function MemberSettings() {
         <CardContent className="p-0">
           {isOrgPending ? (
             <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Spinner className="size-8 text-muted-foreground" />
             </div>
           ) : (
             <Tabs defaultValue="members">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { authClient } from "../lib/auth-client";
 import { useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Bell, ChevronRight } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,8 @@ export default function SettingsScreen() {
   const { data: session } = authClient.useSession();
   const { data: activeOrg } = authClient.useActiveOrganization();
   const { data: activeMember } = authClient.useActiveMember();
+
+  const isAdminOrOwner = activeMember?.role === "admin" || activeMember?.role === "owner";
 
   const handleSignOut = async () => {
     setLoggingOut(true);
@@ -83,6 +85,39 @@ export default function SettingsScreen() {
             <Text className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Active Workspace</Text>
             <Text className="text-sm font-semibold text-foreground">{activeOrg.name}</Text>
             <Text className="text-xs text-muted-foreground">Slug: {activeOrg.slug}</Text>
+          </Card>
+        )}
+
+        {/* Organization Admin Settings */}
+        {isAdminOrOwner && (
+          <Card className="p-4 mx-4 bg-card border-border gap-3">
+            <View>
+              <Text className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Workspace Administration
+              </Text>
+              <Text className="text-xs text-muted-foreground mt-0.5">
+                Configure organization-wide rules and notifications
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => router.push("/reminder-settings" as any)}
+              className="flex-row items-center justify-between p-3.5 rounded-xl bg-accent/40 border border-border"
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center gap-3 flex-1 pr-2">
+                <View className="w-10 h-10 rounded-lg bg-primary/10 items-center justify-center">
+                  <Bell size={20} className="text-primary" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground">Task Reminders</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5 leading-4">
+                    Advance notices, overdue repeats, quiet hours & escalations
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={18} className="text-muted-foreground" />
+            </TouchableOpacity>
           </Card>
         )}
 

@@ -14,8 +14,12 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { Switch } from "@workspace/ui/components/switch"
 import { Label } from "@workspace/ui/components/label"
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@workspace/ui/components/toggle-group"
+import { Spinner } from "@workspace/ui/components/spinner"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
 
 const AVAILABLE_PERMISSIONS = {
   tasks: [
@@ -81,7 +85,7 @@ export default function PermissionsSettings() {
   if (permissions === undefined)
     return (
       <div className="flex h-32 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner className="size-6 text-muted-foreground" />
       </div>
     )
 
@@ -144,22 +148,28 @@ export default function PermissionsSettings() {
           Configure granular access controls for roles in your organization.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Role Selector */}
-        <div className="flex flex-wrap gap-2">
-          {(["owner", "admin", "member"] as const).map((role) => (
-            <Button
-              key={role}
-              variant={selectedRole === role ? "default" : "outline"}
-              onClick={() => setSelectedRole(role)}
-              className="capitalize"
-            >
-              {role}
-            </Button>
-          ))}
-        </div>
+      <CardContent className="flex flex-col gap-6">
+        {/* Role Selector using ToggleGroup */}
+        <ToggleGroup
+          type="single"
+          value={selectedRole}
+          onValueChange={(val) => {
+            if (val) setSelectedRole(val as "owner" | "admin" | "member")
+          }}
+          variant="outline"
+        >
+          <ToggleGroupItem value="owner" className="capitalize">
+            Owner
+          </ToggleGroupItem>
+          <ToggleGroupItem value="admin" className="capitalize">
+            Admin
+          </ToggleGroupItem>
+          <ToggleGroupItem value="member" className="capitalize">
+            Member
+          </ToggleGroupItem>
+        </ToggleGroup>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">
             Tasks Permissions ({selectedRole})
           </h3>
@@ -170,7 +180,7 @@ export default function PermissionsSettings() {
                 key={perm.id}
                 className="flex flex-row items-center justify-between rounded-lg p-2 transition-colors hover:bg-accent/50"
               >
-                <div className="space-y-0.5">
+                <div className="flex flex-col gap-0.5">
                   <Label className="text-base">{perm.label}</Label>
                   <p className="text-sm text-muted-foreground">
                     {perm.description}

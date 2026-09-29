@@ -1,5 +1,5 @@
 "use client"
-import { Building, CreditCard, Users, Bell } from "lucide-react"
+import { Building, CreditCard, Users, Bell, AlarmClock } from "lucide-react"
 import {
   Tabs,
   TabsContent,
@@ -11,6 +11,7 @@ import MemberSettings from "./components/settings-member"
 import SubscriptionSettings from "./components/settings-subscription"
 import PermissionsSettings from "./components/settings-permissions"
 import NotificationSettings from "./components/settings-notifications"
+import RemindersSettings from "./components/settings-reminders"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
@@ -28,14 +29,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-1 md:p-2">
+    <div className="flex flex-1 flex-col gap-4 p-1 md:p-2">
       <Toaster />
 
       <Tabs
         defaultValue={tab || "organization"}
         value={tab}
         onValueChange={handleTabChange}
-        className="space-y-2"
+        className="flex flex-col gap-2"
       >
         <TabsList
           className={cn(
@@ -47,71 +48,67 @@ export default function SettingsPage() {
             value="organization"
             className="flex shrink-0 items-center gap-2 md:h-fit"
           >
-            <Building
-              className={cn("h-4 w-4", { "size-4": isMobile })}
-              strokeWidth={1}
-            />
+            <Building className="size-4" strokeWidth={1.5} />
             {!isMobile && <span>Organization</span>}
           </TabsTrigger>
           <TabsTrigger
             value="members"
             className="flex shrink-0 items-center gap-2"
           >
-            <Users
-              className={cn("h-4 w-4", { "size-4": isMobile })}
-              strokeWidth={1}
-            />
+            <Users className="size-4" strokeWidth={1.5} />
             {!isMobile && <span>Members</span>}
           </TabsTrigger>
           <TabsTrigger
             value="notifications"
             className="flex shrink-0 items-center gap-2"
           >
-            <Bell
-              className={cn("h-4 w-4", { "size-4": isMobile })}
-              strokeWidth={1}
-            />
+            <Bell className="size-4" strokeWidth={1.5} />
             {!isMobile && <span>Notifications</span>}
+          </TabsTrigger>
+          <TabsTrigger
+            value="reminders"
+            className="flex shrink-0 items-center gap-2"
+          >
+            <AlarmClock className="size-4" strokeWidth={1.5} />
+            {!isMobile && <span>Task Reminders</span>}
           </TabsTrigger>
           <TabsTrigger
             value="permissions"
             className="flex shrink-0 items-center gap-2"
           >
-            <Users
-              className={cn("h-4 w-4", { "size-4": isMobile })}
-              strokeWidth={1}
-            />
+            <Users className="size-4" strokeWidth={1.5} />
             {!isMobile && <span>Permissions</span>}
           </TabsTrigger>
           <TabsTrigger
             value="subscription"
             className="flex shrink-0 items-center gap-2"
           >
-            <CreditCard
-              className={cn("h-4 w-4", { "size-4": isMobile })}
-              strokeWidth={1}
-            />
+            <CreditCard className="size-4" strokeWidth={1.5} />
             {!isMobile && <span>Subscription</span>}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="organization" className="space-y-2">
+        <TabsContent value="organization" className="flex flex-col gap-2">
           <OrganisationSettings />
         </TabsContent>
 
-        <TabsContent value="members" className="space-y-4">
+        <TabsContent value="members" className="flex flex-col gap-4">
           <MemberSettings />
         </TabsContent>
 
-        <TabsContent value="notifications" className="space-y-4">
+        <TabsContent value="notifications" className="flex flex-col gap-4">
           <NotificationSettings />
         </TabsContent>
 
-        <TabsContent value="permissions" className="space-y-4">
+        <TabsContent value="reminders" className="flex flex-col gap-4">
+          <RemindersSettings />
+        </TabsContent>
+
+        <TabsContent value="permissions" className="flex flex-col gap-4">
           <PermissionsSettings />
         </TabsContent>
 
-        <TabsContent value="subscription" className="space-y-4">
+        <TabsContent value="subscription" className="flex flex-col gap-4">
           <SubscriptionSettings />
         </TabsContent>
       </Tabs>

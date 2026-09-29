@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { TaskCalendar } from "./calendar"
 import { Button } from "@workspace/ui/components/button"
+import { Badge } from "@workspace/ui/components/badge"
 import { Calendar, Filter, Inbox, Clock, CheckCircle } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import {
@@ -93,19 +94,20 @@ export default function TasksSidebar({
                   )}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className="size-4 shrink-0" />
                     <span>{filter.label}</span>
                   </div>
-                  <span
+                  <Badge
+                    variant={activeFilter === filter.id ? "secondary" : "outline"}
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-xs",
+                      "px-1.5 py-0.5 text-[10px]",
                       activeFilter === filter.id
-                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        ? "bg-primary-foreground/20 text-primary-foreground border-transparent"
                         : "bg-muted text-muted-foreground group-hover:bg-background"
                     )}
                   >
                     {filter.count}
-                  </span>
+                  </Badge>
                 </button>
               )
             })}
@@ -121,7 +123,7 @@ export default function TasksSidebar({
                 key={tag.id}
                 className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
               >
-                <div className={cn("h-2 w-2 rounded-full", tag.color)} />
+                <div className={cn("size-2 rounded-full", tag.color)} />
                 <span>{tag.label}</span>
               </button>
             ))}
