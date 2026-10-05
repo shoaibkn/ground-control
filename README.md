@@ -47,6 +47,34 @@ Ground Control is an enterprise-ready operations, task, and approval management 
 
 ---
 
+## Upcoming Features: AI & Intelligent Operations
+
+Ground Control is evolving from a real-time system of record into an active operational intelligence engine. The following AI-powered capabilities are currently on the product roadmap:
+
+### 1. Intelligent Approvals & Executive Decision Support
+- **AI Pre-Flight & Contract Risk Analyzer**: Automatically analyzes attached legal documents, procurement quotes, and budgets to surface anomalies, clause omissions, or policy violations before sign-off.
+- **Smart Routing & Approver Recommender**: Inferences departmental scope and financial thresholds to suggest missing approvers or automatic multi-stage escalation.
+- **Rework Action Plan Generator**: Translates approver feedback into structured corrective tasks automatically assigned to the requester.
+
+### 2. Task Automation & Productivity Copilot
+- **"Break It Down" Subtask Generator**: Single-click decomposition of high-level initiatives into sequenced checklist milestones and suggested due dates.
+- **Voice & Meeting Notes to Tasks**: Paste call transcripts or dictate voice memos on mobile to automatically extract action items, detect deadlines, and assign team members.
+- **Discussion Thread Summarizer**: One-tap executive synthesis of long task and approval comment threads, highlighting decisions, blockers, and open questions.
+
+### 3. Dynamic Form & Document Intelligence
+- **"Prompt-to-Form" Builder**: Generate full-featured forms with typed inputs, dropdowns, validations, and conditional logic from natural language descriptions.
+- **Multimodal Document & Receipt Autofill**: Upload invoices, receipts, or IDs to form fields to automatically parse and populate structured input values via multimodal OCR.
+
+### 4. Workspace Intelligence & Executive Reporting
+- **Ground Control Copilot (Workspace RAG)**: Natural language Q&A across all organization tasks, approvals, discussion threads, and audit logs powered by Convex Vector Search.
+- **Daily Executive Standup Briefing**: Personalized morning briefs delivered via In-App, Email, or WhatsApp summarizing urgent approvals, due items, and team wins.
+- **Proactive Bottleneck & SLA Predictor**: Sentiment and velocity analysis to detect tasks and approvals at risk of missing deadlines before delays occur.
+
+### 5. Two-Way Omnichannel Operations
+- **Conversational Task & Approval Updates**: Approve, decline, request rework, mark tasks complete, and leave audit-stamped comments directly via WhatsApp, SMS, or RCS without opening the app.
+
+---
+
 ## Tech Stack
 
 | Layer | Technologies |
